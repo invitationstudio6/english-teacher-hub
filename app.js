@@ -243,7 +243,7 @@ function makeBook(age, level) {
 }
 const books = [...kids.map(l => makeBook('Kids', l)), ...teens.map(l => makeBook('Teens', l)), ...adults.map(l => makeBook('Adults', l))];
 const allVocab = levels.flatMap(l => VOCAB[l].map((w, i) => ({ ...w, level: l, icon: icons[i % icons.length], topic: TOPICS[i % TOPICS.length].title })));
-const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: JSON.parse(localStorage.getItem('lf_homework') || '[]'), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false };
+const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: JSON.parse(localStorage.getItem('lf_homework') || '[]'), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false };
 function save() { localStorage.setItem('lf_students', JSON.stringify(state.student)); localStorage.setItem('lf_homework', JSON.stringify(state.homework)); localStorage.setItem('lf_plans', JSON.stringify(state.plans)); }
 
 /* ---------------- Shell & navigation ---------------- */
@@ -300,28 +300,87 @@ const grammarBooks = [
   { id: 'advanced', title: 'Advanced Grammar in Use', subtitle: 'Advanced', band: ['C1', 'C2'], c1: '#23935f', c2: '#0f5433' }
 ];
 function bookFor(level) { return grammarBooks.find(b => b.band.includes(level)); }
-function bookUnits(book) { const out = []; let n = 0; book.band.forEach(lv => GRAMMAR.filter(g => g.range.includes(lv)).forEach(g => out.push({ g, lv, n: ++n }))); return out; }
+/* Murphy-style pedagogical arc (like English Grammar in Use) — our own units, same learning sequence */
+const GRAMMAR_SEQ = ['be-have', 'present-simple', 'present-continuous', 'past-simple', 'present-perfect', 'future-forms', 'modals', 'conditionals', 'passive', 'reported-speech', 'relative-clauses', 'comparatives', 'articles', 'plurals-demo', 'advanced'];
+const GRAMMAR_PARTS = {
+  A: { name: 'Present & Past', ids: ['be-have', 'present-simple', 'present-continuous', 'past-simple'] },
+  B: { name: 'Present Perfect & Future', ids: ['present-perfect', 'future-forms'] },
+  C: { name: 'Modals & Conditionals', ids: ['modals', 'conditionals'] },
+  D: { name: 'Passive & Reported Speech', ids: ['passive', 'reported-speech'] },
+  E: { name: 'Clauses & Comparison', ids: ['relative-clauses', 'comparatives'] },
+  F: { name: 'Articles, Plurals & Advanced', ids: ['articles', 'plurals-demo', 'advanced'] }
+};
+function partOf(id) { for (const k in GRAMMAR_PARTS) if (GRAMMAR_PARTS[k].ids.includes(id)) return k; return 'F'; }
+function gramOrder(g) { const i = GRAMMAR_SEQ.indexOf(g.id); return i === -1 ? 999 : i; }
+function bookUnits(book) { const out = []; let n = 0; book.band.forEach(lv => GRAMMAR.filter(g => g.range.includes(lv)).sort((a, b) => gramOrder(a) - gramOrder(b)).forEach(g => out.push({ g, lv, n: ++n }))); return out; }
 function grammarUnitCard(u, book) {
   const g = u.g, lv = u.lv;
   const e = g.levels[lv] || g.levels[g.range[0]];
   const tp = tensePos(g.id);
   const ex = grammarExercises(g, lv, u.n * 5 + 1);
-  return `<div class="card giu"><div class="giu-head"><span class="giu-num" style="--c:${book.c1}">Unit ${u.n}</span><span class="muted small">${book.title} · ${lv}</span></div><h3>${g.title}</h3>${tp ? `<div class="tl">${timelineSVG(tp)}</div>` : ''}<div class="giu-split"><div class="bank giu-study"><span class="banktag">STUDY · Explanation</span><div class="gquick"><b>In one line:</b> ${e.quick || e.use}</div><p class="formula">${e.form}</p><p><b>Use.</b> ${e.use}</p><ul class="examples">${e.examples.map(x => `<li>${x}</li>`).join('')}</ul><p class="warn">⚠ ${e.error}</p><button class="btn light morebtn" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📖 Read the extended explanation</button><div class="gmore">${e.more || ''}</div></div><div class="bank ex giu-ex"><span class="banktag green">EXERCISES · Check</span>${ex.map((x, j) => `<div class="q wbq"><b>${j + 1}. ${x.q}</b>${x.intro ? '<p class="muted small">Is the statement correct? The study box above confirms it.</p>' : ''}<select class="input"><option value="">— choose —</option>${x.opts.map(o => `<option value="${esc(o)}" ${o === x.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check answers</button><div class="wbfb"></div></div></div></div>`;
+  return `<div class="card giu"><div class="giu-head"><span class="giu-num" style="--c:${book.c1}">Unit ${u.n}</span><span class="pill partpill">Part ${partOf(g.id)} · ${GRAMMAR_PARTS[partOf(g.id)].name}</span><span class="muted small">${book.title} · ${lv}</span></div><h3>${g.title}</h3>${tp ? `<div class="tl">${timelineSVG(tp)}</div>` : ''}<div class="giu-split"><div class="bank giu-study"><span class="banktag">STUDY · Explanation</span><div class="gquick"><b>In one line:</b> ${e.quick || e.use}</div><p class="formula">${e.form}</p><p><b>Use.</b> ${e.use}</p><ul class="examples">${e.examples.map(x => `<li>${x}</li>`).join('')}</ul><p class="warn">⚠ ${e.error}</p><button class="btn light morebtn" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📖 Read the extended explanation</button><div class="gmore">${e.more || ''}</div></div><div class="bank ex giu-ex"><span class="banktag green">EXERCISES · Check</span>${ex.map((x, j) => `<div class="q wbq"><b>${j + 1}. ${x.q}</b>${x.intro ? '<p class="muted small">Is the statement correct? The study box above confirms it.</p>' : ''}<select class="input"><option value="">— choose —</option>${x.opts.map(o => `<option value="${esc(o)}" ${o === x.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check answers</button><div class="wbfb"></div></div></div></div>`;
 }
 function grammarPage() {
-  const filterRow = `<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}</div>`;
+  const filterRow = `<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';state.gunit=null;state.vunit=null;render()">${x}</button>`).join('')}</div>`;
   if (state.level === 'All') {
-    return `<div class="section"><h2>Grammar in Use</h2><p class="muted">A three-book reference grammar organised by CEFR level, like the classic Cambridge “in Use” series. Choose a book, then a level, and work through the numbered units — the explanation sits on the left, the exercises on the right, and every answer is checked instantly.</p>${bannerSVG('grammar')}${filterRow}<div class="gram-books">${grammarBooks.map(b => { const units = bookUnits(b); return `<div class="gram-book" style="--c:${b.c1};--c2:${b.c2}"><div class="gb-cover"><div class="gb-ribbon">${b.subtitle}</div><div class="gb-title">${b.title}</div><div class="gb-band">${b.band.join(' · ')}</div><div class="gb-units">${units.length} units</div></div><div class="gb-body"><div class="gb-levels">${b.band.map(lv => `<button class="filter" onclick="state.level='${lv}';render()">${lv}</button>`).join('')}</div><button class="btn dark gb-open" onclick="state.level='${b.band[0]}';render()">Open the book →</button></div></div>`; }).join('')}</div></div>`;
+    return `<div class="section"><h2>Grammar in Use</h2><p class="muted">A three-book reference grammar organised like the classic Cambridge “in Use” series: a contents page first, then numbered units — explanation on the left, exercises on the right, every answer checked instantly.</p>${bannerSVG('grammar')}${filterRow}<div class="gram-books">${grammarBooks.map(b => { const units = bookUnits(b); return `<div class="gram-book" style="--c:${b.c1};--c2:${b.c2}"><div class="gb-cover"><div class="gb-ribbon">${b.subtitle}</div><div class="gb-title">${b.title}</div><div class="gb-band">${b.band.join(' · ')}</div><div class="gb-units">${units.length} units</div></div><div class="gb-body"><div class="gb-levels">${b.band.map(lv => `<button class="filter" onclick="state.level='${lv}';state.gunit=null;render()">${lv}</button>`).join('')}</div><button class="btn dark gb-open" onclick="state.level='${b.band[0]}';state.gunit=null;render()">Open the book →</button></div></div>`; }).join('')}</div></div>`;
   }
   const book = bookFor(state.level);
   const units = bookUnits(book).filter(u => u.lv === state.level);
-  return `<div class="section"><h2>${book.title}</h2><p class="muted">Level <b>${state.level}</b> · ${units.length} units. Study the box and examples, then do the exercises and check your score.</p>${bannerSVG('grammar')}${filterRow}<div class="giu-list">${units.map(u => grammarUnitCard(u, book)).join('')}</div></div>`;
+  if (state.gunit === null || state.gunit === undefined) {
+    const byPart = {};
+    units.forEach((u, i) => { const p = partOf(u.g.id); (byPart[p] = byPart[p] || []).push({ ...u, i }); });
+    const keys = Object.keys(GRAMMAR_PARTS).filter(k => byPart[k]);
+    return `<div class="section"><h2>${book.title} · Contents</h2><p class="muted">Level <b>${state.level}</b> — ${units.length} units, in the classic “in Use” order. Tap a unit to open its two-page spread (explanation + exercises).</p>${bannerSVG('grammar')}${filterRow}<div class="book-contents">${keys.map(k => `<div class="part-block"><div class="part-head"><span class="part-letter">Part ${k}</span><span>${GRAMMAR_PARTS[k].name}</span><span class="muted small">${byPart[k].length} ${byPart[k].length === 1 ? 'unit' : 'units'}</span></div>${byPart[k].map(u => `<div class="unit-row" onclick="state.gunit=${u.i};render()"><span class="un">${u.n}</span><b>${u.g.title}</b><span class="muted small range">${u.g.range.join(' – ')}</span><span class="go">→</span></div>`).join('')}</div>`).join('')}</div></div>`;
+  }
+  const u = units[state.gunit];
+  if (!u) { state.gunit = null; return grammarPage(); }
+  const prev = state.gunit > 0, next = state.gunit < units.length - 1;
+  return `<div class="section"><h2>${book.title} · Unit ${u.n}</h2>${filterRow}${grammarUnitCard(u, book)}<div class="unit-nav"><button class="btn light" ${prev ? `onclick="state.gunit--;render()"` : 'disabled'}>← Previous unit</button><button class="btn light" onclick="state.gunit=null;render()">📑 Contents</button><button class="btn" ${next ? `onclick="state.gunit++;render()"` : 'disabled'}>Next unit →</button></div></div>`;
 }
 
+/* Vocabulary in Use — per-level books in the classic series layout:
+   contents (Parts A–E) → numbered units → picture presentation + exercises */
+const VOCAB_PARTS = {
+  A: { name: 'People & Family', cats: ['People', 'Family'] },
+  B: { name: 'Home & Daily Life', cats: ['Home', 'Routine', 'Food', 'Shopping', 'Health'] },
+  C: { name: 'School & Work', cats: ['School', 'Work', 'Goals'] },
+  D: { name: 'Leisure & Travel', cats: ['Leisure', 'Travel', 'Tech'] },
+  E: { name: 'The World Around Us', cats: ['Nature', 'Culture', 'Science', 'Talk', 'Environment'] }
+};
+function vocabPartOf(cat) { for (const k in VOCAB_PARTS) if (VOCAB_PARTS[k].cats.includes(cat)) return k; return 'E'; }
+function vocabUnits(level) {
+  const arr = VOCAB[level];
+  const sorted = arr.slice().sort((a, b) => {
+    const pa = vocabPartOf(a.cat).charCodeAt(0), pb = vocabPartOf(b.cat).charCodeAt(0);
+    if (pa !== pb) return pa - pb;
+    return arr.indexOf(a) - arr.indexOf(b);
+  });
+  const units = [];
+  for (let i = 0; i < sorted.length; i += 6) {
+    const words = sorted.slice(i, i + 6);
+    units.push({ part: vocabPartOf(words[0].cat), n: units.length + 1, words });
+  }
+  return units;
+}
+function vocabUnitCard(u, bookColor) {
+  const ex = vocabExercises(u.words, u.n * 3 + 1);
+  return `<div class="card viu unit-page"><div class="giu-head"><span class="giu-num" style="--c:${bookColor}">Unit ${u.n}</span><span class="pill partpill">Part ${u.part} · ${VOCAB_PARTS[u.part].name}</span><span class="muted small">${u.words.length} words</span></div><h3>${u.words.map(w => w.pic).join(' ')}</h3><div class="giu-split"><div class="bank viu-words"><span class="banktag">NEW WORDS · with pictures</span><div class="vtiles vtiles-col">${u.words.map(w => `<div class="vtile"><div class="vtile-pic">${w.pic || '🔤'}</div><div class="vtile-body"><b>${w.word}</b> <span class="muted small ipa">${w.ipa || ''}</span><div class="chips"><span class="pill poschip">${w.pos || ''}</span><span class="pill catpill">${w.cat || ''}</span></div><p class="muted small">${w.meaning}</p><p class="example">“${w.example}”</p></div><button class="btn light mini-btn" onclick="speakText('${esc(w.word)}')">🔊</button></div>`).join('')}</div></div><div class="bank ex viu-ex"><span class="banktag green">EXERCISES · Check</span>${ex.map((x, j) => `<div class="q wbq"><b>${j + 1}. ${x.q}</b><select class="input"><option value="">— choose —</option>${x.opts.map(o => `<option value="${esc(o)}" ${o === x.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check answers</button><div class="wbfb"></div></div></div></div>`;
+}
 function vocabulary() {
-  const topics = TOPICS.map((t, i) => ({ ...t, words: levels.map(lv => VOCAB[lv][i % 20]).map((w, k) => ({ ...w, level: levels[k] })) }));
-  const arr = topics.filter(t => state.level === 'All' || t.words.some(w => w.level === state.level));
-  return `<div class="section"><h2>Vocabulary in Use</h2><p class="muted">Oxford-style topic units — 210 words with picture cards, IPA pronunciation, part of speech, topic category, audio and checkable exercises.</p>${bannerSVG('vocab')}<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}</div><div class="viu-list">${arr.map((t, i) => { const words = state.level === 'All' ? t.words : t.words.filter(w => w.level === state.level); const ex = vocabExercises(words, i * 3 + 1); return `<div class="card viu"><div class="giu-head"><span class="pill">Unit ${i + 1}</span><span class="muted small">${words.map(w => `<span class="lvl-dot ${w.level}">${w.level}</span>`).join(' ')}</span></div><h3>${t.title}</h3><p class="muted small">${t.intro}</p><div class="vtiles">${words.map(w => `<div class="vtile"><div class="vtile-pic">${w.pic || '🔤'}</div><div class="vtile-body"><b>${w.word}</b> <span class="muted small ipa">${w.ipa || ''}</span><div class="chips"><span class="pill poschip">${w.pos || ''}</span><span class="pill catpill">${w.cat || ''}</span><span class="pill lvlpill">${w.level}</span></div><p class="muted small">${w.meaning}</p><p class="example">“${w.example}”</p></div><button class="btn light mini-btn" onclick="speakText('${esc(w.word)}')">🔊</button></div>`).join('')}</div><div class="bank ex"><span class="banktag green">EXERCISES</span>${ex.map((x, j) => `<div class="q wbq"><b>${j + 1}. ${x.q}</b><select class="input"><option value="">— choose —</option>${x.opts.map(o => `<option value="${esc(o)}" ${o === x.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check answers</button><div class="wbfb"></div></div></div>`; }).join('')}</div></div>`;
+  const filterRow = `<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';state.gunit=null;state.vunit=null;render()">${x}</button>`).join('')}</div>`;
+  if (state.level === 'All') {
+    return `<div class="section"><h2>Vocabulary in Use</h2><p class="muted">Seven level books in the classic series layout: contents first, then numbered units — a picture presentation of new words on one side, checkable exercises on the other. 210 words in total, each with picture, IPA, part of speech and topic category.</p>${bannerSVG('vocab')}${filterRow}<div class="vocab-books">${levels.map(lv => { const u = vocabUnits(lv); return `<div class="vbook" onclick="state.level='${lv}';state.vunit=null;render()"><div class="vb-cover"><div class="vb-lvl">${lv}</div><div class="vb-words">${VOCAB[lv].length} words</div><div class="vb-units">${u.length} units · Parts A–E</div></div><button class="btn light vb-open">Open the book →</button></div>`; }).join('')}</div></div>`;
+  }
+  const units = vocabUnits(state.level);
+  if (state.vunit === null || state.vunit === undefined) {
+    return `<div class="section"><h2>Vocabulary in Use · ${state.level}</h2><p class="muted">Contents — ${units.length} units · ${VOCAB[state.level].length} words. Open a unit, study the words with their pictures, then do the exercises.</p>${bannerSVG('vocab')}${filterRow}<div class="book-contents">${['A', 'B', 'C', 'D', 'E'].map(k => { const us = units.filter(x => x.part === k); if (!us.length) return ''; return `<div class="part-block"><div class="part-head"><span class="part-letter">Part ${k}</span><span>${VOCAB_PARTS[k].name}</span><span class="muted small">${us.length} ${us.length === 1 ? 'unit' : 'units'}</span></div>${us.map(u2 => `<div class="unit-row" onclick="state.vunit=${units.indexOf(u2)};render()"><span class="un">${u2.n}</span><div class="uni-prev">${u2.words.slice(0, 5).map(w => `<span>${w.pic}</span>`).join('')}</div><div class="uni-meta"><b>${VOCAB_PARTS[u2.part].name}</b><span class="muted small">${u2.words.map(w => w.word).join(' · ')}</span></div><span class="go">→</span></div>`).join('')}</div>`; }).join('')}</div></div>`;
+  }
+  const u2 = units[state.vunit];
+  if (!u2) { state.vunit = null; return vocabulary(); }
+  const prev = state.vunit > 0, next = state.vunit < units.length - 1;
+  const col = ['#45a3ff', '#ef629f', '#23935f', '#e05252', '#5d50e9', '#b06a10', '#1499ce'][levels.indexOf(state.level) % 7];
+  return `<div class="section"><h2>Vocabulary in Use · ${state.level} · Unit ${u2.n}</h2>${filterRow}${vocabUnitCard(u2, col)}<div class="unit-nav"><button class="btn light" ${prev ? `onclick="state.vunit--;render()"` : 'disabled'}>← Previous unit</button><button class="btn light" onclick="state.vunit=null;render()">📑 Contents</button><button class="btn" ${next ? `onclick="state.vunit++;render()"` : 'disabled'}>Next unit →</button></div></div>`;
 }
 
 function workbook() {
