@@ -34,7 +34,7 @@ function grammarFor(level, unit) { const list = GRAMMAR.filter(g => g.range.incl
 function vocabFor(level, unit) { const arr = VOCAB[level]; const start = (unit * 4) % arr.length; return [...arr.slice(start), ...arr.slice(0, start)].slice(0, 8); }
 function blankWord(str, word) {
   const w = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return str.replace(new RegExp('\\b' + w + '\\b', 'i'), '______');
+  return str.replace(new RegExp('(?<![A-Za-zÀ-ÿ\'’])' + w + '(?![A-Za-zÀ-ÿ\'’])', 'i'), '______');
 }
 function shuffled(arr, seed) { const a = [...arr]; let s = seed || 1; for (let i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor((s / 233280) * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 let __gid = 0;
@@ -91,7 +91,9 @@ function ieltsTasks(tasks) {
   return tasks.map((t, ti) => {
     let body = '';
     if (t.type === 'TFNG') {
-      body = `<p class="taskintro">${t.intro}</p>${t.items.map((it, i) => `<div class="q wbq"><b>${i + 1}.</b> <span class="tf-stmt">${it.s}</span><select class="input tfpick"><option value="">— True / False / Not Given —</option><option value="True" ${it.a === 'True' ? 'data-ok="1"' : ''}>True</option><option value="False" ${it.a === 'False' ? 'data-ok="1"' : ''}>False</option><option value="Not Given" ${it.a === 'Not Given' ? 'data-ok="1"' : ''}>Not Given</option></select></div>`).join('')}`;
+      const it = t.items[0] ? ['Vero', 'Falso', 'Non indicato'].includes(t.items[0].a) : false;
+      const opts = it ? ['Vero', 'Falso', 'Non indicato'] : ['True', 'False', 'Not Given'];
+      body = `<p class="taskintro">${t.intro}</p>${t.items.map((x, i) => `<div class="q wbq"><b>${i + 1}.</b> <span class="tf-stmt">${x.s}</span><select class="input tfpick"><option value="">— ${it ? 'Vero / Falso / Non indicato' : 'True / False / Not Given'} —</option>${opts.map(o => `<option value="${o}" ${x.a === o ? 'data-ok="1"' : ''}>${o}</option>`).join('')}</select></div>`).join('')}`;
     } else if (t.type === 'SUMMARY') {
       body = `<p class="taskintro">${t.intro}</p><div class="bank-chips"><span class="bankchip-label">Word bank</span>${t.bank.map((w, i) => `<span class="bank-chip">${String.fromCharCode(65 + i)}. ${esc(w)}</span>`).join('')}</div>${t.text.map((s, i) => { const parts = s.split('____'); const sel = `<select class="input smpick"><option value="">— choose —</option>${t.bank.map(o => `<option value="${esc(o)}" ${String(o).toLowerCase() === String(t.ans[i]).toLowerCase() ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select>`; return `<div class="q wbq"><b>${i + 1}.</b> <span class="sm-stmt">${parts[0]}${sel}${parts.slice(1).join(sel)}</span></div>`; }).join('')}`;
     } else {
@@ -171,10 +173,11 @@ function makeReview(level, unit) {
 function pickEx(g, level, i) { const e = g.levels[level] || g.levels[g.range[0]]; return e.examples[i % e.examples.length]; }
 function grammarExercises(g, lv, seedBase) {
   const e = g.levels[lv] || g.levels[g.range[0]];
-  const pool = e.examples.join(' ').replace(/[^a-zA-Z']+/g, ' ').trim().split(/\s+/).filter(w => w.length >= 4 && w.length <= 14 && !['have', 'they', 'with', 'that', 'this', 'from', 'will', 'were', 'your', 'them', 'there', 'would', 'because', 'about'].includes(w.toLowerCase()));
+  const W = /[^a-zA-ZàèéìòùÀÈÉÌÒÙáíóúÁÍÓÚçÇñÑüÜ'’]+/g;
+  const pool = e.examples.join(' ').replace(W, ' ').trim().split(/\s+/).filter(w => w.length >= 4 && w.length <= 16 && !['have', 'they', 'with', 'that', 'this', 'from', 'will', 'were', 'your', 'them', 'there', 'would', 'because', 'about'].includes(w.toLowerCase()));
   const items = e.examples.slice(0, 3).map((ex, i) => {
-    const exWords = ex.replace(/[^a-zA-Z']+/g, ' ').trim().split(/\s+/).filter(w => w.length >= 4);
-    const allWords = ex.replace(/[^a-zA-Z']+/g, ' ').trim().split(/\s+/);
+    const exWords = ex.replace(W, ' ').trim().split(/\s+/).filter(w => w.length >= 4);
+    const allWords = ex.replace(W, ' ').trim().split(/\s+/);
     const target = exWords[(i * 2 + 1) % (exWords.length || 1)] || allWords[0];
     const dist = shuffled(pool.filter(w => w !== target), seedBase + i).slice(0, 2);
     return { q: `Complete: ${blankWord(ex, target)}`, opts: shuffled([target, ...dist], seedBase + i + 7), ans: target };
@@ -183,9 +186,10 @@ function grammarExercises(g, lv, seedBase) {
   return items;
 }
 function vocabExercises(words, seedBase) {
+  const mean = w => w.en || w.meaning;
   const match = words.slice(0, 4).map((w, i) => {
-    const others = words.filter(x => x.word !== w.word).slice(0, 3).map(x => x.meaning);
-    return { q: `What does “${w.word}” mean?`, opts: shuffled([w.meaning, ...others], seedBase + i), ans: w.meaning };
+    const others = words.filter(x => x.word !== w.word).slice(0, 3).map(mean);
+    return { q: `What does “${w.word}” mean?`, opts: shuffled([mean(w), ...others], seedBase + i), ans: mean(w) };
   });
   const gf = words.slice(4, 7).map((w, i) => {
     const others = words.filter(x => x.word !== w.word).slice(0, 2).map(x => x.word);
@@ -243,17 +247,18 @@ function makeBook(age, level) {
 }
 const books = [...kids.map(l => makeBook('Kids', l)), ...teens.map(l => makeBook('Teens', l)), ...adults.map(l => makeBook('Adults', l))];
 const allVocab = levels.flatMap(l => VOCAB[l].map((w, i) => ({ ...w, level: l, icon: icons[i % icons.length], topic: TOPICS[i % TOPICS.length].title })));
-const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: JSON.parse(localStorage.getItem('lf_homework') || '[]'), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false };
+const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: JSON.parse(localStorage.getItem('lf_homework') || '[]'), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false };
 function save() { localStorage.setItem('lf_students', JSON.stringify(state.student)); localStorage.setItem('lf_homework', JSON.stringify(state.homework)); localStorage.setItem('lf_plans', JSON.stringify(state.plans)); }
 
 /* ---------------- Shell & navigation ---------------- */
 function layout(content) {
-  document.getElementById('app').innerHTML = `<div class="app"><aside class="side"><div class="brand"><span>LF</span><strong>Lingua Forge</strong></div><div class="navtitle">Teach</div>${[['dashboard', '🏠', 'Dashboard'], ['students', '👩‍🎓', 'Students'], ['planner', '📅', 'Lesson Planner'], ['progress', '📊', 'Progress']].map(x => nav(...x)).join('')}<div class="navtitle">Published Library</div>${[['textbooks', '📚', 'Coursebooks'], ['grammar', '📖', 'Grammar in Use'], ['vocabulary', '🔤', 'Vocabulary in Use'], ['workbook', '📝', 'Workbooks'], ['teacher', '👩‍🏫', 'Teacher’s Book']].map(x => nav(...x)).join('')}<div class="navtitle">Skills Lab</div>${[['reading', '📚', 'Reading Studio'], ['listening', '🎧', 'Listening Lab'], ['speaking', '🗣️', 'Speaking Studio'], ['writing', '✍️', 'Writing Studio'], ['flashcards', '🃏', 'Flashcards'], ['games', '🎮', 'Games'], ['tests', '🧪', 'Assessments'], ['homework', '🏠', 'Homework']].map(x => nav(...x)).join('')}</aside><main class="main"><div class="top"><input class="search" placeholder="Search vocabulary, grammar, lessons…" onkeydown="if(event.key==='Enter')search(this.value)"><span class="pill">PRO · ELT Edition</span></div>${content}</main></div>`;
+  document.getElementById('app').innerHTML = `<div class="app"><aside class="side"><div class="brand"><span>LF</span><strong>Lingua Forge</strong></div><div class="navtitle">Teach</div>${[['dashboard', '🏠', 'Dashboard'], ['students', '👩‍🎓', 'Students'], ['planner', '📅', 'Lesson Planner'], ['progress', '📊', 'Progress']].map(x => nav(...x)).join('')}<div class="navtitle">Published Library</div>${[['textbooks', '📚', 'Coursebooks'], ['grammar', '📖', 'Grammar in Use'], ['vocabulary', '🔤', 'Vocabulary in Use'], ['workbook', '📝', 'Workbooks'], ['teacher', '👩‍🏫', 'Teacher’s Book']].map(x => nav(...x)).join('')}<div class="navtitle">Skills Lab</div>${[['reading', '📚', 'Reading Studio'], ['listening', '🎧', 'Listening Lab'], ['speaking', '🗣️', 'Speaking Studio'], ['writing', '✍️', 'Writing Studio'], ['flashcards', '🃏', 'Flashcards'], ['games', '🎮', 'Games'], ['tests', '🧪', 'Assessments'], ['homework', '🏠', 'Homework']].map(x => nav(...x)).join('')}<div class="navtitle">Italiano 🇮🇹</div>${[['italian', '🍝', 'Italiano'], ['itgrammar', '📖', 'Grammatica'], ['itvocab', '🔤', 'Lessico'], ['itreading', '📚', 'Lettura']].map(x => nav(...x)).join('')}</aside><main class="main"><div class="top"><input class="search" placeholder="Search vocabulary, grammar, lessons…" onkeydown="if(event.key==='Enter')search(this.value)"><span class="pill">PRO · ELT Edition</span></div>${content}</main></div>`;
 }
 function nav(id, ico, label) { return `<button class="nav ${state.view === id ? 'active' : ''}" onclick="go('${id}')"><span>${ico}</span> ${label}</button>`; }
-function go(v) { state.view = v; state.book = null; state.lesson = null; render(); }
+function go(v) { state.view = v; state.book = null; state.lesson = null; state.flip = null; render(); }
 function render() {
-  const m = { dashboard: dashboard, textbooks: textbooks, book: bookPage, lesson: lessonPage, vocabulary: vocabulary, flashcards: flashcards, grammar: grammarPage, reading: reading, listening: listening, speaking: speaking, writing: writing, tests: tests, workbook: workbook, teacher: teacher, students: students, homework: homework, progress: progress, planner: planner, games: games };
+  if (state.flip) { layout(flipView()); return; }
+  const m = { dashboard: dashboard, textbooks: textbooks, book: bookPage, lesson: lessonPage, vocabulary: vocabulary, flashcards: flashcards, grammar: grammarPage, reading: reading, listening: listening, speaking: speaking, writing: writing, tests: tests, workbook: workbook, teacher: teacher, students: students, homework: homework, progress: progress, planner: planner, games: games, italian: italian, itlesson: itLessonPage, itgrammar: itGrammar, itvocab: itVocab, itreading: itReading };
   layout(m[state.view]());
 }
 
@@ -485,7 +490,100 @@ function search(q) {
   if (t) { state.view = 'reading'; state.level = 'All'; render(); return; }
   alert('No direct result found. Try a vocabulary word, a grammar point or a unit theme.');
 }
-function speakText(t) { if ('speechSynthesis' in window) { speechSynthesis.cancel(); let u = new SpeechSynthesisUtterance(t); u.lang = 'en-US'; u.rate = .9; speechSynthesis.speak(u); } }
+/* ================================================================
+   ITALIANO — complete Italian section (Grammatica · Lessico · Lettura)
+   ================================================================ */
+const IT = window.IT;
+function itWords(lv, idxs) { const arr = IT.vocab[lv] || []; return idxs.map(i => arr[i]).filter(Boolean); }
+function itLessons(book) { const out = []; book.units.forEach((u, ui) => u.lessons.forEach((l, li) => out.push({ book, u, l, ui, li }))); return out; }
+function itLvColor(lv) { const map = { A1: '#2e9e4f', A2: '#1499ce', B1: '#b02a2a', B2: '#e05252', C1: '#7a3fb0', C2: '#4c2472' }; return map[lv] || '#5d50e9'; }
+function itGramTopics(lv) { return IT.grammar.filter(g => g.range.includes(lv) && g.levels[lv]); }
+function itVocabUnits(lv) {
+  const arr = IT.vocab[lv]; const units = [];
+  for (let i = 0; i < arr.length; i += 6) units.push({ n: units.length + 1, words: arr.slice(i, i + 6) });
+  return units;
+}
+function itGramCard(g, lv, seed) {
+  const e = g.levels[lv]; const ex = grammarExercises(g, lv, seed);
+  return `<div class="card giu"><div class="giu-head"><span class="giu-num" style="--c:${itLvColor(lv)}">${g.part}</span><span class="pill partpill">Livello ${lv}</span><span class="muted small">${IT.grammar.indexOf(g) + 1} / ${IT.grammar.length}</span></div><h3>${g.title}</h3><div class="giu-split"><div class="bank giu-study"><span class="banktag">STUDY · Spiegazione</span><div class="gquick"><b>In una frase:</b> ${e.quick}</div><p class="formula">${e.form}</p><p><b>Uso.</b> ${e.use}</p><ul class="examples">${e.examples.map(x => `<li>${x}</li>`).join('')}</ul><p class="warn">⚠ ${e.error}</p><button class="btn light morebtn" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📖 Leggi la spiegazione estesa</button><div class="gmore">${e.more}</div></div><div class="bank ex giu-ex"><span class="banktag green">ESERCIZI · Verifica</span>${ex.map((x, j) => `<div class="q wbq"><b>${j + 1}. ${x.q}</b>${x.intro ? '<p class="muted small">Vero o falso? La spiegazione sopra lo conferma.</p>' : ''}<select class="input"><option value="">— scegli —</option>${x.opts.map(o => `<option value="${esc(o)}" ${o === x.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Controlla le risposte</button><div class="wbfb"></div></div></div></div>`;
+}
+function itVocabTiles(words) {
+  return `<div class="vtiles">${words.map(w => `<div class="vtile"><div class="vtile-pic">${w.pic}</div><div class="vtile-body"><b>${w.word}</b> <span class="muted small ipa">${w.ipa}</span><div class="chips"><span class="pill poschip">${w.pos}</span><span class="pill catpill">${w.cat}</span></div><p class="muted small">${esc(w.en)}</p><p class="example">${esc(w.example)}</p></div><button class="btn light mini-btn" onclick="speakText('${esc(w.word)}','it-IT')">🔊</button></div>`).join('')}</div>`;
+}
+function itLessonPage() {
+  const b = state.itBook || IT.books[0];
+  const all = itLessons(b);
+  const cur = state.itLesson || all[0];
+  const l = cur.l, u = cur.u, lv = l.grammar.lv;
+  const g = IT.grammar.find(x => x.id === l.grammar.id);
+  const words = itWords(lv, l.vocab);
+  const reading = IT.topics[l.reading];
+  const idx = all.indexOf(cur);
+  const prev = all[Math.max(0, idx - 1)], next = all[Math.min(all.length - 1, idx + 1)];
+  return `<div class="section"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><span class="pill" style="background:${itLvColor(lv)};color:#fff">${lv}</span><span class="muted small"> · ${b.title} · Unità ${u.title}</span></div><div class="row" style="gap:8px"><button class="btn light" onclick="state.flip=null;state.view='italian';render()">✕ Chiudi</button></div></div><div class="book-hero" style="margin-top:14px"><div><h2>${l.title}</h2><p class="muted">${l.aim}</p></div><div style="background:${itLvColor(lv)};color:#fff;border-radius:16px;padding:16px 22px;min-width:210px"><b>Domanda chiave</b><p style="margin:6px 0 0;font-size:14px;opacity:.95">${u.bigQ}</p></div></div><div class="activity"><h3><span class="num">1</span>Lessico · Vocabolario</h3>${itVocabTiles(words)}<div class="bank ex"><span class="banktag green">ESERCIZI</span>${vocabExercises(words, idx + 1).map((x, j) => `<div class="q wbq"><b>${j + 1}. ${x.q}</b><select class="input"><option value="">— scegli —</option>${x.opts.map(o => `<option value="${esc(o)}" ${o === x.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Controlla</button><div class="wbfb"></div></div></div><div class="activity"><h3><span class="num">2</span>Grammatica</h3>${itGramCard(g, lv, idx * 5 + 3)}</div><div class="activity"><h3><span class="num">3</span>Lettura · IELTS</h3><p class="readtitle"><b>${reading.reading.title}</b> <button class="btn light mini-btn" onclick="speakText(${JSON.stringify(reading.reading.text)},'it-IT')">🔊 Ascolta</button></p>${ieltsPassage(reading.reading)}${ieltsTasks(reading.reading.tasks)}</div><div class="activity"><h3><span class="num">4</span>Ascolto</h3><p class="muted">Ascolta la lettura e rispondi alle domande del compito a voce. Poi ascolta di nuovo e ripeti le frasi chiave.</p><div class="row"><button class="btn" onclick="speakText(${JSON.stringify(reading.reading.paras[0])},'it-IT')">🔊 Ascolta (paragrafo A)</button><button class="btn light" onclick="speakText(${JSON.stringify(reading.reading.paras[1])},'it-IT')">🔊 Ascolta (paragrafo B)</button></div></div><div class="activity"><h3><span class="num">5</span>Parlare</h3><p class="muted">${l.speaking}</p></div><div class="activity"><h3><span class="num">6</span>Scrivere</h3><p class="muted">${l.writing}</p></div><div class="unit-nav"><button class="btn light" onclick="state.itLesson=itLessons(state.itBook)[${Math.max(0, idx - 1)}];render()">← Lezione precedente</button><button class="btn" onclick="state.itLesson=itLessons(state.itBook)[${Math.min(all.length - 1, idx + 1)}];render()">Lezione successiva →</button></div></div>`;
+}
+/* ---- flip book reader ---- */
+function openFlip(title, pages, c) { state.flip = { title, pages, i: 0, c: c || '#5d50e9' }; render(); }
+function flipView() {
+  const f = state.flip; const n = f.pages.length;
+  const closed = f.i >= n;
+  const L = closed ? n - 1 : f.i, R = closed ? n : f.i + 1;
+  const lp = f.pages[L] || '', rp = f.pages[R] || '';
+  return `<div class="section flip-section"><div class="flip-top"><div><h2>${f.title}</h2><p class="muted">Sfoglia il libro — apri le pagine con i comandi sotto. (Flip the book.)</p></div><div class="row" style="gap:8px"><button class="btn light" onclick="state.flip=null;render()">✕ Chiudi</button></div></div><div class="book3d ${closed ? 'closed' : ''}" style="--bc:${f.c}" onclick="${closed ? `state.flip.i=0;render()` : ''}"><div class="bpage left">${lp}</div><div class="bspine"></div><div class="bpage right">${rp}</div></div>${closed ? `<p class="center"><button class="btn dark" onclick="state.flip.i=0;render()">📖 Apri di nuovo il libro</button></p>` : `<div class="flip-nav"><button class="btn light" ${f.i > 0 ? `onclick="state.flip.i=${Math.max(0, f.i - 2)};render()"` : 'disabled'}>◀ Indietro</button><span class="pill">${Math.floor(f.i / 2) + 1} / ${Math.ceil(n / 2)}</span><button class="btn" ${f.i + 1 < n ? `onclick="state.flip.i=${f.i + 1};render()"` : `onclick="state.flip.i=${n};render()"`}>Avanti ▶</button></div><p class="muted small center">${f.i + 1 < n ? 'Continua a sfogliare…' : 'Fine del libro — sfoglia ancora per chiuderlo.'}</p>`}</div>`;
+}
+function itCoverPage(b, kind) {
+  return `<div class="flip-cover" style="--c:${b.c1};--c2:${b.c2}"><div class="fc-top">LINGUA FORGE ACADEMY · ${kind}</div><div class="fc-flag">🇮🇹</div><div class="fc-title">${b.title}</div><div class="fc-sub">${b.subtitle}</div><div class="fc-band">${b.band.join(' · ')}</div><div class="fc-foot">${b.units ? b.units.length + ' unità · ' + b.units.reduce((s, u) => s + u.lessons.length, 0) + ' lezioni' : ''}${b.words ? b.words + ' parole' : ''}${b.topics ? b.topics + ' punti' : ''}</div></div>`;
+}
+function itBookPages(b) {
+  const pages = [itCoverPage(b, 'CORSO'), `<div class="fp"><h3 class="fp-title">Sommario · ${b.title}</h3><p class="muted small">${b.intro}</p><div class="fp-contents">${b.units.map((u, ui) => `<div class="fp-row" onclick="state.flip=null;state.itBook=IT.books[${IT.books.indexOf(b)}];state.itLesson=itLessons(state.itBook)[${itLessons(b).findIndex(x => x.ui === ui && x.li === 0)}];state.view='itlesson';render()"><span class="un">${ui + 1}</span><div><b>${u.title}</b><div class="muted small">${u.lessons.map(x => x.title).join(' · ')}</div></div><span class="go">→</span></div>`).join('')}</div></div>`];
+  b.units.forEach((u, ui) => {
+    const le = itLessons(b).filter(x => x.ui === ui);
+    pages.push(`<div class="fp"><div class="fp-unith"><span class="giu-num" style="--c:${b.c1}">Unità ${ui + 1}</span><h3>${u.title}</h3><p class="muted">${u.bigQ}</p></div><div class="fp-prev">${le[0] ? itLMinicard(b, le[0], 0) : ''}${le[1] ? itLMinicard(b, le[1], 1) : ''}</div></div>`);
+    pages.push(`<div class="fp"><div class="fp-unith"><span class="giu-num" style="--c:${b.c1}">Percorso ${ui + 1} · Lessico</span><h3>${u.lessons.map(x => x.title).join(' · ')}</h3></div>${itVocabTiles(itWords(u.lessons[0].grammar.lv, u.lessons[0].vocab))}<div class="muted small" style="margin-top:8px">Grammatica: ${IT.grammar.find(g => g.id === u.lessons[0].grammar.id).title}</div></div>`);
+  });
+  return pages;
+}
+function itLMinicard(b, le, k) {
+  const l = le.l, lv = l.grammar.lv;
+  return `<div class="fp-lcard" onclick="state.flip=null;state.itBook=IT.books[${IT.books.indexOf(b)}];state.itLesson=itLessons(state.itBook)[${itLessons(b).indexOf(le)}];state.view='itlesson';render()"><span class="pill" style="background:${itLvColor(lv)};color:#fff">${k + 1} · ${lv}</span><b>${l.title}</b><p class="muted small">${l.aim}</p><div class="muted small">📖 ${IT.topics[l.reading].reading.title}</div></div>`;
+}
+function itGramPages(lv) {
+  const ts = itGramTopics(lv);
+  const pages = [itCoverPage({ title: 'Grammatica in Uso', subtitle: 'Esercizi di grammatica italiana · Livello ' + lv, band: [lv], c1: itLvColor(lv), c2: '#22233a', topics: ts.length }, 'GRAMMATICA'), `<div class="fp"><h3 class="fp-title">Indice · Livello ${lv}</h3><div class="fp-contents">${ts.map((g, i) => `<div class="fp-row" onclick="state.flip.i=${i * 2 + 2};render()"><span class="un">${g.part}</span><div><b>${g.title}</b><div class="muted small">${g.levels[lv].quick}</div></div><span class="go">→</span></div>`).join('')}</div></div>`];
+  ts.forEach(g => pages.push(`<div class="fp"><div class="fp-unith"><span class="giu-num" style="--c:${itLvColor(lv)}">${g.part}</span><h3>${g.title}</h3><span class="pill partpill">Livello ${lv}</span></div>${itGramCard(g, lv, IT.grammar.indexOf(g) * 7 + 3)}</div>`));
+  return pages;
+}
+function itVocabPages(lv) {
+  const units = itVocabUnits(lv); const arr = IT.vocab[lv];
+  const pages = [itCoverPage({ title: 'Lessico in Uso', subtitle: 'Vocabolario illustrato · Livello ' + lv, band: [lv], c1: itLvColor(lv), c2: '#146b34', words: arr.length }, 'LESSICO'), `<div class="fp"><h3 class="fp-title">Indice · Livello ${lv}</h3><div class="fp-contents">${units.map((u, i) => `<div class="fp-row" onclick="state.flip.i=${i * 2 + 2};render()"><span class="un">${u.n}</span><div><div class="fp-emojis">${u.words.map(w => `<span>${w.pic}</span>`).join('')}</div><b>${u.words.map(w => w.word).join(' · ')}</b></div><span class="go">→</span></div>`).join('')}</div></div>`];
+  units.forEach(u => pages.push(`<div class="fp"><div class="fp-unith"><span class="giu-num" style="--c:${itLvColor(lv)}">Unità ${u.n}</span><h3>${u.words.map(w => w.pic).join(' ')}</h3></div>${itVocabTiles(u.words)}<div class="bank ex"><span class="banktag green">ESERCIZI</span>${vocabExercises(u.words, u.n * 3).map((x, j) => `<div class="q wbq"><b>${j + 1}. ${x.q}</b><select class="input"><option value="">— scegli —</option>${x.opts.map(o => `<option value="${esc(o)}" ${o === x.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Controlla</button><div class="wbfb"></div></div></div>`));
+  return pages;
+}
+/* ---- section views ---- */
+function italian() {
+  const levs = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+  const totalW = levs.reduce((s, l) => s + IT.vocab[l].length, 0);
+  const totalG = IT.grammar.reduce((s, g) => s + Object.keys(g.levels).length, 0);
+  const totalL = IT.books.reduce((s, b) => s + b.units.reduce((a, u) => a + u.lessons.length, 0), 0);
+  return `<section class="hero it-hero"><span class="pill light">ITALIANO · CORSO COMPLETO</span><h1>Impara l'italiano come un libro vero. 🇮🇹</h1><p>Una sezione completa per l'italiano, costruita come i corsi più famosi (Nuovo Espresso, Progetto Italiano): libri sfogliabili con le pagine che si girano, grammatica spiegata in modo semplice ed esteso, lessico illustrato e letture in stile IELTS. Tutto in italiano, con traduzioni per chi inizia.</p><div class="row"><button class="btn dark" onclick="openFlip('${IT.books[0].title}', itBookPages(IT.books[0]), '#2e9e4f')">📖 Sfoglia il corso A1 →</button><button class="btn light" onclick="openFlip('Grammatica in Uso · A1', itGramPages('A1'), '#2e9e4f')">📖 Grammatica (flip)</button></div>${bannerSVG('it')}</section><div class="grid"><div class="stat"><span class="muted">Parole</span><br><b>${totalW}</b></div><div class="stat"><span class="muted">Punti di grammatica</span><br><b>${totalG}</b></div><div class="stat"><span class="muted">Lezioni</span><br><b>${totalL}</b></div><div class="stat"><span class="muted">Letture IELTS</span><br><b>${IT.topics.length}</b></div></div><div class="section"><h2>Corsi · libri sfogliabili</h2><div class="gram-books">${IT.books.map(b => `<div class="gram-book" style="--c:${b.c1};--c2:${b.c2}"><div class="gb-cover"><div class="gb-ribbon">${b.series}</div><div class="gb-title">${b.title}</div><div class="gb-band">${b.band.join(' · ')}</div><div class="gb-units">${b.units.length} unità · ${b.units.reduce((s, u) => s + u.lessons.length, 0)} lezioni</div></div><div class="gb-body"><button class="btn dark gb-open" onclick="openFlip('${b.title}', itBookPages(IT.books[${IT.books.indexOf(b)}]), '${b.c1}')">📖 Sfoglia il libro →</button><button class="btn light gb-open" onclick="state.itBook=IT.books[${IT.books.indexOf(b)}];state.itLesson=null;state.view='itlesson';render()">Apri la 1ª lezione</button></div></div>`).join('')}</div></div><div class="section"><h2>Grammatica · Lessico · Lettura</h2><div class="books"><div class="card"><div class="illus">📖</div><h3>Grammatica in Uso</h3><p class="muted">41 spiegazioni a ogni livello (A1–C2): regola in una frase + spiegazione estesa, esercizi verificabili.</p><button class="btn" onclick="go('itgrammar')">Apri la grammatica</button></div><div class="card"><div class="illus">🔤</div><h3>Lessico in Uso</h3><p class="muted">180 parole illustrate con immagine, IPA e categoria — 6 libri sfogliabili, uno per livello.</p><button class="btn" onclick="go('itvocab')">Apri il lessico</button></div><div class="card"><div class="illus">📚</div><h3>Lettura · stile IELTS</h3><p class="muted">8 letture autentiche con Vero/Falso/Non indicato, completamento e scelta multipla.</p><button class="btn" onclick="go('itreading')">Apri le letture</button></div></div></div><div class="section"><h2>Risorse vere per l'italiano</h2><div class="tabs">${['Libri', 'Canali YouTube', 'Siti web'].map((t, i) => `<button class="filter ${state.itTab === t ? 'active' : ''}" onclick="state.itTab='${t}';render()">${t}</button>`).join('')}</div><div class="list">${(state.itTab === 'Libri' ? IT.resources.books : state.itTab === 'Canali YouTube' ? IT.resources.channels : IT.resources.sites).map(r => `<div class="card"><div class="row" style="justify-content:space-between"><b>${r.name}</b><span class="pill partpill">${r.lvl}</span></div>${r.who ? `<p class="muted small">${r.who}</p>` : ''}<p class="muted small">${r.note}</p></div>`).join('')}</div></div>`;
+}
+function itGrammar() {
+  const levs = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+  const lv = levs.includes(state.itLevel) ? state.itLevel : 'A1';
+  const ts = itGramTopics(lv);
+  return `<div class="section"><h2>Grammatica in Uso</h2><p class="muted">La grammatica italiana spiegata come nel classico "Grammar in Use": regola breve, spiegazione estesa ed esercizi con verifica immediata — oppure sfoglia il libro interattivo.</p><div class="row" style="flex-wrap:wrap;gap:10px;margin:14px 0"><div class="filters" style="margin:0">${levs.map(x => `<button class="filter ${lv === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><button class="btn dark" onclick="openFlip('Grammatica in Uso · ${lv}', itGramPages('${lv}'), '${itLvColor(lv)}')">📖 Sfoglia il libro (${ts.length} unità)</button></div><div class="giu-list">${ts.map((g, i) => itGramCard(g, lv, i * 7 + 3)).join('')}</div></div>`;
+}
+function itVocab() {
+  const levs = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+  const lv = levs.includes(state.itLevel) ? state.itLevel : 'A1';
+  return `<div class="section"><h2>Lessico in Uso</h2><p class="muted">180 parole italiane illustrate — scegli il livello e sfoglia il libro a fumetti con immagini, pronuncia ed esercizi.</p><div class="vocab-books" style="margin:14px 0">${levs.map(l => `<div class="vbook" onclick="openFlip('Lessico in Uso · ${l}', itVocabPages('${l}'), '${itLvColor(l)}')"><div class="vb-cover" style="background:linear-gradient(160deg,${itLvColor(l)},${itLvColor(l)}88)"><div class="vb-lvl">${l}</div><div class="vb-words">${IT.vocab[l].length} parole</div><div class="vb-units">${itVocabUnits(l).length} unità</div></div><button class="btn light vb-open">📖 Sfoglia →</button></div>`).join('')}</div><div class="filters">${levs.map(x => `<button class="filter ${lv === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><div class="vtiles" style="margin-top:12px">${IT.vocab[lv].map(w => `<div class="vtile"><div class="vtile-pic">${w.pic}</div><div class="vtile-body"><b>${w.word}</b> <span class="muted small ipa">${w.ipa}</span><div class="chips"><span class="pill poschip">${w.pos}</span><span class="pill catpill">${w.cat}</span></div><p class="muted small">${esc(w.en)}</p><p class="example">${esc(w.example)}</p></div><button class="btn light mini-btn" onclick="speakText('${esc(w.word)}','it-IT')">🔊</button></div>`).join('')}</div></div>`;
+}
+function itReading() {
+  const arr = IT.topics.filter(t => state.itLevel === 'All' || t.level === state.itLevel);
+  return `<div class="section"><h2>Lettura · stile IELTS</h2><p class="muted">Letture autentiche con compiti da esame: Vero / Falso / Non indicato, completamento di un riassunto e scelta multipla.</p><div class="filters" style="margin-top:16px">${['All', ...IT.levels].map(x => `<button class="filter ${state.itLevel === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><div class="list">${arr.map(t => `<div class="card ielts-read"><div class="row" style="justify-content:space-between"><span class="pill" style="background:${itLvColor(t.level)};color:#fff">${t.level}</span><button class="btn light mini-btn" onclick="speakText(${JSON.stringify(t.reading.text)},'it-IT')">🔊 Ascolta</button></div><h3>${t.reading.title}</h3>${ieltsPassage(t.reading)}${ieltsTasks(t.reading.tasks)}</div>`).join('')}</div></div>`;
+}
+
+function speakText(t, lang) { if ('speechSynthesis' in window) { speechSynthesis.cancel(); let u = new SpeechSynthesisUtterance(t); u.lang = lang || 'en-US'; u.rate = .9; speechSynthesis.speak(u); } }
 function startTimer() { let s = 60, el = document.getElementById('timer'); clearInterval(window.tm); window.tm = setInterval(() => { s--; el.textContent = `00:${String(s).padStart(2, '0')}`; if (s <= 0) { clearInterval(window.tm); el.textContent = 'Time!'; } }, 1000); }
 function addHW(t) { state.homework.push({ text: t, done: false }); save(); toast('Homework assigned ✓'); }
 function toast(t) { let x = document.getElementById('toast'); x.innerHTML = `<div class="pill" style="position:fixed;right:25px;bottom:25px;background:#22233a;color:#fff;padding:13px 16px;z-index:10">${t}</div>`; setTimeout(() => x.innerHTML = '', 1800); }
