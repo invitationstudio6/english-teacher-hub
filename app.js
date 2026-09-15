@@ -34,6 +34,7 @@ const SOUNDS = [
 ];
 
 function esc(s) { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+function jarg(s) { return JSON.stringify(String(s)).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 function band(l) { return (l === 'Pre-A1' || l === 'A1') ? 0 : (l === 'A2' || l === 'B1') ? 1 : 2; }
 function grammarFor(level, unit) { const list = GRAMMAR.filter(g => g.range.includes(level)); return list[unit % list.length]; }
 function vocabFor(level, unit) { const arr = VOCAB[level]; const start = (unit * 4) % arr.length; return [...arr.slice(start), ...arr.slice(0, start)].slice(0, 8); }
@@ -306,7 +307,7 @@ function lessonPage() {
   let l = state.lesson, lv = state.book.level, b = band(lv), g = l.grammar;
   const tp = tensePos(g.id);
   const taskChip = b === 0 ? 'Supported task' : b === 1 ? 'Guided task' : 'Independent task';
-  return `<div class="lesson-shell"><div class="crumb"><button class="btn light" onclick="go('book')">← Coursebook</button> <span class="muted">Unit ${l.unit.number} · ${l.stage}</span></div><div class="lesson-hero"><div class="bigq"><span>Big Question</span><h2>${l.unit.bigQ}</h2></div><div class="row" style="justify-content:space-between;margin-top:12px"><span class="pill">Unit ${l.unit.number} • ${state.book.level} • ${taskChip}</span><div class="seg"><button class="filter ${state.minutes === 60 ? 'active' : ''}" onclick="state.minutes=60;render()">60′ programme</button><button class="filter ${state.minutes === 90 ? 'active' : ''}" onclick="state.minutes=90;render()">90′ programme</button></div></div><h1>${l.title}</h1><p class="muted">${TOPICS[l.unit.number - 1].intro}</p><div class="skills"><span class="skill">Vocabulary</span><span class="skill">Grammar</span><span class="skill">Pronunciation</span><span class="skill">Reading</span><span class="skill">Listening</span><span class="skill">Speaking</span><span class="skill">Writing</span></div></div><div class="aims"><b>Lesson aim</b><p>${l.aim}</p><div class="row">${l.outcomes.map(o => `<span class="outcome">✓ ${o}</span>`).join('')}</div></div><div class="section"><h2>Class programme</h2>${planTable(l, state.minutes)}</div><div class="lesson-grid"><div class="activity"><h3><span class="num">1</span>Warm-up</h3><p>${l.warmup}</p></div><div class="activity"><h3><span class="num">2</span>Vocabulary</h3><div class="ptiles">${l.vocab.map(w => `<div class="ptile"><div class="ptile-pic">${w.pic || '🔤'}</div><div class="ptile-body"><b>${w.word}</b> <span class="muted small ipa">${w.ipa || ''}</span><div class="chips"><span class="pill poschip">${w.pos || ''}</span><span class="pill catpill">${w.cat || ''}</span><span class="pill lvlpill">${w.level}</span></div><p class="muted small">${w.meaning}</p><p class="example">“${w.example}”</p></div><button class="btn light mini-btn" onclick="speakText('${esc(w.word)}')">🔊</button></div>`).join('')}</div><button class="btn" onclick="go('vocabulary')">Vocabulary in Use →</button></div><div class="activity"><h3><span class="num">3</span>Grammar Bank</h3><div class="bank"><span class="banktag">GRAMMAR BANK</span><h4>${g.title}</h4>${tp ? `<div class="tl">${timelineSVG(tp)}</div>` : ''}<div class="gquick"><b>In one line:</b> ${g.quick || g.use}</div><p class="formula">${g.form}</p><p><b>Use.</b> ${g.use}</p><ul class="examples">${g.examples.map(e => `<li>${e}</li>`).join('')}</ul><p class="warn">⚠ ${g.error}</p><button class="btn light morebtn" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📖 Read the extended explanation</button><div class="gmore">${g.more || ''}</div></div><button class="btn light" onclick="go('grammar')">Open Grammar in Use →</button></div><div class="activity"><h3><span class="num">4</span>Pronunciation</h3><div class="pron"><span class="big-ipa">${l.pron.ipa}</span><p><b>Listen and repeat:</b> “${l.pron.word}”</p><p class="muted small">Sound family: ${l.pron.family}</p><button class="btn" onclick="speakText('${esc(l.pron.word)}')">🔊 Hear it</button></div></div><div class="activity"><h3><span class="num">5</span>Reading · IELTS-style</h3><p class="readtitle"><b>${l.reading.title}</b> <button class="btn light mini-btn" onclick="speakText(${JSON.stringify(l.reading.text)})">🔊 Read aloud</button></p>${ieltsPassage(l.reading)}${ieltsTasks(l.reading.tasks)}<button class="btn light" onclick="this.nextElementSibling.style.display='block'">Show simple answers</button><div class="answer script">${l.questions.map((q, i) => `Q${i + 1}. ${q.q} — ${q.a}`).join('<br>')}</div></div><div class="activity"><h3><span class="num">6</span>Listening</h3><p class="readtitle"><b>${l.listening.title}</b> <button class="btn" onclick="speakText(${JSON.stringify(l.listening.script)})">▶ Play audio</button></p><p class="muted small">Listen for the situation, the relationship between speakers and the key information.</p><button class="btn light" onclick="this.nextElementSibling.style.display='block'">Show transcript</button><div class="answer script">${l.listening.script}</div></div><div class="activity"><h3><span class="num">7</span>Speaking</h3><div class="task"><b>Role play</b><p>${l.speaking.roleplay}</p></div><div class="task"><b>Discuss</b>${l.speaking.discuss.map(x => `<p>• ${x}</p>`).join('')}</div><button class="btn" onclick="go('speaking')">Speaking Studio →</button></div><div class="activity"><h3><span class="num">8</span>Writing</h3><p>${l.writing.prompt}</p><div class="task"><b>Checklist</b>${l.writing.checklist.map(x => `<p>☐ ${x}</p>`).join('')}</div><button class="btn light" onclick="go('writing')">Writing Studio →</button></div><div class="activity"><h3><span class="num">9</span>Homework</h3><p>${l.homework}</p><button class="btn" onclick="addHW('${esc(l.title)}: ${esc(l.homework)}')">Assign homework</button></div></div><div class="section"><h2>Unit review — ${l.unit.title}</h2><p class="muted">Five quick-check questions covering the unit. Score yourself before moving on.</p><div class="review-grid">${l.review.map((q, i) => `<div class="q wbq"><b>${i + 1}.</b> ${esc(q.q)}<select class="input"><option value="">— choose —</option>${shuffled(q.opts.map(o => ({ o, ok: o === q.ans })), i + 1).map(o => `<option value="${esc(o.o)}" ${o.ok ? 'data-ok="1"' : ''}>${esc(o.o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check my score</button><div class="wbfb"></div></div></div></div>`;
+  return `<div class="lesson-shell"><div class="crumb"><button class="btn light" onclick="go('book')">← Coursebook</button> <span class="muted">Unit ${l.unit.number} · ${l.stage}</span></div><div class="lesson-hero"><div class="bigq"><span>Big Question</span><h2>${l.unit.bigQ}</h2></div><div class="row" style="justify-content:space-between;margin-top:12px"><span class="pill">Unit ${l.unit.number} • ${state.book.level} • ${taskChip}</span><div class="seg"><button class="filter ${state.minutes === 60 ? 'active' : ''}" onclick="state.minutes=60;render()">60′ programme</button><button class="filter ${state.minutes === 90 ? 'active' : ''}" onclick="state.minutes=90;render()">90′ programme</button></div></div><h1>${l.title}</h1><p class="muted">${TOPICS[l.unit.number - 1].intro}</p><div class="skills"><span class="skill">Vocabulary</span><span class="skill">Grammar</span><span class="skill">Pronunciation</span><span class="skill">Reading</span><span class="skill">Listening</span><span class="skill">Speaking</span><span class="skill">Writing</span></div></div><div class="aims"><b>Lesson aim</b><p>${l.aim}</p><div class="row">${l.outcomes.map(o => `<span class="outcome">✓ ${o}</span>`).join('')}</div></div><div class="section"><h2>Class programme</h2>${planTable(l, state.minutes)}</div><div class="lesson-grid"><div class="activity"><h3><span class="num">1</span>Warm-up</h3><p>${l.warmup}</p></div><div class="activity"><h3><span class="num">2</span>Vocabulary</h3><div class="ptiles">${l.vocab.map(w => `<div class="ptile"><div class="ptile-pic">${w.pic || '🔤'}</div><div class="ptile-body"><b>${w.word}</b> <span class="muted small ipa">${w.ipa || ''}</span><div class="chips"><span class="pill poschip">${w.pos || ''}</span><span class="pill catpill">${w.cat || ''}</span><span class="pill lvlpill">${w.level}</span></div><p class="muted small">${w.meaning}</p><p class="example">“${w.example}”</p></div><button class="btn light mini-btn" onclick="speakText('${esc(w.word)}')">🔊</button></div>`).join('')}</div><button class="btn" onclick="go('vocabulary')">Vocabulary in Use →</button></div><div class="activity"><h3><span class="num">3</span>Grammar Bank</h3><div class="bank"><span class="banktag">GRAMMAR BANK</span><h4>${g.title}</h4>${tp ? `<div class="tl">${timelineSVG(tp)}</div>` : ''}<div class="gquick"><b>In one line:</b> ${g.quick || g.use}</div><p class="formula">${g.form}</p><p><b>Use.</b> ${g.use}</p><ul class="examples">${g.examples.map(e => `<li>${e}</li>`).join('')}</ul><p class="warn">⚠ ${g.error}</p><button class="btn light morebtn" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📖 Read the extended explanation</button><div class="gmore">${g.more || ''}</div></div><button class="btn light" onclick="go('grammar')">Open Grammar in Use →</button></div><div class="activity"><h3><span class="num">4</span>Pronunciation</h3><div class="pron"><span class="big-ipa">${l.pron.ipa}</span><p><b>Listen and repeat:</b> “${l.pron.word}”</p><p class="muted small">Sound family: ${l.pron.family}</p><button class="btn" onclick="speakText('${esc(l.pron.word)}')">🔊 Hear it</button></div></div><div class="activity"><h3><span class="num">5</span>Reading · IELTS-style</h3><p class="readtitle"><b>${l.reading.title}</b> <button class="btn light mini-btn" onclick="speakText(${jarg(l.reading.text)})">🔊 Read aloud</button></p>${ieltsPassage(l.reading)}${ieltsTasks(l.reading.tasks)}<button class="btn light" onclick="this.nextElementSibling.style.display='block'">Show simple answers</button><div class="answer script">${l.questions.map((q, i) => `Q${i + 1}. ${q.q} — ${q.a}`).join('<br>')}</div></div><div class="activity"><h3><span class="num">6</span>Listening</h3><p class="readtitle"><b>${l.listening.title}</b> <button class="btn" onclick="speakText(${jarg(l.listening.script)})">▶ Play audio</button></p><p class="muted small">Listen for the situation, the relationship between speakers and the key information.</p><button class="btn light" onclick="this.nextElementSibling.style.display='block'">Show transcript</button><div class="answer script">${l.listening.script}</div></div><div class="activity"><h3><span class="num">7</span>Speaking</h3><div class="task"><b>Role play</b><p>${l.speaking.roleplay}</p></div><div class="task"><b>Discuss</b>${l.speaking.discuss.map(x => `<p>• ${x}</p>`).join('')}</div><button class="btn" onclick="go('speaking')">Speaking Studio →</button></div><div class="activity"><h3><span class="num">8</span>Writing</h3><p>${l.writing.prompt}</p><div class="task"><b>Checklist</b>${l.writing.checklist.map(x => `<p>☐ ${x}</p>`).join('')}</div><button class="btn light" onclick="go('writing')">Writing Studio →</button></div><div class="activity"><h3><span class="num">9</span>Homework</h3><p>${l.homework}</p><button class="btn" onclick="addHW('${esc(l.title)}: ${esc(l.homework)}')">Assign homework</button></div></div><div class="section"><h2>Unit review — ${l.unit.title}</h2><p class="muted">Five quick-check questions covering the unit. Score yourself before moving on.</p><div class="review-grid">${l.review.map((q, i) => `<div class="q wbq"><b>${i + 1}.</b> ${esc(q.q)}<select class="input"><option value="">— choose —</option>${shuffled(q.opts.map(o => ({ o, ok: o === q.ans })), i + 1).map(o => `<option value="${esc(o.o)}" ${o.ok ? 'data-ok="1"' : ''}>${esc(o.o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check my score</button><div class="wbfb"></div></div></div></div>`;
 }
 
 /* ---------------- Grammar in Use: three-book reference library ---------------- */
@@ -441,11 +442,11 @@ function flashcards() {
 
 function reading() {
   let arr = TOPICS.map((t, i) => ({ ...t, level: levels[i % 7] })).filter(x => state.level === 'All' || x.level === state.level);
-  return `<div class="section"><h2>Reading Studio · IELTS-style</h2><p class="muted">Professional exam-standard passages with True / False / Not Given, Summary completion and Multiple choice tasks — read the passage, complete the tasks, then check your score.</p>${bannerSVG('reading')}<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}</div><div class="list">${arr.map((t, i) => `<div class="card ielts-read"><div class="row" style="justify-content:space-between"><span class="pill">${t.level}</span><button class="btn light mini-btn" onclick="speakText(${JSON.stringify(t.reading.text)})">🔊 Read aloud</button></div><h3>${t.reading.title}</h3>${ieltsPassage(t.reading)}${ieltsTasks(t.reading.tasks)}</div>`).join('')}</div></div>`;
+  return `<div class="section"><h2>Reading Studio · IELTS-style</h2><p class="muted">Professional exam-standard passages with True / False / Not Given, Summary completion and Multiple choice tasks — read the passage, complete the tasks, then check your score.</p>${bannerSVG('reading')}<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}</div><div class="list">${arr.map((t, i) => `<div class="card ielts-read"><div class="row" style="justify-content:space-between"><span class="pill">${t.level}</span><button class="btn light mini-btn" onclick="speakText(${jarg(t.reading.text)})">🔊 Read aloud</button></div><h3>${t.reading.title}</h3>${ieltsPassage(t.reading)}${ieltsTasks(t.reading.tasks)}</div>`).join('')}</div></div>`;
 }
 function listening() {
   const picks = [[0, 'A1'], [5, 'B1'], [13, 'C1']];
-  return `<div class="section"><h2>Listening Lab</h2><p class="muted">Play the built-in audio, listen without the transcript, then check the script and complete the task.</p>${bannerSVG('listening')}<div class="list">${picks.map(([ti, lv], i) => { const t = TOPICS[ti]; return `<div class="card"><div class="row" style="justify-content:space-between"><span class="pill">${lv} · ${t.listening.title}</span><div class="row"><button class="btn" onclick="speakText(${JSON.stringify(t.listening.script)})">▶ Play</button><button class="btn light" onclick="document.getElementById('tr${i}').style.display='block'">Show transcript</button></div></div><p id="tr${i}" class="answer script">${t.listening.script}</p><div class="q"><b>Task.</b> Identify the situation, the relationship between the speakers and their main intention.<button class="btn light" onclick="this.nextElementSibling.style.display='block'">Check</button><div class="answer">Listen for who is speaking, where they are and what they want to achieve.</div></div></div>`; }).join('')}</div></div>`;
+  return `<div class="section"><h2>Listening Lab</h2><p class="muted">Play the built-in audio, listen without the transcript, then check the script and complete the task.</p>${bannerSVG('listening')}<div class="list">${picks.map(([ti, lv], i) => { const t = TOPICS[ti]; return `<div class="card"><div class="row" style="justify-content:space-between"><span class="pill">${lv} · ${t.listening.title}</span><div class="row"><button class="btn" onclick="speakText(${jarg(t.listening.script)})">▶ Play</button><button class="btn light" onclick="document.getElementById('tr${i}').style.display='block'">Show transcript</button></div></div><p id="tr${i}" class="answer script">${t.listening.script}</p><div class="q"><b>Task.</b> Identify the situation, the relationship between the speakers and their main intention.<button class="btn light" onclick="this.nextElementSibling.style.display='block'">Check</button><div class="answer">Listen for who is speaking, where they are and what they want to achieve.</div></div></div>`; }).join('')}</div></div>`;
 }
 function speaking() {
   return `<div class="section"><h2>Speaking Studio</h2>${bannerSVG('speaking')}<div class="card"><span class="pill">1 minute challenge</span><h3>Speak about a topic you know well.</h3><p>Use an opening, two supporting details and a closing sentence. Try to use five target words.</p><div class="hero" style="text-align:center;margin:18px 0"><div id="timer" style="font:800 54px 'Plus Jakarta Sans'">01:00</div><button class="btn dark" onclick="startTimer()">Start timer</button></div><h3>Useful phrases</h3><div class="row">${['In my experience…', 'One reason is…', 'For example…', 'However…', 'Overall…'].map(x => `<span class="pill">${x}</span>`).join('')}</div></div></div>`;
@@ -491,79 +492,232 @@ const ACTIVITY_LANGS = {
   it: { name: 'Italiano', flag: '🇮🇹', speak: (t) => speakText(t, 'it-IT'), L: 'it-IT' }
 };
 function actWords(lang) {
-  if (lang === 'it') return IT.vocab[['A1', 'A2', 'B1', 'B2', 'C1', 'C2'][Math.min(3, state.actLevel || 3)]];
-  const lvs = levels; const lv = lvs[Math.min(3, state.actLevel || 3)];
-  return VOCAB[lv];
+  const al = (typeof state.actLevel === 'number') ? state.actLevel : 3;
+  if (lang === 'it') return IT.vocab[['A1', 'A2', 'B1', 'B2', 'C1', 'C2'][Math.min(3, al)]];
+  return VOCAB[levels[Math.min(3, al)]];
 }
 function actL() { const lang = state.actLang || 'en'; return ACTIVITY_LANGS[lang]; }
+function actScores() { try { return JSON.parse(localStorage.getItem('lf_actscores') || '{}'); } catch (e) { return {}; } }
+function actSaveScore(game, pts) { try { const s = actScores(); const k = (state.actLang || 'en') + ':' + game; if (pts > (s[k] || 0)) { s[k] = pts; localStorage.setItem('lf_actscores', JSON.stringify(s)); } } catch (e) {} }
+function actBest(game) { return actScores()[(state.actLang || 'en') + ':' + game] || 0; }
+function stars(n) { return '⭐'.repeat(n) + '☆'.repeat(3 - n); }
 function activities() {
-  const lang = state.actLang || 'en'; const L = ACTIVITY_LANGS[lang];
+  const lang = state.actLang || 'en';
   const words = actWords(lang).slice(0, 8);
   const w = words[state.actIdx % words.length] || words[0];
-  const scram = shuffled(w.word.split(''), state.actIdx + 7).join('');
+  if (!window.__scWord || window.__scWord.word !== w.word) { window.__scWord = w; if (window.__sc) window.__sc.hints = 0; }
+  if (!window.__sc) window.__sc = { streak: 0, hints: 0, lives: 3, solved: 0 };
+  let scram = shuffled(w.word.split(''), state.actIdx + 7);
+  if (scram.join('') === w.word) scram = scram.reverse();
+  const scramTxt = scram.join(' ');
   const speak = lang === 'it' ? `speakText('${esc(w.word)}','it-IT')` : `speakText('${esc(w.word)}')`;
   const mean = w.meaning || w.en;
-  const pos = w.pos || '';
   const pic = w.pic || '🔤';
-  const wb = (w.meaning ? w.example : w.example);
-  return `<div class="section"><h2>🎮 Activities & Games Studio</h2><p class="muted">Interactive, unique activities for English and Italian — scramble, hangman, matching, memory, quiz race and sentence building. Switch language with one tap.</p>${bannerSVG('games')}<div class="row" style="gap:10px;margin:14px 0;flex-wrap:wrap"><div class="seg">${Object.entries(ACTIVITY_LANGS).map(([k, v]) => `<button class="filter ${lang === k ? 'active' : ''}" onclick="state.actLang='${k}';state.actIdx=0;render()">${v.flag} ${v.name}</button>`).join('')}</div><div class="seg">${[0, 1, 2, 3].map(i => `<button class="filter ${(state.actLevel || 3) === i ? 'active' : ''}" onclick="state.actLevel=${i};render()">${lang === 'it' ? ['A1', 'A2', 'B1', 'B2'][i] : ['Pre-A1', 'A1', 'A2', 'B1'][i]}</button>`).join('')}</div></div><div class="books"><div class="card"><div class="illus">🔀</div><h3>Word Scramble</h3><p class="muted">Unscramble the word. Type it, then check. 🔊 Listen for help.</p><div class="scramble">${scram}</div><div class="row" style="gap:8px"><input id="act-ans" class="input" placeholder="Your answer"><button class="btn" onclick="const v=document.getElementById('act-ans').value.trim().toLowerCase();const a='${w.word}'.toLowerCase();document.getElementById('act-fb').innerHTML=v===a?'<span class=\\'wbscore all\\'>Correct! 🎉 '+${JSON.stringify(pic)}+'</span>':'<span class=\\'wbscore\\'>Try again — check the letters.</span>'">Check</button></div><div id="act-fb"></div><button class="btn light mini-btn" style="margin-top:10px" onclick="${speak}">🔊 Listen</button><div class="muted small" style="margin-top:8px">${esc(mean)}</div><button class="btn light" style="margin-top:10px" onclick="state.actIdx++;render()">Next word →</button></div><div class="card"><div class="illus">🙈</div><h3>Hangman</h3><p class="muted">Guess the hidden word, one letter at a time. 6 wrong guesses and the word is revealed.</p><div id="hangman-word" class="hangman-word">${w.word.split('').map(() => '_').join(' ')}</div><div class="hangman-letters">${'abcdefghijklmnopqrstuvwxyz'.split('').map(c => `<button class="btn light mini-btn hm" onclick="hang(${JSON.stringify(c)},'${esc(w.word)}')">${c}</button>`).join('')}</div><div id="hangman-fb" class="muted small"></div><button class="btn light mini-btn" onclick="${speak}">🔊 Hint</button></div><div class="card"><div class="illus">🎯</div><h3>Match It</h3><p class="muted">Match each word to its meaning — click the pairs in order.</p><div class="match-grid">${shuffled(words.map((x, i) => ({ i })), state.actIdx + 1).map(x => `<button class="match-cell" onclick="match(this,'${esc(words[x.i].word)}','${esc(words[x.i].meaning || words[x.i].en)}')"><b>${esc(words[x.i].word)}</b><span class="muted small">${esc(words[x.i].meaning || words[x.i].en)}</span></button>`).join('')}</div><div id="match-fb" class="muted small"></div></div><div class="card"><div class="illus">🧠</div><h3>Memory Pairs</h3><p class="muted">Flip the cards and find word–picture pairs.</p><div class="memory">${words.slice(0, 6).map((x, i) => `<button class="mem" data-i="${i}" onclick="memFlip(this,'${x.pic || '🔤'}','${esc(x.word)}')">❓</button>`).join('')}</div><div id="mem-fb" class="muted small"></div></div><div class="card"><div class="illus">⚡</div><h3>Quiz Race</h3><p class="muted">Five quick questions — answer fast, track your streak.</p><div id="quiz-wrap"><div class="q wbq"><b>1. ${esc(w.meaning || w.en)}</b><select class="input"><option value="">— choose —</option>${shuffled([w.word, words[(state.actIdx + 1) % words.length].word, words[(state.actIdx + 2) % words.length].word], 3).map(o => `<option value="${esc(o)}" ${o === w.word ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div></div><button class="btn" onclick="checkWB()">Check</button><div class="wbfb"></div></div><div class="card"><div class="illus">🧩</div><h3>Sentence Builder</h3><p class="muted">Put the words in the right order to build the example sentence.</p><div class="sentence">${shuffled(wb.replace(/[“”]/g, '').split(' '), state.actIdx + 5).join(' ')}</div><div class="row" style="gap:8px"><input id="sb" class="input" placeholder="Your sentence"><button class="btn" onclick="const v=document.getElementById('sb').value.trim().toLowerCase().replace(/[^a-z\\s']/g,'');const a='${esc(wb.replace(/[“”]/g, '').toLowerCase().replace(/[^a-z\\s']/g, ''))}';document.getElementById('sb-fb').innerHTML=v===a?'<span class=\\'wbscore all\\'>Perfect! 🎉</span>':'<span class=\\'wbscore\\'>Almost — check the word order.</span>'">Check</button></div><div id="sb-fb"></div><button class="btn light mini-btn" style="margin-top:10px" onclick="${speak}">🔊 Listen</button></div>${rpCard(lang)}${qtimeCard(lang)}${moodCard(lang)}</div></div></div>`;
+  const wb = w.example || '';
+  const tt = lang === 'it';
+  const sc = window.__sc;
+  const hg = window.__hg || (window.__hg = { wrong: 0, found: new Set(), used: new Set(), wins: 0 });
+  if (!window.__hgWord || window.__hgWord.word !== w.word) { window.__hgWord = w; hg.wrong = 0; hg.found = new Set(); hg.used = new Set(); }
+  const mmWords = words.slice(0, 4);
+  const mmCards = shuffled(mmWords.flatMap((x, i) => [{ i, t: 'p', f: x.pic || '🔤' }, { i, t: 'w', f: x.word }]), state.actIdx + 11);
+  const qr = window.__qr;
+  const qrQs = qrQuestions(lang);
+  window.__qrData = qrQs;
+  const sbToks = (() => { const t = wb.replace(/[“”]/g, '').split(' ').filter(Boolean); let s = shuffled(t, state.actIdx + 5); if (s.join(' ') === t.join(' ')) s = s.reverse(); return s; })();
+  const best = ['scramble', 'hangman', 'match', 'memory', 'quiz', 'builder'].map(g => actBest(g));
+  return `<div class="section"><h2>🎮 Activities & Games Studio <span class="pill pro-pill">PRO</span></h2><p class="muted">Nine pro activities for English and Italian — lives, streaks, timers, stars and personal bests, just like the apps your students already love.</p>${bannerSVG('games')}<div class="actscore">🏆 ${tt ? 'Rekorlar' : 'Personal bests'}: Scramble ${best[0] || 0} · Hangman ${best[1] || 0} · Match ${best[2] || 0} · Memory ${best[3] || 0} · Quiz ${best[4] || 0} · Builder ${best[5] || 0}</div><div class="row" style="gap:10px;margin:14px 0;flex-wrap:wrap"><div class="seg">${Object.entries(ACTIVITY_LANGS).map(([k, v]) => `<button class="filter ${lang === k ? 'active' : ''}" onclick="actSwitch('${k}')">${v.flag} ${v.name}</button>`).join('')}</div><div class="seg">${[0, 1, 2, 3].map(i => `<button class="filter ${(typeof state.actLevel === 'number' ? state.actLevel : 3) === i ? 'active' : ''}" onclick="state.actLevel=${i};window.__sc=null;window.__hg=null;window.__mm=null;window.__qr=null;render()">${lang === 'it' ? ['A1', 'A2', 'B1', 'B2'][i] : ['Pre-A1', 'A1', 'A2', 'B1'][i]}</button>`).join('')}</div></div><div class="books">
+<div class="card"><div class="illus">🔀</div><h3>Word Scramble</h3><div class="hud"><span class="lives">${'❤️'.repeat(sc.lives)}${'🖤'.repeat(3 - sc.lives)}</span><span class="streak">🔥 ${tt ? 'Seri' : 'Streak'} ${sc.streak}</span><span class="pill">${tt ? 'Çözülen' : 'Solved'} ${sc.solved}</span></div><div class="scramble">${scramTxt}</div><div class="row" style="gap:8px"><input id="act-ans" class="input" placeholder="${tt ? 'Cavabın' : 'Your answer'}" onkeydown="if(event.key==='Enter')scCheck()"><button class="btn" onclick="scCheck()">Check</button><button class="btn light" onclick="scHint()">💡 Hint</button><button class="btn light" onclick="scSkip()">Skip ⏭</button></div><div id="act-fb"></div><div class="row" style="gap:8px;margin-top:10px"><button class="btn light mini-btn" onclick="${speak}">🔊 ${tt ? 'Dinlə' : 'Listen'}</button><span class="muted small">${esc(mean)}</span></div></div>
+<div class="card"><div class="illus">🙈</div><h3>Hangman</h3><div class="hud"><span class="pill">${w.cat || (tt ? 'söz' : 'word')}</span><span class="streak">🏆 ${hg.wins}</span></div><div class="hm-wrap">${hmSVG(hg.wrong)}<div id="hangman-word" class="hangman-word">${w.word.split('').map(ch => hg.found.has(ch.toLowerCase()) ? ch : '_').join(' ')}</div></div><div class="hangman-letters">${'abcdefghijklmnopqrstuvwxyz'.split('').map(c => `<button class="btn light mini-btn hm ${hg.used.has(c) ? (hg.found.has(c) ? 'hm-hit' : 'hm-miss') : ''}" ${hg.used.has(c) ? 'disabled' : ''} onclick="hang('${c}')">${c}</button>`).join('')}</div><div id="hangman-fb" class="muted small"></div><div class="row" style="gap:8px;margin-top:10px"><button class="btn light mini-btn" onclick="${speak}">🔊 ${tt ? 'İpucu' : 'Hint'}</button><button class="btn light mini-btn" onclick="hmNew()">↻ ${tt ? 'Yeni söz' : 'New word'}</button></div></div>
+<div class="card"><div class="illus">🎯</div><h3>Match It</h3><p class="muted">${tt ? 'Sözləri mənaları ilə birləşdir — iki sütun arasında kliklə.' : 'Tap a word, then its meaning. Two columns, eight pairs.'}</p>${window.__mt && window.__mt.done ? `<div class="qr-done">${stars(window.__mt.st)}<p><b>${window.__mt.matched}/8</b> ${tt ? 'cüt' : 'pairs'} · ${window.__mt.moves} ${tt ? 'hərəkət' : 'moves'}</p><button class="btn dark" onclick="window.__mt=null;render()">↺ ${tt ? 'Yenidən' : 'Play again'}</button></div>` : `<div class="mt-cols"><div class="mt-col">${shuffled(words.map((x, i) => i), state.actIdx + 2).map(i => `<button class="mt-cell" onclick="mtPick(this,'w','${esc(words[i].word)}')"><b>${esc(words[i].word)}</b></button>`).join('')}</div><div class="mt-col">${shuffled(words.map((x, i) => i), state.actIdx + 4).map(i => `<button class="mt-cell" onclick="mtPick(this,'m','${esc(words[i].word)}')"><span class="muted small">${esc(words[i].meaning || words[i].en)}</span></button>`).join('')}</div></div><div class="hud" style="margin-top:10px"><span class="pill" id="mt-moves">${tt ? 'Hərəkət' : 'Moves'} ${window.__mt ? window.__mt.moves : 0}</span><span class="pill">${window.__mt ? window.__mt.matched : 0}/8</span></div><div id="match-fb" class="muted small"></div>`}</div>
+<div class="card"><div class="illus">🧠</div><h3>Memory Pairs</h3><p class="muted">${tt ? 'Kartları çevir — şəkil və söz cütlərini tap.' : 'Flip the cards and find the picture–word pairs.'}</p>${window.__mm && window.__mm.done ? `<div class="qr-done">${stars(window.__mm.st)}<p><b>${window.__mm.pairs}/4</b> ${tt ? 'cüt' : 'pairs'} · ${window.__mm.moves} ${tt ? 'hərəkət' : 'moves'}</p><button class="btn dark" onclick="window.__mm=null;render()">↺ ${tt ? 'Yenidən' : 'Play again'}</button></div>` : `<div class="memory mem8">${mmCards.map((c, ci) => `<button class="mem" onclick="mmFlip(this,${c.i},${jarg(c.t)},${jarg(c.f)})">❓</button>`).join('')}</div><div class="hud" style="margin-top:10px"><span class="pill" id="mm-moves">${tt ? 'Hərəkət' : 'Moves'} ${window.__mm ? window.__mm.moves : 0}</span><span class="pill">${window.__mm ? window.__mm.pairs : 0}/4</span></div><div id="mem-fb" class="muted small"></div>`}</div>
+<div class="card"><div class="illus">⚡</div><h3>Quiz Race</h3>${!qr || qr.done ? (qr && qr.done ? `<div class="qr-done">${stars(qr.correct >= 5 ? 3 : qr.correct >= 3 ? 2 : qr.correct >= 1 ? 1 : 0)}<p class="qr-big">${qr.score} ${tt ? 'xal' : 'pts'}</p><p class="muted">${qr.correct}/5 ${tt ? 'doğru' : 'correct'} · 🏆 ${tt ? 'Rekor' : 'Best'} ${actBest('quiz')}</p><button class="btn dark" onclick="qrStart()">↺ ${tt ? 'Yenidən yarış' : 'Race again'}</button></div>` : `<p class="muted">${tt ? '5 sual, hər sual 10 saniyə. Sürətli cavab = daha çox xal. Seri bonusu 🔥' : 'Five questions, ten seconds each. Fast answers score more. Streak bonus 🔥'}</p><div class="qr-dots">${[0, 1, 2, 3, 4].map(i => `<span class="qr-dot"></span>`).join('')}</div><button class="btn dark" style="margin-top:12px" onclick="qrStart()">🏁 ${tt ? 'Yarışa başla' : 'Start the race'}</button>`) : `<div class="qr-timer"><div class="qr-bar" id="qr-bar" style="width:${(qr.left || 10) * 10}%"></div></div><div class="hud" style="margin:8px 0"><span class="pill">Q${qr.qi + 1}/5</span><span class="pill" id="qr-sec">${qr.left || 10}s</span><span class="streak">🔥 ${qr.streak}</span><span class="pill">${qr.score} ${tt ? 'xal' : 'pts'}</span></div><div class="q wbq"><b>${esc(qrQs[qr.qi].mean)}</b></div><div class="qr-opts" id="qr-opts">${qrQs[qr.qi].opts.map((o, j) => `<button class="qr-opt" onclick="qrAnswer(${j})">${esc(o)}</button>`).join('')}</div><div id="qr-fb"></div><button id="qr-next" class="btn" style="display:none;margin-top:10px" onclick="qrNext()">Next →</button>`}</div>
+<div class="card"><div class="illus">🧩</div><h3>Sentence Builder</h3><p class="muted">${tt ? 'Sözlərə klikləyib cümləni düz qur.' : 'Tap the words in the right order — no typing needed.'}</p><div class="sb-line" id="sb-line"><span class="muted small">${tt ? 'Buraya kliklə…' : 'Tap words here…'}</span></div><div class="sb-pool" id="sb-pool">${sbToks.map((t, i) => `<button class="sb-tile" onclick="sbMove(this)">${esc(t)}</button>`).join('')}</div><div class="row" style="gap:8px;margin-top:10px"><button class="btn" onclick="sbCheck()">Check</button><button class="btn light" onclick="sbReset()">↺ ${tt ? 'Sıfırla' : 'Reset'}</button><button class="btn light mini-btn" onclick="${speak}">🔊 ${tt ? 'Dinlə' : 'Listen'}</button></div><div id="sb-fb"></div></div>
+${rpCard(lang)}${qtimeCard(lang)}${moodCard(lang)}</div></div>`;
 }
-function hang(c, word) {
-  if (!window.__hang) window.__hang = { wrong: 0, found: new Set() };
-  const h = window.__hang;
-  const low = c.toLowerCase();
-  if (h.found.has(low)) return;
-  const idxs = []; word.split('').forEach((ch, i) => { if (ch.toLowerCase() === low) idxs.push(i); });
-  const el = document.getElementById('hangman-word');
-  if (!el) return;
+function actSwitch(k) { state.actLang = k; state.actIdx = 0; window.__sc = null; window.__scWord = null; window.__hg = null; window.__hgWord = null; window.__mt = null; window.__mm = null; window.__qr = null; render(); }
+function scCheck() {
+  const inp = document.getElementById('act-ans'); if (!inp) return;
+  const w = window.__scWord; const sc = window.__sc; const fb = document.getElementById('act-fb');
+  const v = inp.value.trim().toLowerCase();
+  if (v === w.word.toLowerCase()) {
+    const pts = Math.max(2, 10 - 3 * sc.hints);
+    sc.streak++; sc.solved++;
+    actSaveScore('scramble', sc.streak * 10);
+    fb.innerHTML = `<span class="wbscore all">${w.pic || ''} Correct! 🎉 +${pts} ${sc.streak > 1 ? '· 🔥 ×' + sc.streak : ''}</span>`;
+    inp.disabled = true;
+    setTimeout(() => { state.actIdx++; render(); }, 900);
+  } else {
+    sc.lives--; sc.streak = 0;
+    if (sc.lives <= 0) { sc.lives = 3; fb.innerHTML = '<span class="wbscore">💔 Out of lives — streak reset. Try a hint!</span>'; }
+    else fb.innerHTML = `<span class="wbscore">Not quite — ${sc.lives} ❤️ left. Try a hint 💡</span>`;
+    render();
+    const ni = document.getElementById('act-ans'); if (ni) { ni.value = v; ni.focus(); }
+  }
+}
+function scHint() {
+  const w = window.__scWord; const sc = window.__sc; const fb = document.getElementById('act-fb');
+  sc.hints = Math.min(3, sc.hints + 1);
+  const h = sc.hints;
+  const msg = h === 1 ? `💡 ${(w.meaning || w.en)}` : h === 2 ? `💡 ${w.word[0]}${'·'.repeat(Math.max(0, w.word.length - 2))}${w.word[w.word.length - 1]}` : `🔊 Listen carefully — the audio is the last hint!`;
+  fb.innerHTML = `<span class="wbscore">${esc(msg)}</span>`;
+  if (h === 3) speakText(w.word, state.actLang === 'it' ? 'it-IT' : 'en-US');
+}
+function scSkip() { state.actIdx++; window.__sc.hints = 0; render(); }
+function hmSVG(n) {
+  const P = ['<circle cx="60" cy="38" r="12"/>', '<line x1="60" y1="50" x2="60" y2="85"/>', '<line x1="60" y1="58" x2="45" y2="72"/>', '<line x1="60" y1="58" x2="75" y2="72"/>', '<line x1="60" y1="85" x2="47" y2="108"/>', '<line x1="60" y1="85" x2="73" y2="108"/>'];
+  return `<svg class="hm-svg" viewBox="0 0 120 130"><g fill="none" stroke="#5d50e9" stroke-width="3.5" stroke-linecap="round" opacity="${n >= 6 ? '.45' : '1'}"><line x1="15" y1="122" x2="88" y2="122"/><line x1="32" y1="122" x2="32" y2="12"/><line x1="32" y1="12" x2="60" y2="12"/><line x1="60" y1="12" x2="60" y2="26"/>${P.slice(0, n).join('')}</g></svg>`;
+}
+function hang(c) {
+  const h = window.__hg; const word = window.__hgWord.word;
+  if (!h || h.used.has(c) || h.done) return;
+  h.used.add(c);
+  const idxs = []; word.toLowerCase().split('').forEach((ch, i) => { if (ch === c) idxs.push(i); });
+  const fb = document.getElementById('hangman-fb'); const el = document.getElementById('hangman-word');
   if (idxs.length) {
-    h.found.add(low);
-    const arr = el.textContent.split(' ');
-    idxs.forEach(i => arr[i] = word[i]);
-    el.textContent = arr.join(' ');
-    if (el.textContent.replace(/ /g, '') === word) { document.getElementById('hangman-fb').innerHTML = '<span class="wbscore all">You saved the word! 🎉</span>'; }
+    h.found.add(c);
+    if (el) el.textContent = word.toLowerCase().split('').map((ch, i) => h.found.has(ch) ? word[i] : (idxs.includes(i) ? word[i] : '_')).join(' ');
+    const arr = word.toLowerCase().split('');
+    if (arr.every(ch => h.found.has(ch))) {
+      h.done = true; h.wins++;
+      actSaveScore('hangman', h.wins * 15);
+      fb.innerHTML = `<span class="wbscore all">🎉 You saved the word! ${'⭐'.repeat(Math.max(1, 4 - h.wrong))} +${15 * h.wins}</span>`;
+    } else fb.innerHTML = '<span class="wbscore all">✓ Nice!</span>';
   } else {
     h.wrong++;
-    document.getElementById('hangman-fb').innerHTML = `<span class="wbscore">Wrong (${h.wrong}/6). ${h.wrong >= 6 ? 'The word was: ' + word : ''}</span>`;
-    if (h.wrong >= 6) { el.textContent = word.split('').join(' '); h.wrong = 0; h.found.clear(); }
+    if (h.wrong >= 6) { h.done = true; h.wins = 0; if (el) el.textContent = word.split('').join(' '); fb.innerHTML = `<span class="wbscore">💀 The word was <b>${esc(word)}</b>. Streak reset.</span>`; }
+    else fb.innerHTML = `<span class="wbscore">✗ Wrong (${h.wrong}/6)</span>`;
   }
+  render();
 }
-function match(el, word, mean) {
-  if (!window.__match) window.__match = { sel: null };
-  const m = window.__match;
-  if (m.sel && m.sel !== el) {
-    const a = m.sel.getAttribute('data-w'), b = word;
-    const ok = a === b;
-    m.sel.classList.add(ok ? 'good' : 'bad');
-    el.classList.add(ok ? 'good' : 'bad');
-    document.getElementById('match-fb').innerHTML = ok ? '<span class="wbscore all">Matched! 🎉</span>' : '<span class="wbscore">Not a pair — try again.</span>';
-    setTimeout(() => { m.sel.classList.remove('good', 'bad'); el.classList.remove('good', 'bad'); }, 700);
-    m.sel = null;
-  } else {
-    if (m.sel) m.sel.classList.remove('good', 'bad');
-    m.sel = el; el.classList.add('good');
-    el.setAttribute('data-w', word); el.setAttribute('data-m', mean);
-  }
+function hmNew() { state.actIdx++; window.__hg = { wrong: 0, found: new Set(), used: new Set(), wins: (window.__hg || {}).wins || 0 }; render(); }
+function mtPick(el, kind, key) {
+  const m = window.__mt || (window.__mt = { sel: null, matched: 0, moves: 0, done: false });
+  if (m.done || el.classList.contains('mt-lock')) return;
+  const fb = document.getElementById('match-fb');
+  if (m.sel && m.sel.kind === kind) { m.sel.el.classList.remove('mt-sel'); m.sel = null; }
+  if (m.sel && m.sel.key === key) {
+    m.moves++;
+    m.sel.el.classList.remove('mt-sel'); m.sel.el.classList.add('mt-lock');
+    el.classList.add('mt-lock');
+    m.matched++; m.sel = null;
+    if (m.matched >= 8) { m.done = true; m.st = m.moves <= 10 ? 3 : m.moves <= 14 ? 2 : 1; actSaveScore('match', m.st * 20); fb.innerHTML = `<span class="wbscore all">All matched! ${stars(m.st)}</span>`; }
+    else fb.innerHTML = `<span class="wbscore all">Matched! (${m.matched}/8)</span>`;
+  } else if (m.sel) {
+    m.moves++;
+    m.sel.el.classList.remove('mt-sel'); m.sel = null;
+    fb.innerHTML = '<span class="wbscore">Not a pair — try again.</span>';
+  } else { m.sel = { el, kind, key }; el.classList.add('mt-sel'); }
+  const mv = document.getElementById('mt-moves'); if (mv) mv.textContent = `Moves ${m.moves}`;
 }
-function memFlip(el, pic, word) {
-  if (!window.__mem) window.__mem = { sel: null, pairs: 0 };
-  const m = window.__mem;
-  if (el.classList.contains('mem-done')) return;
-  el.textContent = pic;
-  el.setAttribute('data-word', word);
-  if (!m.sel) { m.sel = el; return; }
-  if (m.sel === el) { m.sel = null; return; }
-  const a = m.sel.getAttribute('data-word'), b = el.getAttribute('data-word');
-  if (a === b) {
-    el.classList.add('mem-done'); m.sel.classList.add('mem-done');
-    m.pairs++;
-    document.getElementById('mem-fb').innerHTML = m.pairs >= 3 ? '<span class="wbscore all">All pairs found! 🎉</span>' : `<span class="wbscore all">Pair found (${m.pairs}/3)</span>`;
+function mmFlip(el, i, type, face) {
+  const m = window.__mm || (window.__mm = { sel: null, pairs: 0, moves: 0, done: false, lock: false });
+  if (m.done || m.lock || el.classList.contains('mem-done') || (m.sel && m.sel.el === el)) return;
+  el.classList.add('mem-open'); el.textContent = face;
+  if (!m.sel) { m.sel = { el, i, type }; return; }
+  m.moves++;
+  const mv = document.getElementById('mm-moves'); if (mv) mv.textContent = `Moves ${m.moves}`;
+  if (m.sel.i === i) {
+    m.sel.el.classList.add('mem-done'); el.classList.add('mem-done');
+    m.pairs++; m.sel = null;
+    const fb = document.getElementById('mem-fb');
+    if (m.pairs >= 4) { m.done = true; m.st = m.moves <= 6 ? 3 : m.moves <= 9 ? 2 : 1; actSaveScore('memory', m.st * 20); fb.innerHTML = `<span class="wbscore all">All pairs! ${stars(m.st)}</span>`; }
+    else fb.innerHTML = `<span class="wbscore all">Pair found (${m.pairs}/4) ${type === 'p' ? face : ''}</span>`;
   } else {
+    m.lock = true;
+    const s = m.sel.el; m.sel = null;
     document.getElementById('mem-fb').innerHTML = '<span class="wbscore">Not a pair.</span>';
-    const s = m.sel;
-    setTimeout(() => { if (!s.classList.contains('mem-done')) s.textContent = '❓'; if (!el.classList.contains('mem-done')) el.textContent = '❓'; }, 600);
+    setTimeout(() => { s.classList.remove('mem-open'); s.textContent = '❓'; el.classList.remove('mem-open'); el.textContent = '❓'; m.lock = false; }, 750);
   }
-  m.sel = null;
+}
+function qrQuestions(lang) {
+  const pool = actWords(lang);
+  const qs = [];
+  const start = (state.actIdx * 5) % Math.max(1, pool.length - 20);
+  for (let k = 0; k < 5; k++) {
+    const w = pool[(start + k) % pool.length];
+    const others = [];
+    for (let j = 1; others.length < 3 && j < pool.length; j++) {
+      const o = pool[(start + k + j * 7 + 3) % pool.length];
+      if (o.word !== w.word && !others.find(x => x.word === o.word)) others.push(o);
+    }
+    qs.push({ mean: w.meaning || w.en, word: w.word, pic: w.pic || '🔤', opts: shuffled([w.word, ...others.map(o => o.word)], k + 3) });
+  }
+  return qs;
+}
+function qrStart() { window.__qr = { qi: 0, score: 0, streak: 0, correct: 0, left: 10, lock: false, done: false }; render(); qrArm(); }
+function qrArm() {
+  const q = window.__qr; if (!q || q.done) return;
+  clearInterval(window.__qrT);
+  q.left = 10;
+  window.__qrT = setInterval(() => {
+    q.left--;
+    const bar = document.getElementById('qr-bar'), sec = document.getElementById('qr-sec');
+    if (!bar || !sec) { clearInterval(window.__qrT); return; }
+    bar.style.width = Math.max(0, q.left * 10) + '%';
+    sec.textContent = Math.max(0, q.left) + 's';
+    if (q.left <= 0) qrAnswer(-1);
+  }, 1000);
+}
+function qrAnswer(i) {
+  clearInterval(window.__qrT);
+  const q = window.__qr; if (!q || q.lock) return;
+  q.lock = true;
+  const data = window.__qrData[q.qi];
+  const btns = [...document.querySelectorAll('#qr-opts .qr-opt')];
+  btns.forEach((b, j) => { b.disabled = true; if (data.opts[j] === data.word) b.classList.add('qr-ok'); });
+  const fb = document.getElementById('qr-fb');
+  if (i >= 0 && data.opts[i] === data.word) {
+    q.correct++; q.streak++;
+    const pts = 100 + (q.streak - 1) * 20 + Math.max(0, q.left) * 5;
+    q.score += pts;
+    fb.innerHTML = `<span class="wbscore all">✓ +${pts} ${q.streak > 1 ? '· 🔥 ×' + q.streak : ''}</span>`;
+  } else {
+    q.streak = 0;
+    if (i >= 0) btns[i].classList.add('qr-no');
+    fb.innerHTML = `<span class="wbscore">✗ ${data.pic} ${state.actLang === 'it' ? 'Cavab' : 'The answer'}: <b>${esc(data.word)}</b></span>`;
+  }
+  const nb = document.getElementById('qr-next');
+  if (nb) { nb.style.display = ''; nb.textContent = q.qi >= 4 ? 'Results 🏁' : (state.actLang === 'it' ? 'Növbəti sual →' : 'Next question →'); }
+}
+function qrNext() {
+  const q = window.__qr; if (!q) return;
+  if (q.qi >= 4) { q.done = true; actSaveScore('quiz', q.score); render(); return; }
+  q.qi++; q.lock = false;
+  render(); qrArm();
+}
+function sbMove(el) {
+  const line = document.getElementById('sb-line'), pool = document.getElementById('sb-pool');
+  if (!line || !pool) return;
+  if (el.parentElement === pool) { line.appendChild(el); } else { pool.appendChild(el); }
+  const ph = line.querySelector('.muted'); if (ph && line.querySelectorAll('.sb-tile').length) ph.remove();
+}
+function sbReset() {
+  const line = document.getElementById('sb-line'), pool = document.getElementById('sb-pool');
+  if (!line || !pool) return;
+  [...line.querySelectorAll('.sb-tile')].forEach(t => pool.appendChild(t));
+  const fb = document.getElementById('sb-fb'); if (fb) fb.innerHTML = '';
+}
+function sbCheck() {
+  const line = document.getElementById('sb-line');
+  if (!line) return;
+  const placed = [...line.querySelectorAll('.sb-tile')].map(t => t.textContent);
+  if (!placed.length) return;
+  const w = window.__scWord;
+  const norm = s => s.toLowerCase().replace(/[^a-zà-ÿ' ]/g, '').replace(/\s+/g, ' ').trim();
+  const fb = document.getElementById('sb-fb');
+  const target = norm((w.example || '').replace(/[“”]/g, ''));
+  if (norm(placed.join(' ')) === target && target) {
+    const sc = window.__sc;
+    sc.streak++;
+    actSaveScore('builder', sc.streak * 15);
+    fb.innerHTML = `<span class="wbscore all">Perfect! 🎉 +${15 * sc.streak} ${sc.streak > 1 ? '· 🔥 ×' + sc.streak : ''}</span>`;
+    line.classList.add('sb-win');
+    setTimeout(() => { state.actIdx++; sc.hints = 0; render(); }, 1000);
+  } else {
+    fb.innerHTML = '<span class="wbscore">Almost — check the word order. Tap tiles to remove them.</span>';
+    line.classList.add('sb-shake');
+    setTimeout(() => line.classList.remove('sb-shake'), 500);
+  }
 }
 
 /* ================= Role-Play / Dialogue Theatre (EN + IT) ================= */
@@ -740,8 +894,8 @@ function rpCard(lang) {
   const done = state.rp.si >= sc.steps.length;
   const step = sc.steps[Math.min(state.rp.si, sc.steps.length - 1)];
   const tts = lang === 'it' ? 'it-IT' : 'en-US';
-  const opts = done ? '' : step.opts.map(o => `<button class="rp-opt" onclick="rpChoose(this,${o.ok},${JSON.stringify(o.fb)})">${o.t}</button>`).join('');
-  return `<div class="card rp-card"><div class="illus">${sc.icon}</div><h3>Dialogue Theatre · ${sc.t}</h3><p class="muted">${sc.tip} Choose the best reply — the partner always answers.</p><div class="rp-score">${done ? `<b>${state.rp.sc}/${sc.steps.length}</b> ${lang === 'it' ? 'risposte perfette!' : 'perfect replies!'} ${state.rp.sc === sc.steps.length ? '🌟' : '— try again!'}` : `${lang === 'it' ? 'Turno' : 'Line'} ${state.rp.si + 1}/${sc.steps.length}`}</div>${done ? `<button class="btn dark" onclick="state.rp=null;render()">↺ ${lang === 'it' ? 'Ripeti' : 'Replay'}</button>` : `<div class="rp-ai"><span class="rp-av">🤖</span><div><b>${lang === 'it' ? 'Partner' : 'Partner'}</b><p class="rp-ai-t">${esc(step.ai)}</p></div><button class="btn light mini-btn" onclick="speakText(${JSON.stringify(step.ai)},'${tts}')">🔊</button></div><div class="rp-opts" id="rp-opts">${opts}</div><div id="rp-fb" class="muted small"></div><button id="rp-next" class="btn" style="display:none;margin-top:10px" onclick="state.rp.si++;render()">${lang === 'it' ? 'Prossima battuta →' : 'Next line →'}</button>`}</div>`;
+  const opts = done ? '' : step.opts.map(o => `<button class="rp-opt" onclick="rpChoose(this,${o.ok},${jarg(o.fb)})">${o.t}</button>`).join('');
+  return `<div class="card rp-card"><div class="illus">${sc.icon}</div><h3>Dialogue Theatre · ${sc.t}</h3><p class="muted">${sc.tip} Choose the best reply — the partner always answers.</p><div class="rp-score">${done ? `<b>${state.rp.sc}/${sc.steps.length}</b> ${lang === 'it' ? 'risposte perfette!' : 'perfect replies!'} ${state.rp.sc === sc.steps.length ? '🌟' : '— try again!'}` : `${lang === 'it' ? 'Turno' : 'Line'} ${state.rp.si + 1}/${sc.steps.length}`}</div>${done ? `<button class="btn dark" onclick="state.rp=null;render()">↺ ${lang === 'it' ? 'Ripeti' : 'Replay'}</button>` : `<div class="rp-ai"><span class="rp-av">🤖</span><div><b>${lang === 'it' ? 'Partner' : 'Partner'}</b><p class="rp-ai-t">${esc(step.ai)}</p></div><button class="btn light mini-btn" onclick="speakText(${jarg(step.ai)},'${tts}')">🔊</button></div><div class="rp-opts" id="rp-opts">${opts}</div><div id="rp-fb" class="muted small"></div><button id="rp-next" class="btn" style="display:none;margin-top:10px" onclick="state.rp.si++;render()">${lang === 'it' ? 'Prossima battuta →' : 'Next line →'}</button>`}</div>`;
 }
 function rpChoose(el, ok, fb) {
   const wrap = document.getElementById('rp-opts');
@@ -773,7 +927,7 @@ function qtimeCard(lang) {
   const bank = QT_BANK[lang][lvName(lang, state.actLevel)];
   const q = bank[state.qIdx % bank.length];
   const tts = lang === 'it' ? 'it-IT' : 'en-US';
-  return `<div class="card rp-card"><div class="illus">⏳</div><h3>Question Time</h3><p class="muted">${lang === 'it' ? 'Scegli una carta, ascolta la domanda e rispondi ad alta voce per 30 secondi.' : 'Pick a card, listen to the question, and answer out loud for 30 seconds.'}</p><div class="qtime-card">${esc(q)}<div class="qtime-timer" id="qtimer">0:30</div></div><div class="row" style="gap:8px;margin-top:10px"><button class="btn" onclick="speakText(${JSON.stringify(q)},'${tts}')">🔊 ${lang === 'it' ? 'Ascolta' : 'Listen'}</button><button class="btn light" onclick="startTimer2()">⏱ 30″</button><button class="btn light" onclick="state.qIdx++;render()">${lang === 'it' ? 'Prossima →' : 'Next →'}</button></div><div class="muted small" style="margin-top:8px">${lang === 'it' ? 'Suggerimento: apri con una frase completa, aggiungi un dettaglio e chiudi con un’opinione.' : 'Tip: open with a full sentence, add one detail, finish with an opinion.'}</div></div>`;
+  return `<div class="card rp-card"><div class="illus">⏳</div><h3>Question Time</h3><p class="muted">${lang === 'it' ? 'Scegli una carta, ascolta la domanda e rispondi ad alta voce per 30 secondi.' : 'Pick a card, listen to the question, and answer out loud for 30 seconds.'}</p><div class="qtime-card">${esc(q)}<div class="qtime-timer" id="qtimer">0:30</div></div><div class="row" style="gap:8px;margin-top:10px"><button class="btn" onclick="speakText(${jarg(q)},'${tts}')">🔊 ${lang === 'it' ? 'Ascolta' : 'Listen'}</button><button class="btn light" onclick="startTimer2()">⏱ 30″</button><button class="btn light" onclick="state.qIdx++;render()">${lang === 'it' ? 'Prossima →' : 'Next →'}</button></div><div class="muted small" style="margin-top:8px">${lang === 'it' ? 'Suggerimento: apri con una frase completa, aggiungi un dettaglio e chiudi con un’opinione.' : 'Tip: open with a full sentence, add one detail, finish with an opinion.'}</div></div>`;
 }
 
 /* ================= Mood Games (emoji feelings + intonation) ================= */
@@ -798,7 +952,7 @@ const MOOD_BANK = {
 function moodCard(lang) {
   const m = MOOD_BANK[lang][state.mood] || MOOD_BANK[lang].happy;
   const tts = lang === 'it' ? 'it-IT' : 'en-US';
-  return `<div class="card rp-card"><div class="illus">🎭</div><h3>Mood Mirror</h3><p class="muted">${lang === 'it' ? 'Scegli un’emozione e leggi le frasi con la giusta intonazione.' : 'Pick a feeling and say the phrases with the right intonation.'}</p><div class="mood-row">${Object.entries(MOOD_BANK[lang]).map(([k, v]) => `<button class="mood-btn ${state.mood === k ? 'active' : ''}" onclick="state.mood='${k}';render()" title="${v.n}">${v.e}</button>`).join('')}</div><div class="mood-current">${m.e} <b>${m.n}</b><div class="mood-tip">${m.tip}</div></div>${m.p.map(p => `<div class="mood-line"><span>${esc(p)}</span><button class="btn light mini-btn" onclick="speakText(${JSON.stringify(p)},'${tts}')">🔊</button></div>`).join('')}<div class="muted small" style="margin-top:8px">${lang === 'it' ? 'Sfida: ascolta, ripeti e registra la tua voce.' : 'Challenge: listen, repeat, and record yourself.'}</div></div>`;
+  return `<div class="card rp-card"><div class="illus">🎭</div><h3>Mood Mirror</h3><p class="muted">${lang === 'it' ? 'Scegli un’emozione e leggi le frasi con la giusta intonazione.' : 'Pick a feeling and say the phrases with the right intonation.'}</p><div class="mood-row">${Object.entries(MOOD_BANK[lang]).map(([k, v]) => `<button class="mood-btn ${state.mood === k ? 'active' : ''}" onclick="state.mood='${k}';render()" title="${v.n}">${v.e}</button>`).join('')}</div><div class="mood-current">${m.e} <b>${m.n}</b><div class="mood-tip">${m.tip}</div></div>${m.p.map(p => `<div class="mood-line"><span>${esc(p)}</span><button class="btn light mini-btn" onclick="speakText(${jarg(p)},'${tts}')">🔊</button></div>`).join('')}<div class="muted small" style="margin-top:8px">${lang === 'it' ? 'Sfida: ascolta, ripeti e registra la tua voce.' : 'Challenge: listen, repeat, and record yourself.'}</div></div>`;
 }
 function search(q) {
   q = q.trim().toLowerCase();
@@ -847,7 +1001,7 @@ function itLessonPage() {
   const reading = IT.topics[l.reading];
   const idx = all.indexOf(cur);
   const prev = all[Math.max(0, idx - 1)], next = all[Math.min(all.length - 1, idx + 1)];
-  return `<div class="section"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><span class="pill" style="background:${itLvColor(lv)};color:#fff">${lv}</span><span class="muted small"> · ${b.title} · Unità ${u.title}</span></div><div class="row" style="gap:8px"><button class="btn light" onclick="state.flip=null;state.view='italian';render()">✕ Chiudi</button></div></div><div class="book-hero" style="margin-top:14px"><div><h2>${l.title}</h2><p class="muted">${l.aim}</p></div><div style="background:${itLvColor(lv)};color:#fff;border-radius:16px;padding:16px 22px;min-width:210px"><b>Domanda chiave</b><p style="margin:6px 0 0;font-size:14px;opacity:.95">${u.bigQ}</p></div></div><div class="activity"><h3><span class="num">1</span>Lessico · Vocabolario</h3>${itVocabTiles(words)}<div class="bank ex"><span class="banktag green">ESERCIZI</span>${vocabExercises(words, idx + 1).map((x, j) => `<div class="q wbq"><b>${j + 1}. ${x.q}</b><select class="input"><option value="">— scegli —</option>${x.opts.map(o => `<option value="${esc(o)}" ${o === x.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Controlla</button><div class="wbfb"></div></div></div><div class="activity"><h3><span class="num">2</span>Grammatica</h3>${itGramCard(g, lv, idx * 5 + 3)}</div><div class="activity"><h3><span class="num">3</span>Lettura · IELTS</h3><p class="readtitle"><b>${reading.reading.title}</b> <button class="btn light mini-btn" onclick="speakText(${JSON.stringify(reading.reading.text)},'it-IT')">🔊 Ascolta</button></p>${ieltsPassage(reading.reading)}${ieltsTasks(reading.reading.tasks)}</div><div class="activity"><h3><span class="num">4</span>Ascolto</h3><p class="muted">Ascolta la lettura e rispondi alle domande del compito a voce. Poi ascolta di nuovo e ripeti le frasi chiave.</p><div class="row"><button class="btn" onclick="speakText(${JSON.stringify(reading.reading.paras[0])},'it-IT')">🔊 Ascolta (paragrafo A)</button><button class="btn light" onclick="speakText(${JSON.stringify(reading.reading.paras[1])},'it-IT')">🔊 Ascolta (paragrafo B)</button></div></div><div class="activity"><h3><span class="num">5</span>Parlare</h3><p class="muted">${l.speaking}</p></div><div class="activity"><h3><span class="num">6</span>Scrivere</h3><p class="muted">${l.writing}</p></div><div class="unit-nav"><button class="btn light" onclick="state.itLesson=itLessons(state.itBook)[${Math.max(0, idx - 1)}];render()">← Lezione precedente</button><button class="btn" onclick="state.itLesson=itLessons(state.itBook)[${Math.min(all.length - 1, idx + 1)}];render()">Lezione successiva →</button></div></div>`;
+  return `<div class="section"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><span class="pill" style="background:${itLvColor(lv)};color:#fff">${lv}</span><span class="muted small"> · ${b.title} · Unità ${u.title}</span></div><div class="row" style="gap:8px"><button class="btn light" onclick="state.flip=null;state.view='italian';render()">✕ Chiudi</button></div></div><div class="book-hero" style="margin-top:14px"><div><h2>${l.title}</h2><p class="muted">${l.aim}</p></div><div style="background:${itLvColor(lv)};color:#fff;border-radius:16px;padding:16px 22px;min-width:210px"><b>Domanda chiave</b><p style="margin:6px 0 0;font-size:14px;opacity:.95">${u.bigQ}</p></div></div><div class="activity"><h3><span class="num">1</span>Lessico · Vocabolario</h3>${itVocabTiles(words)}<div class="bank ex"><span class="banktag green">ESERCIZI</span>${vocabExercises(words, idx + 1).map((x, j) => `<div class="q wbq"><b>${j + 1}. ${x.q}</b><select class="input"><option value="">— scegli —</option>${x.opts.map(o => `<option value="${esc(o)}" ${o === x.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Controlla</button><div class="wbfb"></div></div></div><div class="activity"><h3><span class="num">2</span>Grammatica</h3>${itGramCard(g, lv, idx * 5 + 3)}</div><div class="activity"><h3><span class="num">3</span>Lettura · IELTS</h3><p class="readtitle"><b>${reading.reading.title}</b> <button class="btn light mini-btn" onclick="speakText(${jarg(reading.reading.text)},'it-IT')">🔊 Ascolta</button></p>${ieltsPassage(reading.reading)}${ieltsTasks(reading.reading.tasks)}</div><div class="activity"><h3><span class="num">4</span>Ascolto</h3><p class="muted">Ascolta la lettura e rispondi alle domande del compito a voce. Poi ascolta di nuovo e ripeti le frasi chiave.</p><div class="row"><button class="btn" onclick="speakText(${jarg(reading.reading.paras[0])},'it-IT')">🔊 Ascolta (paragrafo A)</button><button class="btn light" onclick="speakText(${jarg(reading.reading.paras[1])},'it-IT')">🔊 Ascolta (paragrafo B)</button></div></div><div class="activity"><h3><span class="num">5</span>Parlare</h3><p class="muted">${l.speaking}</p></div><div class="activity"><h3><span class="num">6</span>Scrivere</h3><p class="muted">${l.writing}</p></div><div class="unit-nav"><button class="btn light" onclick="state.itLesson=itLessons(state.itBook)[${Math.max(0, idx - 1)}];render()">← Lezione precedente</button><button class="btn" onclick="state.itLesson=itLessons(state.itBook)[${Math.min(all.length - 1, idx + 1)}];render()">Lezione successiva →</button></div></div>`;
 }
 /* ---- flip book reader (language aware) ---- */
 function openFlip(title, pages, c, lang) { state.flip = { title, pages, i: 0, c: c || '#5d50e9', lang: lang || 'en' }; render(); }
@@ -945,7 +1099,7 @@ function itVocab() {
 }
 function itReading() {
   const arr = IT.topics.filter(t => state.itLevel === 'All' || t.level === state.itLevel);
-  return `<div class="section"><h2>Lettura · stile IELTS</h2><p class="muted">Letture autentiche con compiti da esame: Vero / Falso / Non indicato, completamento di un riassunto e scelta multipla.</p><div class="filters" style="margin-top:16px">${['All', ...IT.levels].map(x => `<button class="filter ${state.itLevel === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><div class="list">${arr.map(t => `<div class="card ielts-read"><div class="row" style="justify-content:space-between"><span class="pill" style="background:${itLvColor(t.level)};color:#fff">${t.level}</span><button class="btn light mini-btn" onclick="speakText(${JSON.stringify(t.reading.text)},'it-IT')">🔊 Ascolta</button></div><h3>${t.reading.title}</h3>${ieltsPassage(t.reading)}${ieltsTasks(t.reading.tasks)}</div>`).join('')}</div></div>`;
+  return `<div class="section"><h2>Lettura · stile IELTS</h2><p class="muted">Letture autentiche con compiti da esame: Vero / Falso / Non indicato, completamento di un riassunto e scelta multipla.</p><div class="filters" style="margin-top:16px">${['All', ...IT.levels].map(x => `<button class="filter ${state.itLevel === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><div class="list">${arr.map(t => `<div class="card ielts-read"><div class="row" style="justify-content:space-between"><span class="pill" style="background:${itLvColor(t.level)};color:#fff">${t.level}</span><button class="btn light mini-btn" onclick="speakText(${jarg(t.reading.text)},'it-IT')">🔊 Ascolta</button></div><h3>${t.reading.title}</h3>${ieltsPassage(t.reading)}${ieltsTasks(t.reading.tasks)}</div>`).join('')}</div></div>`;
 }
 /* ---- Italiano · studios (Ascolto · Parlare · Scrivere) ---- */
 function itAllLessons() { return IT.books.flatMap(b => itLessons(b)); }
@@ -953,20 +1107,20 @@ function itListening() {
   const levs = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   const lv = levs.includes(state.itLevel) ? state.itLevel : 'A1';
   const topics = IT.topics.filter(t => t.level === lv);
-  return `<div class="section"><h2>Ascolto · Listening Lab</h2><p class="muted">Ascolta il testo autentico, poi leggi il riassunto e rispondi. Premi ▶ per l'audio, poi verifica con il trascritto e le domande.</p>${bannerSVG('it')}<div class="filters" style="margin-top:16px">${levs.map(x => `<button class="filter ${lv === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><div class="list">${topics.map((t, i) => `<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><span class="pill" style="background:${itLvColor(lv)};color:#fff">${lv} · ${t.reading.title}</span><div class="row" style="gap:8px"><button class="btn" onclick="speakText(${JSON.stringify(t.reading.text)},'it-IT')">▶ Ascolta</button><button class="btn" onclick="speakText(${JSON.stringify(t.reading.paras[0])},'it-IT')">▶ Par. A</button><button class="btn" onclick="speakText(${JSON.stringify(t.reading.paras[1])},'it-IT')">▶ Par. B</button><button class="btn light" onclick="document.getElementById('tr${i}').style.display='block'">Trascritto</button></div></div><p class="muted small">Compito: ascolta e identifica l'idea principale di ogni paragrafo, i dettagli chiave e il registro (formale/informale).</p><p id="tr${i}" class="answer script" style="display:none">${t.reading.text}</p><div class="q"><b>Domanda.</b> Qual è l'idea principale del testo?<button class="btn light" onclick="this.nextElementSibling.style.display='block'">Verifica</button><div class="answer" style="display:none">${t.reading.title} — ascolta di nuovo e verifica: il tema centrale e i dettagli citati nel riassunto.</div></div></div>`).join('') || '<div class="empty">Nessuna traccia per questo livello.</div>'}</div></div>`;
+  return `<div class="section"><h2>Ascolto · Listening Lab</h2><p class="muted">Ascolta il testo autentico, poi leggi il riassunto e rispondi. Premi ▶ per l'audio, poi verifica con il trascritto e le domande.</p>${bannerSVG('it')}<div class="filters" style="margin-top:16px">${levs.map(x => `<button class="filter ${lv === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><div class="list">${topics.map((t, i) => `<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><span class="pill" style="background:${itLvColor(lv)};color:#fff">${lv} · ${t.reading.title}</span><div class="row" style="gap:8px"><button class="btn" onclick="speakText(${jarg(t.reading.text)},'it-IT')">▶ Ascolta</button><button class="btn" onclick="speakText(${jarg(t.reading.paras[0])},'it-IT')">▶ Par. A</button><button class="btn" onclick="speakText(${jarg(t.reading.paras[1])},'it-IT')">▶ Par. B</button><button class="btn light" onclick="document.getElementById('tr${i}').style.display='block'">Trascritto</button></div></div><p class="muted small">Compito: ascolta e identifica l'idea principale di ogni paragrafo, i dettagli chiave e il registro (formale/informale).</p><p id="tr${i}" class="answer script" style="display:none">${t.reading.text}</p><div class="q"><b>Domanda.</b> Qual è l'idea principale del testo?<button class="btn light" onclick="this.nextElementSibling.style.display='block'">Verifica</button><div class="answer" style="display:none">${t.reading.title} — ascolta di nuovo e verifica: il tema centrale e i dettagli citati nel riassunto.</div></div></div>`).join('') || '<div class="empty">Nessuna traccia per questo livello.</div>'}</div></div>`;
 }
 function itSpeaking() {
   const levs = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   const lv = levs.includes(state.itLevel) ? state.itLevel : 'A1';
   const sc = itAllLessons().filter(x => x.l.grammar.lv === lv);
   const cards = sc.slice(0, 12).map((x, i) => ({ title: x.l.title, task: x.l.speaking, aim: x.l.aim, idx: i }));
-  return `<div class="section"><h2>Parlare · Speaking Studio</h2><p class="muted">Scenario di conversazione reale per ogni lezione: parla, registrati e controlla con la checklist. Scegli il livello per nuovi compiti.</p>${bannerSVG('it')}<div class="filters" style="margin-top:16px">${levs.map(x => `<button class="filter ${lv === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><div class="grid">${cards.map(c => `<div class="card"><span class="pill" style="background:${itLvColor(lv)};color:#fff">Percorso ${lv} · ${c.idx + 1}</span><h3>${esc(c.title)}</h3><p class="muted small">${esc(c.aim)}</p><p><b>Compito:</b> ${esc(c.task)}</p><button class="btn light mini-btn" onclick="speakText(${JSON.stringify(c.task)},'it-IT')">🔊 Ascolta il compito</button><div class="task"><b>Checklist</b><p>☐ Ho risposto alla domanda<br>☐ Ho usato il lessico della lezione<br>☐ Ho parlato per almeno 30 secondi</p></div></div>`).join('') || '<div class="empty">Nessun compito per questo livello.</div>'}</div><div class="card"><h3>⏱ Sfida di 1 minuto</h3><div class="hero" style="text-align:center;margin:14px 0"><div id="timer" style="font:800 54px 'Plus Jakarta Sans'">01:00</div><button class="btn dark" onclick="startTimer()">Avvia il timer</button></div><p class="muted small">Scegli una domanda chiave del corso e parla per un minuto: apertura, due dettagli, chiusura.</p></div></div>`;
+  return `<div class="section"><h2>Parlare · Speaking Studio</h2><p class="muted">Scenario di conversazione reale per ogni lezione: parla, registrati e controlla con la checklist. Scegli il livello per nuovi compiti.</p>${bannerSVG('it')}<div class="filters" style="margin-top:16px">${levs.map(x => `<button class="filter ${lv === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><div class="grid">${cards.map(c => `<div class="card"><span class="pill" style="background:${itLvColor(lv)};color:#fff">Percorso ${lv} · ${c.idx + 1}</span><h3>${esc(c.title)}</h3><p class="muted small">${esc(c.aim)}</p><p><b>Compito:</b> ${esc(c.task)}</p><button class="btn light mini-btn" onclick="speakText(${jarg(c.task)},'it-IT')">🔊 Ascolta il compito</button><div class="task"><b>Checklist</b><p>☐ Ho risposto alla domanda<br>☐ Ho usato il lessico della lezione<br>☐ Ho parlato per almeno 30 secondi</p></div></div>`).join('') || '<div class="empty">Nessun compito per questo livello.</div>'}</div><div class="card"><h3>⏱ Sfida di 1 minuto</h3><div class="hero" style="text-align:center;margin:14px 0"><div id="timer" style="font:800 54px 'Plus Jakarta Sans'">01:00</div><button class="btn dark" onclick="startTimer()">Avvia il timer</button></div><p class="muted small">Scegli una domanda chiave del corso e parla per un minuto: apertura, due dettagli, chiusura.</p></div></div>`;
 }
 function itWriting() {
   const levs = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   const lv = levs.includes(state.itLevel) ? state.itLevel : 'A1';
   const sc = itAllLessons().filter(x => x.l.grammar.lv === lv);
-  return `<div class="section"><h2>Scrivere · Writing Studio</h2><p class="muted">Compiti di scrittura guidata per ogni livello: leggi il compito, scrivi, poi controlla con la checklist.</p>${bannerSVG('it')}<div class="filters" style="margin-top:16px">${levs.map(x => `<button class="filter ${lv === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><div class="list">${sc.slice(0, 8).map((x, i) => `<div class="card"><span class="pill" style="background:${itLvColor(lv)};color:#fff">${lv} · Scrittura ${i + 1}</span><h3>${esc(x.l.title)}</h3><p class="muted small">${esc(x.l.aim)}</p><p><b>Compito:</b> ${esc(x.l.writing)}</p><textarea class="input" rows="4" placeholder="Scrivi qui la tua bozza…"></textarea><button class="btn light mini-btn" onclick="speakText(${JSON.stringify(x.l.writing)},'it-IT')">🔊 Ascolta il compito</button><div class="task"><b>Checklist</b><p>☐ Ho risposto al compito<br>☐ Ho usato il lessico e la grammatica della lezione<br>☐ Ho controllato la punteggiatura e le maiuscole</p></div></div>`).join('') || '<div class="empty">Nessun compito per questo livello.</div>'}</div></div>`;
+  return `<div class="section"><h2>Scrivere · Writing Studio</h2><p class="muted">Compiti di scrittura guidata per ogni livello: leggi il compito, scrivi, poi controlla con la checklist.</p>${bannerSVG('it')}<div class="filters" style="margin-top:16px">${levs.map(x => `<button class="filter ${lv === x ? 'active' : ''}" onclick="state.itLevel='${x}';render()">${x}</button>`).join('')}</div><div class="list">${sc.slice(0, 8).map((x, i) => `<div class="card"><span class="pill" style="background:${itLvColor(lv)};color:#fff">${lv} · Scrittura ${i + 1}</span><h3>${esc(x.l.title)}</h3><p class="muted small">${esc(x.l.aim)}</p><p><b>Compito:</b> ${esc(x.l.writing)}</p><textarea class="input" rows="4" placeholder="Scrivi qui la tua bozza…"></textarea><button class="btn light mini-btn" onclick="speakText(${jarg(x.l.writing)},'it-IT')">🔊 Ascolta il compito</button><div class="task"><b>Checklist</b><p>☐ Ho risposto al compito<br>☐ Ho usato il lessico e la grammatica della lezione<br>☐ Ho controllato la punteggiatura e le maiuscole</p></div></div>`).join('') || '<div class="empty">Nessun compito per questo livello.</div>'}</div></div>`;
 }
 
 function speakText(t, lang) { if ('speechSynthesis' in window) { speechSynthesis.cancel(); let u = new SpeechSynthesisUtterance(t); u.lang = lang || 'en-US'; u.rate = .9; speechSynthesis.speak(u); } }
