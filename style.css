@@ -275,3 +275,29 @@
 .tip-t b{font-size:13.5px}
 .tip p{margin:3px 0 0;font-size:12.5px;line-height:1.5}
 @media(max-width:640px){.tips-groups{grid-template-columns:1fr}}
+
+/* ---- Activities & Games Studio ---- */
+.seg{display:flex;gap:6px;background:#f2f0fb;padding:5px;border-radius:12px}
+.seg .filter{border:none;background:transparent;border-radius:9px;padding:7px 13px;font-weight:700;font-size:13px;color:#6b6699}
+.seg .filter.active{background:#fff;color:#5d50e9;box-shadow:0 2px 8px rgba(93,80,233,.18)}
+.scramble{font:800 34px 'Plus Jakarta Sans';letter-spacing:10px;color:#5d50e9;background:#f2f0fb;border-radius:14px;padding:18px;text-align:center;margin:10px 0 14px;text-transform:uppercase}
+.sentence{font:700 17px 'Plus Jakarta Sans';line-height:1.7;background:#f2f0fb;border-radius:14px;padding:16px;margin:10px 0 14px;color:#333}
+.hangman-word{font:800 26px 'Plus Jakarta Sans';letter-spacing:8px;text-align:center;color:#222;background:#f2f0fb;border-radius:14px;padding:16px;margin:10px 0}
+.hangman-letters{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}
+.hm{min-width:34px;padding:6px 8px;text-transform:uppercase}
+.match-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.match-cell{display:flex;flex-direction:column;gap:2px;align-items:flex-start;background:#f8f7ff;border:1.5px solid var(--line,#e6e2f6);border-radius:12px;padding:10px 12px;cursor:pointer;transition:.15s;text-align:left}
+.match-cell:hover{border-color:#5d50e9}
+.match-cell.good{background:#e6f9ee;border-color:#22c55e;color:#15803d}
+.match-cell.bad{background:#fee2e2;border-color:#ef4444;color:#b91c1c}
+.memory{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.mem{aspect-ratio:1;border-radius:14px;background:linear-gradient(145deg,#5d50e9,#7a6bff);color:#fff;font-size:30px;border:none;cursor:pointer;display:grid;place-items:center;transition:.2s}
+.mem:hover{transform:translateY(-2px)}
+.mem.mem-done{background:#e6f9ee;color:#15803d;font-size:26px;cursor:default}
+.wbscore{display:inline-block;margin-top:8px;font-weight:800;color:#d97706;font-size:14px}
+.wbscore.all{color:#16a34a}
+.wbq{margin:10px 0}
+.wbfb{margin-top:8px;font-weight:800;color:#5d50e9}
+.illus{font-size:38px;margin-bottom:6px}
+.books{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+@media(max-width:520px){.match-grid{grid-template-columns:1fr}.memory{grid-template-columns:repeat(2,1fr)}}
