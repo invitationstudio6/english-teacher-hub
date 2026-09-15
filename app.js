@@ -8,8 +8,13 @@ const adults = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const teens = ['A1', 'A2', 'B1', 'B2'];
 const kids = ['Pre-A1', 'A1', 'A2', 'B1', 'B2'];
 const TOPICS = window.LF_TOPICS;
-const GRAMMAR = window.LF_GRAMMAR;
+const GRAMMAR = window.LF_GRAMMAR.concat(window.LF_GRAMMAR_EXTRA || []);
 const VOCAB = window.LF_VOCAB;
+(function mergeVocab() {
+  const extra = window.LF_VOCAB_EXTRA || {};
+  for (const lv in extra) { VOCAB[lv] = (VOCAB[lv] || []).concat(extra[lv]); }
+})();
+const TIPS = window.LF_TIPS || {};
 const icons = ['🍎', '🏠', '👨‍👩‍👧', '🍲', '✈️', '🎒', '🎨', '🌳', '💻', '💼', '🎵', '🌍'];
 const stageNames = ['Words in Context', 'Reading & Ideas', 'Listen & Speak', 'Write & Review'];
 const stageIcons = ['🔤', '📖', '🎧', '✍️'];
@@ -252,14 +257,20 @@ function save() { localStorage.setItem('lf_students', JSON.stringify(state.stude
 
 /* ---------------- Shell & navigation ---------------- */
 function layout(content) {
-  document.getElementById('app').innerHTML = `<div class="app"><aside class="side"><div class="brand"><span>LF</span><strong>Lingua Forge</strong></div><div class="navtitle">Teach</div>${[['dashboard', '🏠', 'Dashboard'], ['students', '👩‍🎓', 'Students'], ['planner', '📅', 'Lesson Planner'], ['progress', '📊', 'Progress']].map(x => nav(...x)).join('')}<div class="navtitle">Published Library</div>${[['textbooks', '📚', 'Coursebooks'], ['grammar', '📖', 'Grammar in Use'], ['vocabulary', '🔤', 'Vocabulary in Use'], ['workbook', '📝', 'Workbooks'], ['teacher', '👩‍🏫', 'Teacher’s Book']].map(x => nav(...x)).join('')}<div class="navtitle">Skills Lab</div>${[['reading', '📚', 'Reading Studio'], ['listening', '🎧', 'Listening Lab'], ['speaking', '🗣️', 'Speaking Studio'], ['writing', '✍️', 'Writing Studio'], ['flashcards', '🃏', 'Flashcards'], ['games', '🎮', 'Games'], ['tests', '🧪', 'Assessments'], ['homework', '🏠', 'Homework']].map(x => nav(...x)).join('')}<div class="navtitle">Italiano 🇮🇹</div>${[['italian', '🍝', 'Italiano'], ['itgrammar', '📖', 'Grammatica'], ['itvocab', '🔤', 'Lessico'], ['itreading', '📚', 'Lettura']].map(x => nav(...x)).join('')}</aside><main class="main"><div class="top"><input class="search" placeholder="Search vocabulary, grammar, lessons…" onkeydown="if(event.key==='Enter')search(this.value)"><span class="pill">PRO · ELT Edition</span></div>${content}</main></div>`;
+  document.getElementById('app').innerHTML = `<div class="app"><aside class="side"><div class="brand"><span>LF</span><strong>Lingua Forge</strong></div><div class="navtitle">Teach</div>${[['dashboard', '🏠', 'Dashboard'], ['students', '👩‍🎓', 'Students'], ['planner', '📅', 'Lesson Planner'], ['progress', '📊', 'Progress']].map(x => nav(...x)).join('')}<div class="navtitle">Published Library</div>${[['textbooks', '📚', 'Coursebooks'], ['grammar', '📖', 'Grammar in Use'], ['vocabulary', '🔤', 'Vocabulary in Use'], ['workbook', '📝', 'Workbooks'], ['teacher', '👩‍🏫', 'Teacher’s Book']].map(x => nav(...x)).join('')}<div class="navtitle">Skills Lab</div>${[['reading', '📚', 'Reading Studio'], ['listening', '🎧', 'Listening Lab'], ['speaking', '🗣️', 'Speaking Studio'], ['writing', '✍️', 'Writing Studio'], ['flashcards', '🃏', 'Flashcards'], ['games', '🎮', 'Games'], ['tests', '🧪', 'Assessments'], ['homework', '🏠', 'Homework']].map(x => nav(...x)).join('')}<div class="navtitle">Tools & Strategies</div>${[['tips', '💡', 'Tips & Strategies']].map(x => nav(...x)).join('')}<div class="navtitle">Italiano 🇮🇹</div>${[['italian', '🍝', 'Italiano'], ['itgrammar', '📖', 'Grammatica'], ['itvocab', '🔤', 'Lessico'], ['itreading', '📚', 'Lettura']].map(x => nav(...x)).join('')}</aside><main class="main"><div class="top"><input class="search" placeholder="Search vocabulary, grammar, lessons…" onkeydown="if(event.key==='Enter')search(this.value)"><span class="pill">PRO · ELT Edition</span></div>${content}</main></div>`;
 }
 function nav(id, ico, label) { return `<button class="nav ${state.view === id ? 'active' : ''}" onclick="go('${id}')"><span>${ico}</span> ${label}</button>`; }
 function go(v) { state.view = v; state.book = null; state.lesson = null; state.flip = null; render(); }
 function render() {
   if (state.flip) { layout(flipView()); return; }
-  const m = { dashboard: dashboard, textbooks: textbooks, book: bookPage, lesson: lessonPage, vocabulary: vocabulary, flashcards: flashcards, grammar: grammarPage, reading: reading, listening: listening, speaking: speaking, writing: writing, tests: tests, workbook: workbook, teacher: teacher, students: students, homework: homework, progress: progress, planner: planner, games: games, italian: italian, itlesson: itLessonPage, itgrammar: itGrammar, itvocab: itVocab, itreading: itReading };
+  const m = { dashboard: dashboard, textbooks: textbooks, book: bookPage, lesson: lessonPage, vocabulary: vocabulary, flashcards: flashcards, grammar: grammarPage, reading: reading, listening: listening, speaking: speaking, writing: writing, tests: tests, workbook: workbook, teacher: teacher, students: students, homework: homework, progress: progress, planner: planner, games: games, tips: tipsPage, italian: italian, itlesson: itLessonPage, itgrammar: itGrammar, itvocab: itVocab, itreading: itReading };
   layout(m[state.view]());
+}
+
+/* ---------------- Tips & Strategies ---------------- */
+function tipsPage() {
+  const cats = [TIPS.ielts, TIPS.study, TIPS.italian];
+  return `<div class="section"><h2>💡 Tips & Strategies</h2><p class="muted">Exam tactics, science-backed study methods, and skill-building guidance for English and Italian — everything in one professional toolkit.</p>${bannerSVG('hero')}<div class="tips-cats">${cats.map(c => `<div class="tips-cat" style="--tc:${c.color}"><div class="tips-cat-head"><span class="tips-cat-icon">${c.icon}</span><div><h3>${c.title}</h3><p class="muted small">${c.subtitle}</p></div></div><div class="tips-groups">${c.groups.map(g => `<div class="tips-group"><h4><span class="tips-g-icon">${g.icon}</span> ${g.title}</h4><div class="tips-list">${g.tips.map(t => `<div class="tip"><div class="tip-t"><b>${esc(t.t)}</b></div><p class="muted">${esc(t.d)}</p></div>`).join('')}</div></div>`).join('')}</div></div>`).join('')}</div></div>`;
 }
 
 /* ---------------- Views ---------------- */
@@ -306,14 +317,15 @@ const grammarBooks = [
 ];
 function bookFor(level) { return grammarBooks.find(b => b.band.includes(level)); }
 /* Murphy-style pedagogical arc (like English Grammar in Use) — our own units, same learning sequence */
-const GRAMMAR_SEQ = ['be-have', 'present-simple', 'present-continuous', 'past-simple', 'present-perfect', 'future-forms', 'modals', 'conditionals', 'passive', 'reported-speech', 'relative-clauses', 'comparatives', 'articles', 'plurals-demo', 'advanced'];
+const GRAMMAR_SEQ = ['be-have', 'articles', 'plurals-demo', 'prepositions', 'present-simple', 'present-continuous', 'past-simple', 'past-continuous', 'present-perfect', 'past-perfect', 'future-forms', 'future-perfect', 'quantifiers', 'determiners', 'comparatives', 'modals', 'conditionals', 'passive', 'reported-speech', 'gerunds-infinitives', 'phrasal-verbs', 'relative-clauses', 'word-formation', 'question-tags', 'linking-words', 'causatives', 'wishes-regrets', 'adverb-clauses', 'advanced'];
 const GRAMMAR_PARTS = {
-  A: { name: 'Present & Past', ids: ['be-have', 'present-simple', 'present-continuous', 'past-simple'] },
-  B: { name: 'Present Perfect & Future', ids: ['present-perfect', 'future-forms'] },
-  C: { name: 'Modals & Conditionals', ids: ['modals', 'conditionals'] },
+  A: { name: 'Present & Past', ids: ['be-have', 'present-simple', 'present-continuous', 'past-simple', 'past-continuous', 'past-perfect'] },
+  B: { name: 'Present Perfect & Future', ids: ['present-perfect', 'future-forms', 'future-perfect'] },
+  C: { name: 'Modals & Conditionals', ids: ['modals', 'conditionals', 'wishes-regrets', 'adverb-clauses'] },
   D: { name: 'Passive & Reported Speech', ids: ['passive', 'reported-speech'] },
-  E: { name: 'Clauses & Comparison', ids: ['relative-clauses', 'comparatives'] },
-  F: { name: 'Articles, Plurals & Advanced', ids: ['articles', 'plurals-demo', 'advanced'] }
+  E: { name: 'Clauses, Gerunds & Phrasal Verbs', ids: ['relative-clauses', 'gerunds-infinitives', 'phrasal-verbs', 'word-formation'] },
+  F: { name: 'Articles, Determiners & Quantifiers', ids: ['articles', 'plurals-demo', 'quantifiers', 'determiners', 'prepositions'] },
+  G: { name: 'Linking, Tags & Advanced', ids: ['comparatives', 'question-tags', 'linking-words', 'causatives', 'advanced'] }
 };
 function partOf(id) { for (const k in GRAMMAR_PARTS) if (GRAMMAR_PARTS[k].ids.includes(id)) return k; return 'F'; }
 function gramOrder(g) { const i = GRAMMAR_SEQ.indexOf(g.id); return i === -1 ? 999 : i; }
@@ -494,6 +506,12 @@ function search(q) {
    ITALIANO — complete Italian section (Grammatica · Lessico · Lettura)
    ================================================================ */
 const IT = window.IT;
+(function mergeIT() {
+  const ge = window.IT_GRAMMAR_EXTRA || [];
+  if (ge.length) IT.grammar = IT.grammar.concat(ge);
+  const ve = window.IT_VOCAB_EXTRA || {};
+  for (const lv in ve) { IT.vocab[lv] = (IT.vocab[lv] || []).concat(ve[lv]); }
+})();
 function itWords(lv, idxs) { const arr = IT.vocab[lv] || []; return idxs.map(i => arr[i]).filter(Boolean); }
 function itLessons(book) { const out = []; book.units.forEach((u, ui) => u.lessons.forEach((l, li) => out.push({ book, u, l, ui, li }))); return out; }
 function itLvColor(lv) { const map = { A1: '#2e9e4f', A2: '#1499ce', B1: '#b02a2a', B2: '#e05252', C1: '#7a3fb0', C2: '#4c2472' }; return map[lv] || '#5d50e9'; }

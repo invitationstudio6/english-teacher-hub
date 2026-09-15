@@ -259,3 +259,19 @@
 .fc-band{font-weight:800;letter-spacing:1px}
 .fc-foot{margin-top:18px;font-size:12px;opacity:.8}
 @media(max-width:760px){.book3d{flex-direction:column}.bspine{display:none}.bpage{max-height:none}.fp-prev{grid-template-columns:1fr}.flip-cover{min-height:300px}}
+
+/* ---- Tips & Strategies ---- */
+.tips-cats{display:grid;gap:26px;margin-top:18px}
+.tips-cat{border:1px solid var(--line,#e6e2f6);border-radius:20px;padding:22px;background:linear-gradient(180deg,#fff,color-mix(in srgb,var(--tc,#5d50e9) 4%,#fff))}
+.tips-cat-head{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+.tips-cat-icon{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;font-size:28px;background:color-mix(in srgb,var(--tc,#5d50e9) 14%,#fff);color:var(--tc,#5d50e9)}
+.tips-cat-head h3{margin:0;font-size:21px}
+.tips-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.tips-group{background:#fff;border:1px solid var(--line,#e6e2f6);border-radius:14px;padding:16px}
+.tips-group h4{margin:0 0 12px;font-size:15px;display:flex;gap:8px;align-items:center;color:var(--tc,#5d50e9)}
+.tips-g-icon{font-size:18px}
+.tips-list{display:grid;gap:10px}
+.tip{padding:10px 12px;border-radius:10px;background:#f8f7ff;border-left:3px solid var(--tc,#5d50e9)}
+.tip-t b{font-size:13.5px}
+.tip p{margin:3px 0 0;font-size:12.5px;line-height:1.5}
+@media(max-width:640px){.tips-groups{grid-template-columns:1fr}}
