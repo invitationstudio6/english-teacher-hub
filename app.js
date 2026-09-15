@@ -252,7 +252,7 @@ function makeBook(age, level) {
 }
 const books = [...kids.map(l => makeBook('Kids', l)), ...teens.map(l => makeBook('Teens', l)), ...adults.map(l => makeBook('Adults', l))];
 const allVocab = levels.flatMap(l => VOCAB[l].map((w, i) => ({ ...w, level: l, icon: icons[i % icons.length], topic: TOPICS[i % TOPICS.length].title })));
-const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: JSON.parse(localStorage.getItem('lf_homework') || '[]'), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false };
+const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: JSON.parse(localStorage.getItem('lf_homework') || '[]'), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false };
 function save() { localStorage.setItem('lf_students', JSON.stringify(state.student)); localStorage.setItem('lf_homework', JSON.stringify(state.homework)); localStorage.setItem('lf_plans', JSON.stringify(state.plans)); }
 
 /* ---------------- Shell & navigation ---------------- */
@@ -506,7 +506,7 @@ function activities() {
   const pos = w.pos || '';
   const pic = w.pic || '🔤';
   const wb = (w.meaning ? w.example : w.example);
-  return `<div class="section"><h2>🎮 Activities & Games Studio</h2><p class="muted">Interactive, unique activities for English and Italian — scramble, hangman, matching, memory, quiz race and sentence building. Switch language with one tap.</p>${bannerSVG('games')}<div class="row" style="gap:10px;margin:14px 0;flex-wrap:wrap"><div class="seg">${Object.entries(ACTIVITY_LANGS).map(([k, v]) => `<button class="filter ${lang === k ? 'active' : ''}" onclick="state.actLang='${k}';state.actIdx=0;render()">${v.flag} ${v.name}</button>`).join('')}</div><div class="seg">${[0, 1, 2, 3].map(i => `<button class="filter ${(state.actLevel || 3) === i ? 'active' : ''}" onclick="state.actLevel=${i};render()">${lang === 'it' ? ['A1', 'A2', 'B1', 'B2'][i] : ['Pre-A1', 'A1', 'A2', 'B1'][i]}</button>`).join('')}</div></div><div class="books"><div class="card"><div class="illus">🔀</div><h3>Word Scramble</h3><p class="muted">Unscramble the word. Type it, then check. 🔊 Listen for help.</p><div class="scramble">${scram}</div><div class="row" style="gap:8px"><input id="act-ans" class="input" placeholder="Your answer"><button class="btn" onclick="const v=document.getElementById('act-ans').value.trim().toLowerCase();const a='${w.word}'.toLowerCase();document.getElementById('act-fb').innerHTML=v===a?'<span class=\\'wbscore all\\'>Correct! 🎉 '+${JSON.stringify(pic)}+'</span>':'<span class=\\'wbscore\\'>Try again — check the letters.</span>'">Check</button></div><div id="act-fb"></div><button class="btn light mini-btn" style="margin-top:10px" onclick="${speak}">🔊 Listen</button><div class="muted small" style="margin-top:8px">${esc(mean)}</div><button class="btn light" style="margin-top:10px" onclick="state.actIdx++;render()">Next word →</button></div><div class="card"><div class="illus">🙈</div><h3>Hangman</h3><p class="muted">Guess the hidden word, one letter at a time. 6 wrong guesses and the word is revealed.</p><div id="hangman-word" class="hangman-word">${w.word.split('').map(() => '_').join(' ')}</div><div class="hangman-letters">${'abcdefghijklmnopqrstuvwxyz'.split('').map(c => `<button class="btn light mini-btn hm" onclick="hang(${JSON.stringify(c)},'${esc(w.word)}')">${c}</button>`).join('')}</div><div id="hangman-fb" class="muted small"></div><button class="btn light mini-btn" onclick="${speak}">🔊 Hint</button></div><div class="card"><div class="illus">🎯</div><h3>Match It</h3><p class="muted">Match each word to its meaning — click the pairs in order.</p><div class="match-grid">${shuffled(words.map((x, i) => ({ i })), state.actIdx + 1).map(x => `<button class="match-cell" onclick="match(this,'${esc(words[x.i].word)}','${esc(words[x.i].meaning || words[x.i].en)}')"><b>${esc(words[x.i].word)}</b><span class="muted small">${esc(words[x.i].meaning || words[x.i].en)}</span></button>`).join('')}</div><div id="match-fb" class="muted small"></div></div><div class="card"><div class="illus">🧠</div><h3>Memory Pairs</h3><p class="muted">Flip the cards and find word–picture pairs.</p><div class="memory">${words.slice(0, 6).map((x, i) => `<button class="mem" data-i="${i}" onclick="memFlip(this,'${x.pic || '🔤'}','${esc(x.word)}')">❓</button>`).join('')}</div><div id="mem-fb" class="muted small"></div></div><div class="card"><div class="illus">⚡</div><h3>Quiz Race</h3><p class="muted">Five quick questions — answer fast, track your streak.</p><div id="quiz-wrap"><div class="q wbq"><b>1. ${esc(w.meaning || w.en)}</b><select class="input"><option value="">— choose —</option>${shuffled([w.word, words[(state.actIdx + 1) % words.length].word, words[(state.actIdx + 2) % words.length].word], 3).map(o => `<option value="${esc(o)}" ${o === w.word ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div></div><button class="btn" onclick="checkWB()">Check</button><div class="wbfb"></div></div><div class="card"><div class="illus">🧩</div><h3>Sentence Builder</h3><p class="muted">Put the words in the right order to build the example sentence.</p><div class="sentence">${shuffled(wb.replace(/[“”]/g, '').split(' '), state.actIdx + 5).join(' ')}</div><div class="row" style="gap:8px"><input id="sb" class="input" placeholder="Your sentence"><button class="btn" onclick="const v=document.getElementById('sb').value.trim().toLowerCase().replace(/[^a-z\\s']/g,'');const a='${esc(wb.replace(/[“”]/g, '').toLowerCase().replace(/[^a-z\\s']/g, ''))}';document.getElementById('sb-fb').innerHTML=v===a?'<span class=\\'wbscore all\\'>Perfect! 🎉</span>':'<span class=\\'wbscore\\'>Almost — check the word order.</span>'">Check</button></div><div id="sb-fb"></div><button class="btn light mini-btn" style="margin-top:10px" onclick="${speak}">🔊 Listen</button></div></div></div>`;
+  return `<div class="section"><h2>🎮 Activities & Games Studio</h2><p class="muted">Interactive, unique activities for English and Italian — scramble, hangman, matching, memory, quiz race and sentence building. Switch language with one tap.</p>${bannerSVG('games')}<div class="row" style="gap:10px;margin:14px 0;flex-wrap:wrap"><div class="seg">${Object.entries(ACTIVITY_LANGS).map(([k, v]) => `<button class="filter ${lang === k ? 'active' : ''}" onclick="state.actLang='${k}';state.actIdx=0;render()">${v.flag} ${v.name}</button>`).join('')}</div><div class="seg">${[0, 1, 2, 3].map(i => `<button class="filter ${(state.actLevel || 3) === i ? 'active' : ''}" onclick="state.actLevel=${i};render()">${lang === 'it' ? ['A1', 'A2', 'B1', 'B2'][i] : ['Pre-A1', 'A1', 'A2', 'B1'][i]}</button>`).join('')}</div></div><div class="books"><div class="card"><div class="illus">🔀</div><h3>Word Scramble</h3><p class="muted">Unscramble the word. Type it, then check. 🔊 Listen for help.</p><div class="scramble">${scram}</div><div class="row" style="gap:8px"><input id="act-ans" class="input" placeholder="Your answer"><button class="btn" onclick="const v=document.getElementById('act-ans').value.trim().toLowerCase();const a='${w.word}'.toLowerCase();document.getElementById('act-fb').innerHTML=v===a?'<span class=\\'wbscore all\\'>Correct! 🎉 '+${JSON.stringify(pic)}+'</span>':'<span class=\\'wbscore\\'>Try again — check the letters.</span>'">Check</button></div><div id="act-fb"></div><button class="btn light mini-btn" style="margin-top:10px" onclick="${speak}">🔊 Listen</button><div class="muted small" style="margin-top:8px">${esc(mean)}</div><button class="btn light" style="margin-top:10px" onclick="state.actIdx++;render()">Next word →</button></div><div class="card"><div class="illus">🙈</div><h3>Hangman</h3><p class="muted">Guess the hidden word, one letter at a time. 6 wrong guesses and the word is revealed.</p><div id="hangman-word" class="hangman-word">${w.word.split('').map(() => '_').join(' ')}</div><div class="hangman-letters">${'abcdefghijklmnopqrstuvwxyz'.split('').map(c => `<button class="btn light mini-btn hm" onclick="hang(${JSON.stringify(c)},'${esc(w.word)}')">${c}</button>`).join('')}</div><div id="hangman-fb" class="muted small"></div><button class="btn light mini-btn" onclick="${speak}">🔊 Hint</button></div><div class="card"><div class="illus">🎯</div><h3>Match It</h3><p class="muted">Match each word to its meaning — click the pairs in order.</p><div class="match-grid">${shuffled(words.map((x, i) => ({ i })), state.actIdx + 1).map(x => `<button class="match-cell" onclick="match(this,'${esc(words[x.i].word)}','${esc(words[x.i].meaning || words[x.i].en)}')"><b>${esc(words[x.i].word)}</b><span class="muted small">${esc(words[x.i].meaning || words[x.i].en)}</span></button>`).join('')}</div><div id="match-fb" class="muted small"></div></div><div class="card"><div class="illus">🧠</div><h3>Memory Pairs</h3><p class="muted">Flip the cards and find word–picture pairs.</p><div class="memory">${words.slice(0, 6).map((x, i) => `<button class="mem" data-i="${i}" onclick="memFlip(this,'${x.pic || '🔤'}','${esc(x.word)}')">❓</button>`).join('')}</div><div id="mem-fb" class="muted small"></div></div><div class="card"><div class="illus">⚡</div><h3>Quiz Race</h3><p class="muted">Five quick questions — answer fast, track your streak.</p><div id="quiz-wrap"><div class="q wbq"><b>1. ${esc(w.meaning || w.en)}</b><select class="input"><option value="">— choose —</option>${shuffled([w.word, words[(state.actIdx + 1) % words.length].word, words[(state.actIdx + 2) % words.length].word], 3).map(o => `<option value="${esc(o)}" ${o === w.word ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div></div><button class="btn" onclick="checkWB()">Check</button><div class="wbfb"></div></div><div class="card"><div class="illus">🧩</div><h3>Sentence Builder</h3><p class="muted">Put the words in the right order to build the example sentence.</p><div class="sentence">${shuffled(wb.replace(/[“”]/g, '').split(' '), state.actIdx + 5).join(' ')}</div><div class="row" style="gap:8px"><input id="sb" class="input" placeholder="Your sentence"><button class="btn" onclick="const v=document.getElementById('sb').value.trim().toLowerCase().replace(/[^a-z\\s']/g,'');const a='${esc(wb.replace(/[“”]/g, '').toLowerCase().replace(/[^a-z\\s']/g, ''))}';document.getElementById('sb-fb').innerHTML=v===a?'<span class=\\'wbscore all\\'>Perfect! 🎉</span>':'<span class=\\'wbscore\\'>Almost — check the word order.</span>'">Check</button></div><div id="sb-fb"></div><button class="btn light mini-btn" style="margin-top:10px" onclick="${speak}">🔊 Listen</button></div>${rpCard(lang)}${qtimeCard(lang)}${moodCard(lang)}</div></div></div>`;
 }
 function hang(c, word) {
   if (!window.__hang) window.__hang = { wrong: 0, found: new Set() };
@@ -564,6 +564,241 @@ function memFlip(el, pic, word) {
     setTimeout(() => { if (!s.classList.contains('mem-done')) s.textContent = '❓'; if (!el.classList.contains('mem-done')) el.textContent = '❓'; }, 600);
   }
   m.sel = null;
+}
+
+/* ================= Role-Play / Dialogue Theatre (EN + IT) ================= */
+const RP_SCENES = {
+  en: {
+    'Pre-A1': {
+      t: 'At the café', icon: '☕', tip: 'Order food and drinks politely.',
+      steps: [
+        { ai: 'Hello! What would you like?', opts: [
+          { t: 'A coffee, please.', ok: 1, fb: 'Perfect — polite and clear!' },
+          { t: 'Coffee!', ok: 0, fb: 'Politer with “please”: A coffee, please.' },
+          { t: 'I like coffee much.', ok: 0, fb: 'Say: A coffee, please.' }] },
+        { ai: 'A coffee. Anything else?', opts: [
+          { t: 'Yes, a croissant, please.', ok: 1, fb: 'Great — you added more!' },
+          { t: 'No, thank you.', ok: 1, fb: 'Also perfect!' },
+          { t: 'Give me croissant.', ok: 0, fb: 'Try: A croissant, please.' }] },
+        { ai: 'That’s €4.50.', opts: [
+          { t: 'Here you are.', ok: 1, fb: 'Natural and polite.' },
+          { t: 'Take money.', ok: 0, fb: 'Say: Here you are.' },
+          { t: 'It is expensive.', ok: 0, fb: 'Focus: Here you are.' }] },
+        { ai: 'Thank you! Have a nice day!', opts: [
+          { t: 'Thank you! Goodbye!', ok: 1, fb: 'A warm exit — well done!' },
+          { t: 'Bye-bye-bye.', ok: 0, fb: 'Simple and clear: Goodbye!' },
+          { t: 'You too, sir.', ok: 1, fb: 'Also polite!' }] }
+      ] },
+    A1: {
+      t: 'Meeting a new friend', icon: '👋', tip: 'Introduce yourself, ask and answer personal questions.',
+      steps: [
+        { ai: 'Hi! I’m Leo. What’s your name?', opts: [
+          { t: 'Hi Leo, I’m Sara. Nice to meet you!', ok: 1, fb: 'Warm, natural introduction!' },
+          { t: 'Sara.', ok: 0, fb: 'Add a greeting: Hi Leo, I’m Sara.' },
+          { t: 'My name is Sara and you?', ok: 0, fb: 'Smoother: Nice to meet you!' }] },
+        { ai: 'Where are you from, Sara?', opts: [
+          { t: 'I’m from Spain. What about you?', ok: 1, fb: 'Answer + return question — great!' },
+          { t: 'Spain.', ok: 0, fb: 'Full sentence: I’m from Spain.' },
+          { t: 'I from Spain.', ok: 0, fb: 'Don’t forget “am”: I’m from Spain.' }] },
+        { ai: 'What do you do at the weekend?', opts: [
+          { t: 'I usually play football and meet friends.', ok: 1, fb: 'Rich, accurate answer!' },
+          { t: 'Football.', ok: 0, fb: 'Use a full sentence: I usually play football.' },
+          { t: 'I play football at the weekend.', ok: 1, fb: 'Also correct!' }] },
+        { ai: 'Nice talking to you! See you tomorrow?', opts: [
+          { t: 'Yes, see you tomorrow! Bye!', ok: 1, fb: 'Friendly farewell!' },
+          { t: 'Tomorrow yes.', ok: 0, fb: 'Fuller: See you tomorrow!' },
+          { t: 'I go now.', ok: 0, fb: 'Natural: Yes, see you tomorrow!' }] }
+      ] },
+    A2: {
+      t: 'Asking for directions', icon: '🗺️', tip: 'Ask where places are and understand the answer.',
+      steps: [
+        { ai: 'Excuse me, can I help you?', opts: [
+          { t: 'Yes, please. Where is the station?', ok: 1, fb: 'Clear question — perfect.' },
+          { t: 'Station where?', ok: 0, fb: 'Polite: Where is the station?' },
+          { t: 'I need station.', ok: 0, fb: 'Say: Where is the station, please?' }] },
+        { ai: 'It’s straight on, then turn left at the bank.', opts: [
+          { t: 'Straight on and left at the bank — thank you!', ok: 1, fb: 'You repeated to check — excellent!' },
+          { t: 'OK.', ok: 0, fb: 'Echo the directions to confirm.' },
+          { t: 'Bank left turn.', ok: 0, fb: 'Full echo: Straight on, then left.' }] },
+        { ai: 'It takes about ten minutes on foot.', opts: [
+          { t: 'Great, is it near the museum?', ok: 1, fb: 'Great follow-up question!' },
+          { t: 'Ten minutes.', ok: 0, fb: 'React naturally: Great, thank you!' },
+          { t: 'Museum near?', ok: 0, fb: 'Full: Is it near the museum?' }] },
+        { ai: 'Yes, it’s opposite the museum.', opts: [
+          { t: 'Perfect. Thanks for your help!', ok: 1, fb: 'Politely ending — nice!' },
+          { t: 'Bye.', ok: 0, fb: 'Say: Thanks for your help!' },
+          { t: 'Opposite.', ok: 0, fb: 'Full: Thanks for your help!' }] }
+      ] },
+    B1: {
+      t: 'At the doctor’s surgery', icon: '🩺', tip: 'Describe symptoms and understand advice.',
+      steps: [
+        { ai: 'Good morning. What seems to be the problem?', opts: [
+          { t: 'I’ve had a sore throat and a headache since Monday.', ok: 1, fb: 'Precise symptoms + time — perfect.' },
+          { t: 'My throat hurts.', ok: 0, fb: 'Add duration: since Monday.' },
+          { t: 'I am sick a lot.', ok: 0, fb: 'Be specific: sore throat, headache.' }] },
+        { ai: 'Have you taken anything for it?', opts: [
+          { t: 'I took paracetamol yesterday, but it didn’t help much.', ok: 1, fb: 'Detailed, accurate answer!' },
+          { t: 'No.', ok: 0, fb: 'Expand: I haven’t taken anything yet.' },
+          { t: 'I take paracetamol yesterday.', ok: 0, fb: 'Past tense: I took…' }] },
+        { ai: 'I see. It’s probably a viral infection.', opts: [
+          { t: 'Is it serious? How long will it last?', ok: 1, fb: 'Smart follow-up questions!' },
+          { t: 'Virus?', ok: 0, fb: 'Ask fully: Is it serious?' },
+          { t: 'I worry.', ok: 0, fb: 'Ask: Is it serious, doctor?' }] },
+        { ai: 'Not at all. Rest, drink water, and come back in a week.', opts: [
+          { t: 'Thank you, doctor. I’ll follow your advice.', ok: 1, fb: 'Professional, courteous close!' },
+          { t: 'OK bye.', ok: 0, fb: 'Say: Thank you, doctor.' },
+          { t: 'I go rest.', ok: 0, fb: 'Full: I’ll follow your advice.' }] }
+      ] }
+  },
+  it: {
+    A1: {
+      t: 'Al bar', icon: '☕', tip: 'Ordina da bere e da mangiare in modo gentile.',
+      steps: [
+        { ai: 'Buongiorno! Cosa desidera?', opts: [
+          { t: 'Un caffè, per favore.', ok: 1, fb: 'Perfetto e gentile!' },
+          { t: 'Caffè!', ok: 0, fb: 'Più gentile: Un caffè, per favore.' },
+          { t: 'Io piace caffè.', ok: 0, fb: 'Dì: Un caffè, per favore.' }] },
+        { ai: 'Un caffè. Altro?', opts: [
+          { t: 'Sì, una brioche, per favore.', ok: 1, fb: 'Ottimo!' },
+          { t: 'No, grazie.', ok: 1, fb: 'Anche corretto!' },
+          { t: 'Dammi brioche.', ok: 0, fb: 'Prova: Una brioche, per favore.' }] },
+        { ai: 'Sono 2 euro.', opts: [
+          { t: 'Ecco a lei.', ok: 1, fb: 'Naturale e cortese.' },
+          { t: 'Prendi soldi.', ok: 0, fb: 'Dì: Ecco a lei.' },
+          { t: 'È caro.', ok: 0, fb: 'Concentrati: Ecco a lei.' }] },
+        { ai: 'Grazie! Buona giornata!', opts: [
+          { t: 'Grazie, arrivederci!', ok: 1, fb: 'Ottima chiusura!' },
+          { t: 'Ciao ciao ciao.', ok: 0, fb: 'Semplice: Arrivederci!' },
+          { t: 'Anche a lei.', ok: 1, fb: 'Anche educato!' }] }
+      ] },
+    A2: {
+      t: 'Conoscere una persona', icon: '👋', tip: 'Presentati, fai e rispondi a domande personali.',
+      steps: [
+        { ai: 'Ciao! Io sono Marco. Come ti chiami?', opts: [
+          { t: 'Ciao Marco, io sono Elena. Piacere!', ok: 1, fb: 'Presentazione naturale!' },
+          { t: 'Elena.', ok: 0, fb: 'Aggiungi: Piacere!' },
+          { t: 'Il mio nome è Elena e tu?', ok: 0, fb: 'Più fluido: Piacere di conoscerti!' }] },
+        { ai: 'Di dove sei, Elena?', opts: [
+          { t: 'Sono di Roma. E tu?', ok: 1, fb: 'Risposta + domanda — ottimo!' },
+          { t: 'Roma.', ok: 0, fb: 'Frase intera: Sono di Roma.' },
+          { t: 'Io di Roma.', ok: 0, fb: 'Non dimenticare “sono”: Sono di Roma.' }] },
+        { ai: 'Cosa fai nel fine settimana?', opts: [
+          { t: 'Di solito gioco a calcio e vedo gli amici.', ok: 1, fb: 'Risposta ricca!' },
+          { t: 'Calcio.', ok: 0, fb: 'Frase intera: Gioco a calcio.' },
+          { t: 'Gioco a calcio nel fine settimana.', ok: 1, fb: 'Anche corretto!' }] },
+        { ai: 'È stato un piacere! Ci vediamo domani?', opts: [
+          { t: 'Sì, ci vediamo domani! Ciao!', ok: 1, fb: 'Congedo amichevole!' },
+          { t: 'Domani sì.', ok: 0, fb: 'Completo: Ci vediamo domani!' },
+          { t: 'Io vado ora.', ok: 0, fb: 'Naturale: Ci vediamo domani!' }] }
+      ] },
+    B1: {
+      t: 'Chiedere indicazioni', icon: '🗺️', tip: 'Chiedi dove si trovano i posti e capisci la risposta.',
+      steps: [
+        { ai: 'Mi scusi, posso aiutarla?', opts: [
+          { t: 'Sì, per favore. Dov’è la stazione?', ok: 1, fb: 'Domanda chiara — perfetto.' },
+          { t: 'Stazione dove?', ok: 0, fb: 'Gentile: Dov’è la stazione?' },
+          { t: 'Io bisogno stazione.', ok: 0, fb: 'Dì: Dov’è la stazione, per favore?' }] },
+        { ai: 'Sempre dritto, poi giri a sinistra alla banca.', opts: [
+          { t: 'Sempre dritto e a sinistra alla banca — grazie!', ok: 1, fb: 'Hai ripetuto per confermare!' },
+          { t: 'OK.', ok: 0, fb: 'Ripeti le indicazioni.' },
+          { t: 'Banca sinistra.', ok: 0, fb: 'Ripeti: Sempre dritto, poi a sinistra.' }] },
+        { ai: 'Ci vogliono circa dieci minuti a piedi.', opts: [
+          { t: 'Perfetto, è vicino al museo?', ok: 1, fb: 'Bella domanda di follow-up!' },
+          { t: 'Dieci minuti.', ok: 0, fb: 'Reagisci: Perfetto, grazie!' },
+          { t: 'Museo vicino?', ok: 0, fb: 'Completo: È vicino al museo?' }] },
+        { ai: 'Sì, è di fronte al museo.', opts: [
+          { t: 'Perfetto. Grazie mille per l’aiuto!', ok: 1, fb: 'Chiusura cortese!' },
+          { t: 'Ciao.', ok: 0, fb: 'Dì: Grazie mille!' },
+          { t: 'Di fronte.', ok: 0, fb: 'Completo: Grazie mille per l’aiuto!' }] }
+      ] },
+    B2: {
+      t: 'Dal medico', icon: '🩺', tip: 'Descrivi i sintomi e capisci i consigli.',
+      steps: [
+        { ai: 'Buongiorno. Che problema ha?', opts: [
+          { t: 'Ho mal di gola e mal di testa da lunedì.', ok: 1, fb: 'Sintomi precisi + tempo — perfetto.' },
+          { t: 'La gola mi fa male.', ok: 0, fb: 'Aggiungi: da lunedì.' },
+          { t: 'Sono molto malato.', ok: 0, fb: 'Sii specifico: mal di gola, mal di testa.' }] },
+        { ai: 'Ha preso qualcosa?', opts: [
+          { t: 'Ho preso del paracetamolo ieri, ma non ha aiutato molto.', ok: 1, fb: 'Risposta dettagliata!' },
+          { t: 'No.', ok: 0, fb: 'Espandi: Non ho preso niente.' },
+          { t: 'Prendo paracetamolo ieri.', ok: 0, fb: 'Passato: Ho preso…' }] },
+        { ai: 'Vediamo. Probabilmente è un’infezione virale.', opts: [
+          { t: 'È grave? Quanto durerà?', ok: 1, fb: 'Ottime domande!' },
+          { t: 'Virus?', ok: 0, fb: 'Chiedi: È grave?' },
+          { t: 'Io preoccupo.', ok: 0, fb: 'Chiedi: È grave, dottore?' }] },
+        { ai: 'Niente affatto. Riposi, beva acqua e torni tra una settimana.', opts: [
+          { t: 'Grazie, dottore. Seguirò i suoi consigli.', ok: 1, fb: 'Chiusura professionale!' },
+          { t: 'OK ciao.', ok: 0, fb: 'Dì: Grazie, dottore.' },
+          { t: 'Io vado a riposare.', ok: 0, fb: 'Completo: Seguirò i suoi consigli.' }] }
+      ] }
+  }
+};
+function lvName(lang, i) { return lang === 'it' ? ['A1', 'A2', 'B1', 'B2'][i] : ['Pre-A1', 'A1', 'A2', 'B1'][i]; }
+function rpCard(lang) {
+  const sc = RP_SCENES[lang][lvName(lang, state.actLevel)] || RP_SCENES[lang][Object.keys(RP_SCENES[lang])[0]];
+  if (!state.rp || state.rp.k !== sc.t) state.rp = { k: sc.t, si: 0, sc: 0 };
+  const done = state.rp.si >= sc.steps.length;
+  const step = sc.steps[Math.min(state.rp.si, sc.steps.length - 1)];
+  const tts = lang === 'it' ? 'it-IT' : 'en-US';
+  const opts = done ? '' : step.opts.map(o => `<button class="rp-opt" onclick="rpChoose(this,${o.ok},${JSON.stringify(o.fb)})">${o.t}</button>`).join('');
+  return `<div class="card rp-card"><div class="illus">${sc.icon}</div><h3>Dialogue Theatre · ${sc.t}</h3><p class="muted">${sc.tip} Choose the best reply — the partner always answers.</p><div class="rp-score">${done ? `<b>${state.rp.sc}/${sc.steps.length}</b> ${lang === 'it' ? 'risposte perfette!' : 'perfect replies!'} ${state.rp.sc === sc.steps.length ? '🌟' : '— try again!'}` : `${lang === 'it' ? 'Turno' : 'Line'} ${state.rp.si + 1}/${sc.steps.length}`}</div>${done ? `<button class="btn dark" onclick="state.rp=null;render()">↺ ${lang === 'it' ? 'Ripeti' : 'Replay'}</button>` : `<div class="rp-ai"><span class="rp-av">🤖</span><div><b>${lang === 'it' ? 'Partner' : 'Partner'}</b><p class="rp-ai-t">${esc(step.ai)}</p></div><button class="btn light mini-btn" onclick="speakText(${JSON.stringify(step.ai)},'${tts}')">🔊</button></div><div class="rp-opts" id="rp-opts">${opts}</div><div id="rp-fb" class="muted small"></div><button id="rp-next" class="btn" style="display:none;margin-top:10px" onclick="state.rp.si++;render()">${lang === 'it' ? 'Prossima battuta →' : 'Next line →'}</button>`}</div>`;
+}
+function rpChoose(el, ok, fb) {
+  const wrap = document.getElementById('rp-opts');
+  if (!wrap || wrap.dataset.locked) return;
+  wrap.dataset.locked = '1';
+  [...wrap.children].forEach(b => { b.disabled = true; b.classList.remove('rp-hover'); });
+  el.classList.add(ok ? 'rp-ok' : 'rp-no');
+  if (ok) state.rp.sc++;
+  document.getElementById('rp-fb').innerHTML = `<span class="wbscore ${ok ? 'all' : ''}">${ok ? '✓ ' : '✗ '}${esc(fb)}</span>`;
+  document.getElementById('rp-next').style.display = '';
+}
+
+/* ================= Question Time (conversation starters) ================= */
+const QT_BANK = {
+  en: {
+    'Pre-A1': ['What’s your name?', 'How are you today?', 'Where are you from?', 'How old are you?', 'What’s your favourite colour?', 'What day is it today?'],
+    A1: ['What do you do at the weekend?', 'Describe your family.', 'What’s your favourite food?', 'What’s the weather like today?', 'What time do you get up?', 'Do you have any pets?'],
+    A2: ['What did you do last summer?', 'How often do you exercise?', 'What would you do with a free day?', 'Tell me about your best friend.', 'Why are you learning English?', 'What did you eat yesterday?'],
+    B1: ['If you could live anywhere, where would you live?', 'What are the pros and cons of social media?', 'Describe a skill you want to learn and why.', 'What’s your opinion on remote work?', 'Tell me about a book or film that changed you.', 'What makes you feel stressed and how do you relax?']
+  },
+  it: {
+    A1: ['Come ti chiami?', 'Come stai oggi?', 'Di dove sei?', 'Quanti anni hai?', 'Qual è il tuo colore preferito?', 'Che giorno è oggi?'],
+    A2: ['Cosa fai nel fine settimana?', 'Descrivi la tua famiglia.', 'Qual è il tuo cibo preferito?', 'Che tempo fa oggi?', 'A che ora ti alzi?', 'Hai animali domestici?'],
+    B1: ['Cosa hai fatto l’estate scorsa?', 'Quanto spesso fai sport?', 'Cosa faresti con un giorno libero?', 'Parlami del tuo migliore amico.', 'Perché studi l’italiano?', 'Cosa hai mangiato ieri?'],
+    B2: ['Se potessi vivere ovunque, dove vivresti?', 'Quali sono i pro e i contro dei social media?', 'Descrivi un’abilità che vuoi imparare.', 'Qual è la tua opinione sul lavoro da remoto?', 'Parlami di un libro o film che ti ha cambiato.', 'Cosa ti stressa e come ti rilassi?']
+  }
+};
+function qtimeCard(lang) {
+  const bank = QT_BANK[lang][lvName(lang, state.actLevel)];
+  const q = bank[state.qIdx % bank.length];
+  const tts = lang === 'it' ? 'it-IT' : 'en-US';
+  return `<div class="card rp-card"><div class="illus">⏳</div><h3>Question Time</h3><p class="muted">${lang === 'it' ? 'Scegli una carta, ascolta la domanda e rispondi ad alta voce per 30 secondi.' : 'Pick a card, listen to the question, and answer out loud for 30 seconds.'}</p><div class="qtime-card">${esc(q)}<div class="qtime-timer" id="qtimer">0:30</div></div><div class="row" style="gap:8px;margin-top:10px"><button class="btn" onclick="speakText(${JSON.stringify(q)},'${tts}')">🔊 ${lang === 'it' ? 'Ascolta' : 'Listen'}</button><button class="btn light" onclick="startTimer2()">⏱ 30″</button><button class="btn light" onclick="state.qIdx++;render()">${lang === 'it' ? 'Prossima →' : 'Next →'}</button></div><div class="muted small" style="margin-top:8px">${lang === 'it' ? 'Suggerimento: apri con una frase completa, aggiungi un dettaglio e chiudi con un’opinione.' : 'Tip: open with a full sentence, add one detail, finish with an opinion.'}</div></div>`;
+}
+
+/* ================= Mood Games (emoji feelings + intonation) ================= */
+const MOOD_BANK = {
+  en: {
+    happy: { e: '😊', n: 'Happy', tip: 'Bright voice, rising at the end.', p: ['I’m on cloud nine!', 'What a wonderful day!', 'I’m thrilled about it!'] },
+    sad: { e: '😢', n: 'Sad', tip: 'Soft, slower voice, falling intonation.', p: ['I’m feeling a bit down today.', 'What a pity…', 'I’m not in the mood.' ] },
+    angry: { e: '😠', n: 'Angry', tip: 'Firm, sharper voice — keep it controlled.', p: ['I can’t believe it!', 'That really annoys me.', 'I’m fed up with this.'] },
+    tired: { e: '😴', n: 'Tired', tip: 'Low energy, slow rhythm, little pitch change.', p: ['I’m exhausted.', 'I need a break.', 'I’m running on empty.'] },
+    excited: { e: '🤩', n: 'Excited', tip: 'Fast, energetic, strong stress on key words.', p: ['I can’t wait!', 'This is going to be amazing!', 'I’m so pumped!'] },
+    nervous: { e: '😰', n: 'Nervous', tip: 'Quiet, hesitant, slight upward end.', p: ['I’m a little worried.', 'What if it goes wrong?', 'I have butterflies.'] }
+  },
+  it: {
+    happy: { e: '😊', n: 'Felice', tip: 'Voce brillante, che sale alla fine.', p: ['Sono al settimo cielo!', 'Che giornata meravigliosa!', 'Sono entusiasta!'] },
+    sad: { e: '😢', n: 'Triste', tip: 'Voce morbida, più lenta, caduta finale.', p: ['Oggi sono un po’ giù.', 'Che peccato…', 'Non ho voglia di fare niente.'] },
+    angry: { e: '😠', n: 'Arrabbiato', tip: 'Voce ferma e decisa, ma controllata.', p: ['Non ci posso credere!', 'Questo mi dà proprio fastidio.', 'Ne ho abbastanza.'] },
+    tired: { e: '😴', n: 'Stanco', tip: 'Bassa energia, ritmo lento.', p: ['Sono esausto.', 'Ho bisogno di una pausa.', 'Sono a corto di energie.'] },
+    excited: { e: '🤩', n: 'Emozionato', tip: 'Veloce, energico, accento forte.', p: ['Non vedo l’ora!', 'Sarà fantastico!', 'Sono super entusiasta!'] },
+    nervous: { e: '😰', n: 'Nervoso', tip: 'Quieto, esitante, finale leggermente ascendente.', p: ['Sono un po’ preoccupato.', 'E se va storto?', 'Ho le farfalle nello stomaco.'] }
+  }
+};
+function moodCard(lang) {
+  const m = MOOD_BANK[lang][state.mood] || MOOD_BANK[lang].happy;
+  const tts = lang === 'it' ? 'it-IT' : 'en-US';
+  return `<div class="card rp-card"><div class="illus">🎭</div><h3>Mood Mirror</h3><p class="muted">${lang === 'it' ? 'Scegli un’emozione e leggi le frasi con la giusta intonazione.' : 'Pick a feeling and say the phrases with the right intonation.'}</p><div class="mood-row">${Object.entries(MOOD_BANK[lang]).map(([k, v]) => `<button class="mood-btn ${state.mood === k ? 'active' : ''}" onclick="state.mood='${k}';render()" title="${v.n}">${v.e}</button>`).join('')}</div><div class="mood-current">${m.e} <b>${m.n}</b><div class="mood-tip">${m.tip}</div></div>${m.p.map(p => `<div class="mood-line"><span>${esc(p)}</span><button class="btn light mini-btn" onclick="speakText(${JSON.stringify(p)},'${tts}')">🔊</button></div>`).join('')}<div class="muted small" style="margin-top:8px">${lang === 'it' ? 'Sfida: ascolta, ripeti e registra la tua voce.' : 'Challenge: listen, repeat, and record yourself.'}</div></div>`;
 }
 function search(q) {
   q = q.trim().toLowerCase();
@@ -736,6 +971,7 @@ function itWriting() {
 
 function speakText(t, lang) { if ('speechSynthesis' in window) { speechSynthesis.cancel(); let u = new SpeechSynthesisUtterance(t); u.lang = lang || 'en-US'; u.rate = .9; speechSynthesis.speak(u); } }
 function startTimer() { let s = 60, el = document.getElementById('timer'); clearInterval(window.tm); window.tm = setInterval(() => { s--; el.textContent = `00:${String(s).padStart(2, '0')}`; if (s <= 0) { clearInterval(window.tm); el.textContent = 'Time!'; } }, 1000); }
+function startTimer2() { let s = 30, el = document.getElementById('qtimer'); if (!el) return; el.textContent = `0:${String(s).padStart(2, '0')}`; clearInterval(window.tm2); window.tm2 = setInterval(() => { s--; if (!document.getElementById('qtimer')) { clearInterval(window.tm2); return; } el = document.getElementById('qtimer'); el.textContent = `0:${String(s).padStart(2, '0')}`; if (s <= 0) { clearInterval(window.tm2); el.textContent = 'Time! 🎉'; } }, 1000); }
 function addHW(t) { state.homework.push({ text: t, done: false }); save(); toast('Homework assigned ✓'); }
 function toast(t) { let x = document.getElementById('toast'); x.innerHTML = `<div class="pill" style="position:fixed;right:25px;bottom:25px;background:#22233a;color:#fff;padding:13px 16px;z-index:10">${t}</div>`; setTimeout(() => x.innerHTML = '', 1800); }
 render();
