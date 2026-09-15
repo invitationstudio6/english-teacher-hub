@@ -720,214 +720,313 @@ function sbCheck() {
   }
 }
 
-/* ================= Role-Play / Dialogue Theatre (EN + IT) ================= */
+/* ================= Role-Play / Dialogue Theatre PRO (EN + IT) ================= */
 const RP_SCENES = {
   en: {
     'Pre-A1': {
-      t: 'At the café', icon: '☕', tip: 'Order food and drinks politely.',
+      t: 'The New Café', icon: '☕', tip: 'Order politely, ask a price, and thank someone — a full café visit.',
       steps: [
-        { ai: 'Hello! What would you like?', opts: [
-          { t: 'A coffee, please.', ok: 1, fb: 'Perfect — polite and clear!' },
-          { t: 'Coffee!', ok: 0, fb: 'Politer with “please”: A coffee, please.' },
-          { t: 'I like coffee much.', ok: 0, fb: 'Say: A coffee, please.' }] },
-        { ai: 'A coffee. Anything else?', opts: [
-          { t: 'Yes, a croissant, please.', ok: 1, fb: 'Great — you added more!' },
-          { t: 'No, thank you.', ok: 1, fb: 'Also perfect!' },
-          { t: 'Give me croissant.', ok: 0, fb: 'Try: A croissant, please.' }] },
-        { ai: 'That’s €4.50.', opts: [
-          { t: 'Here you are.', ok: 1, fb: 'Natural and polite.' },
-          { t: 'Take money.', ok: 0, fb: 'Say: Here you are.' },
-          { t: 'It is expensive.', ok: 0, fb: 'Focus: Here you are.' }] },
-        { ai: 'Thank you! Have a nice day!', opts: [
-          { t: 'Thank you! Goodbye!', ok: 1, fb: 'A warm exit — well done!' },
-          { t: 'Bye-bye-bye.', ok: 0, fb: 'Simple and clear: Goodbye!' },
-          { t: 'You too, sir.', ok: 1, fb: 'Also polite!' }] }
-      ] },
+        { ai: 'Good morning! Welcome to Sunny Café. What can I get you?', boost: 'Good morning + …, please', opts: [
+          { t: 'Good morning! An orange juice, please.', ok: 1, fb: 'Warm greeting + polite order — perfect start!' },
+          { t: 'Juice! Quickly!', ok: 0, fb: 'Add a greeting and “please”: Good morning! An orange juice, please.' },
+          { t: 'I am want juice.', ok: 0, fb: 'Say: Can I have an orange juice, please?' }] },
+        { ai: 'Great choice! Small or large?', boost: 'How much is it?', opts: [
+          { t: 'Large, please. How much is it?', ok: 1, fb: 'Answer + a natural question — excellent!' },
+          { t: 'Big!', ok: 0, fb: 'Fuller: Large, please.' },
+          { t: 'Large. Money how?', ok: 0, fb: 'Ask politely: How much is it?' }] },
+        { ai: 'That’s three pounds, please.', boost: 'Here you are', opts: [
+          { t: 'Here you are. Thank you!', ok: 1, fb: 'Exactly what a polite customer says!' },
+          { t: 'Take.', ok: 0, fb: 'Say: Here you are.' },
+          { t: 'Three pounds is expensive!', ok: 0, fb: 'You can think it — but say: Here you are!' }] },
+        { ai: 'Would you like anything else? Our cookies are famous!', boost: 'Yes, please / No, thank you', opts: [
+          { t: 'Yes, please! One cookie, please.', ok: 1, fb: 'Perfect — polite and enthusiastic!' },
+          { t: 'No, thank you. Just the juice.', ok: 1, fb: 'Also perfect — polite refusal!' },
+          { t: 'Give me cookie now.', ok: 0, fb: 'Say: A cookie, please.' }] },
+        { ai: 'Here you are. Enjoy! Do you like our café?', boost: 'I like…', opts: [
+          { t: 'Yes! I like this place a lot. Thank you!', ok: 1, fb: 'A lovely compliment to finish!' },
+          { t: 'Yes good.', ok: 0, fb: 'Fuller: I like this place a lot.' },
+          { t: 'I like very much this café place.', ok: 0, fb: 'Word order: I like this café very much.' }] }
+      ],
+      open: { p: 'Order your favourite breakfast: greet the waiter, say what you want, ask the price and say thank you.', h: 'Useful line: “Hello! I’d like… please. How much is it? Thank you!”' }
+    },
     A1: {
-      t: 'Meeting a new friend', icon: '👋', tip: 'Introduce yourself, ask and answer personal questions.',
+      t: 'The New Neighbour', icon: '👋', tip: 'Welcome a new neighbour, talk about your life and make a plan together.',
       steps: [
-        { ai: 'Hi! I’m Leo. What’s your name?', opts: [
-          { t: 'Hi Leo, I’m Sara. Nice to meet you!', ok: 1, fb: 'Warm, natural introduction!' },
-          { t: 'Sara.', ok: 0, fb: 'Add a greeting: Hi Leo, I’m Sara.' },
-          { t: 'My name is Sara and you?', ok: 0, fb: 'Smoother: Nice to meet you!' }] },
-        { ai: 'Where are you from, Sara?', opts: [
-          { t: 'I’m from Spain. What about you?', ok: 1, fb: 'Answer + return question — great!' },
-          { t: 'Spain.', ok: 0, fb: 'Full sentence: I’m from Spain.' },
-          { t: 'I from Spain.', ok: 0, fb: 'Don’t forget “am”: I’m from Spain.' }] },
-        { ai: 'What do you do at the weekend?', opts: [
-          { t: 'I usually play football and meet friends.', ok: 1, fb: 'Rich, accurate answer!' },
-          { t: 'Football.', ok: 0, fb: 'Use a full sentence: I usually play football.' },
-          { t: 'I play football at the weekend.', ok: 1, fb: 'Also correct!' }] },
-        { ai: 'Nice talking to you! See you tomorrow?', opts: [
-          { t: 'Yes, see you tomorrow! Bye!', ok: 1, fb: 'Friendly farewell!' },
-          { t: 'Tomorrow yes.', ok: 0, fb: 'Fuller: See you tomorrow!' },
-          { t: 'I go now.', ok: 0, fb: 'Natural: Yes, see you tomorrow!' }] }
-      ] },
+        { ai: 'Hi! I’m Maya — I just moved into flat 4. Nice to meet you!', boost: 'Welcome to…!', opts: [
+          { t: 'Hi Maya! I’m Daniel. Welcome to the building!', ok: 1, fb: 'Friendly, natural and welcoming!' },
+          { t: 'Okay.', ok: 0, fb: 'Introduce yourself too: Hi! I’m Daniel. Welcome!' },
+          { t: 'You are who?', ok: 0, fb: 'Softer: Hi, I’m Daniel. Nice to meet you!' }] },
+        { ai: 'Thank you! Have you lived here for a long time?', boost: 'I’ve lived here for…', opts: [
+          { t: 'Two years. I know all the best places nearby!', ok: 1, fb: 'Great — you added useful information!' },
+          { t: 'I’ve lived here for two years, and I really like it.', ok: 1, fb: 'Full sentence with a feeling — perfect!' },
+          { t: 'I live here two years.', ok: 0, fb: 'Try: I’ve lived here for two years.' }] },
+        { ai: 'Oh nice! What do you usually do at the weekend?', boost: 'usually + verb', opts: [
+          { t: 'I usually cook and go running in the park. What about you?', ok: 1, fb: 'Answer + return question — excellent conversation!' },
+          { t: 'Weekend I do running.', ok: 0, fb: 'Fuller: I usually go running at the weekend.' },
+          { t: 'Why you ask?', ok: 0, fb: 'It’s small talk — answer warmly: I usually…' }] },
+        { ai: 'I love photography! Maybe we could walk together one day.', boost: 'That sounds…', opts: [
+          { t: 'That sounds great! I’d like that.', ok: 1, fb: 'Perfect — friendly and natural!' },
+          { t: 'OK. Give me photos.', ok: 0, fb: 'Warmer: That sounds great!' },
+          { t: 'No, sorry, I am busy forever.', ok: 0, fb: 'Too strong! Try: Maybe, I’ll let you know.' }] },
+        { ai: 'Great! See you around — and wish me luck in the neighbourhood!', boost: 'If you need anything…', opts: [
+          { t: 'See you! And if you need anything, just knock on my door.', ok: 1, fb: 'A genuinely kind close — brilliant!' },
+          { t: 'Bye.', ok: 0, fb: 'Add kindness: If you need anything, just ask!' },
+          { t: 'Good luck for you.', ok: 0, fb: 'More natural: Good luck — and see you around!' }] }
+      ],
+      open: { p: 'Tell Maya about your neighbourhood: what is near, what you do there, and why you like it.', h: 'Useful lines: “There is… / You can… / I like it because…”' }
+    },
     A2: {
-      t: 'Asking for directions', icon: '🗺️', tip: 'Ask where places are and understand the answer.',
+      t: 'Lost at the Airport', icon: '🧳', tip: 'Stay calm when a flight is delayed: ask questions, confirm details, thank staff.',
       steps: [
-        { ai: 'Excuse me, can I help you?', opts: [
-          { t: 'Yes, please. Where is the station?', ok: 1, fb: 'Clear question — perfect.' },
-          { t: 'Station where?', ok: 0, fb: 'Polite: Where is the station?' },
-          { t: 'I need station.', ok: 0, fb: 'Say: Where is the station, please?' }] },
-        { ai: 'It’s straight on, then turn left at the bank.', opts: [
-          { t: 'Straight on and left at the bank — thank you!', ok: 1, fb: 'You repeated to check — excellent!' },
-          { t: 'OK.', ok: 0, fb: 'Echo the directions to confirm.' },
-          { t: 'Bank left turn.', ok: 0, fb: 'Full echo: Straight on, then left.' }] },
-        { ai: 'It takes about ten minutes on foot.', opts: [
-          { t: 'Great, is it near the museum?', ok: 1, fb: 'Great follow-up question!' },
-          { t: 'Ten minutes.', ok: 0, fb: 'React naturally: Great, thank you!' },
-          { t: 'Museum near?', ok: 0, fb: 'Full: Is it near the museum?' }] },
-        { ai: 'Yes, it’s opposite the museum.', opts: [
-          { t: 'Perfect. Thanks for your help!', ok: 1, fb: 'Politely ending — nice!' },
-          { t: 'Bye.', ok: 0, fb: 'Say: Thanks for your help!' },
-          { t: 'Opposite.', ok: 0, fb: 'Full: Thanks for your help!' }] }
-      ] },
+        { ai: 'Good afternoon! Passport and boarding pass, please… Oh, I’m afraid your connecting flight to Rome has been delayed.', boost: 'Could you tell me…?', opts: [
+          { t: 'Oh no! Could you tell me how long the delay will be?', ok: 1, fb: 'Calm + perfect indirect question!' },
+          { t: 'Is bad! Why?!', ok: 0, fb: 'Stay calm and polite: Could you tell me why, please?' },
+          { t: 'Rome flight where?', ok: 0, fb: 'Ask fully: What time will the Rome flight leave?' }] },
+        { ai: 'About three hours, I’m sorry. You’ll still make your connection.', boost: 'That’s a relief', opts: [
+          { t: 'That’s a relief! Could I get a window seat for the next flight, please?', ok: 1, fb: 'Relaxed and constructive — very professional!' },
+          { t: 'Three hours? I want refund, new ticket and hotel!', ok: 0, fb: 'It’s only a delay — stay polite and solve one thing at a time.' },
+          { t: 'OK.', ok: 0, fb: 'Use the moment: Could I ask about…?' }] },
+        { ai: 'I can move you to row 5. Is there anything else I can help with?', boost: 'Could you tell me where… is?', opts: [
+          { t: 'Yes, please. Could you tell me where gate B12 is?', ok: 1, fb: 'Perfect indirect question again!' },
+          { t: 'B12 where?', ok: 0, fb: 'Fuller: Could you tell me where gate B12 is?' },
+          { t: 'Nothing. Bye.', ok: 0, fb: 'A traveler always needs something — ask!' }] },
+        { ai: 'Gate B12 is straight ahead, then left after security.', boost: 'Repeat to confirm', opts: [
+          { t: 'Straight ahead, then left after security — thank you for your help!', ok: 1, fb: 'You repeated to confirm — exactly what good travellers do!' },
+          { t: 'Ok.', ok: 0, fb: 'Repeat the directions so the agent knows you understood.' },
+          { t: 'Security? Why me check?', ok: 0, fb: 'Everyone goes through security — just confirm: Left after security?' }] },
+        { ai: 'You’re welcome. Have a safe flight!', boost: 'Have a nice day', opts: [
+          { t: 'Thank you so much! Have a nice day!', ok: 1, fb: 'Warm and complete — great finish!' },
+          { t: 'Bye.', ok: 0, fb: 'Add warmth: Thank you so much!' },
+          { t: 'Safe flight for you too.', ok: 0, fb: 'The agent isn’t flying — say: Thank you, have a nice day!' }] }
+      ],
+      open: { p: 'You meet your friend after landing. Tell the story of the delay: what happened, how you felt and what you did.', h: 'Useful lines: “First… / Then… / I was so… / In the end…”' }
+    },
     B1: {
-      t: 'At the doctor’s surgery', icon: '🩺', tip: 'Describe symptoms and understand advice.',
+      t: 'The Job Interview', icon: '💼', tip: 'Give real reasons, real examples and smart questions — think before you answer.',
       steps: [
-        { ai: 'Good morning. What seems to be the problem?', opts: [
-          { t: 'I’ve had a sore throat and a headache since Monday.', ok: 1, fb: 'Precise symptoms + time — perfect.' },
-          { t: 'My throat hurts.', ok: 0, fb: 'Add duration: since Monday.' },
-          { t: 'I am sick a lot.', ok: 0, fb: 'Be specific: sore throat, headache.' }] },
-        { ai: 'Have you taken anything for it?', opts: [
-          { t: 'I took paracetamol yesterday, but it didn’t help much.', ok: 1, fb: 'Detailed, accurate answer!' },
-          { t: 'No.', ok: 0, fb: 'Expand: I haven’t taken anything yet.' },
-          { t: 'I take paracetamol yesterday.', ok: 0, fb: 'Past tense: I took…' }] },
-        { ai: 'I see. It’s probably a viral infection.', opts: [
-          { t: 'Is it serious? How long will it last?', ok: 1, fb: 'Smart follow-up questions!' },
-          { t: 'Virus?', ok: 0, fb: 'Ask fully: Is it serious?' },
-          { t: 'I worry.', ok: 0, fb: 'Ask: Is it serious, doctor?' }] },
-        { ai: 'Not at all. Rest, drink water, and come back in a week.', opts: [
-          { t: 'Thank you, doctor. I’ll follow your advice.', ok: 1, fb: 'Professional, courteous close!' },
-          { t: 'OK bye.', ok: 0, fb: 'Say: Thank you, doctor.' },
-          { t: 'I go rest.', ok: 0, fb: 'Full: I’ll follow your advice.' }] }
-      ] }
+        { ai: 'Thanks for coming in. To start — why do you want to work with us?', boost: 'I admire… / I’m keen on…', opts: [
+          { t: 'I admire how your company supports local projects, and I’d like to grow here as a designer.', ok: 1, fb: 'Specific reason + personal goal — a model answer!' },
+          { t: 'I need money and your office is near my house.', ok: 0, fb: 'True, maybe — but show interest in THEM: I admire…' },
+          { t: 'I don’t know, I sent many CVs.', ok: 0, fb: 'Never say that! Prepare one real reason for every interview.' }] },
+        { ai: 'Interesting! And what would you say is your greatest strength?', boost: '…, for example…', opts: [
+          { t: 'I stay calm under pressure — for example, last year I delivered a project with a very tight deadline.', ok: 1, fb: 'Strength + proof. That’s exactly how to do it!' },
+          { t: 'I am very very good at everything.', ok: 0, fb: 'Confidence needs evidence: pick one strength + one example.' },
+          { t: 'Strength? Maybe I have some.', ok: 0, fb: 'Prepare one: “I’m good at… for example…”' }] },
+        { ai: 'Can you tell me about a mistake you made and what you learned?', boost: 'I once… Now I always…', opts: [
+          { t: 'I once underestimated a task. Now I always build in extra time and check assumptions early.', ok: 1, fb: 'Honest + growth mindset — interviewers love this.' },
+          { t: 'I never make mistakes.', ok: 0, fb: 'Nobody believes that! A learned lesson is a strength.' },
+          { t: 'I don’t remember, sorry.', ok: 0, fb: 'Prepare one small mistake + what you changed.' }] },
+        { ai: 'Where do you see yourself in five years?', boost: 'Ideally… / leading…', opts: [
+          { t: 'Leading a small team and mentoring juniors — ideally here, in this company.', ok: 1, fb: 'Ambitious but loyal — perfect balance.' },
+          { t: 'In your chair!', ok: 0, fb: 'Funny — but risky! Show ambition with respect.' },
+          { t: 'I don’t think about the future.', ok: 0, fb: 'They need a direction: “I’d like to be…”' }] },
+        { ai: 'Finally — do you have any questions for us?', boost: 'What does success look like…?', opts: [
+          { t: 'Yes — how does the team handle feedback, and what does success look like in the first six months?', ok: 1, fb: 'Smart, thoughtful questions — you sound like a colleague already!' },
+          { t: 'No questions.', ok: 0, fb: 'Always ask something — it shows real interest.' },
+          { t: 'How long is the lunch break?', ok: 0, fb: 'Save that for the offer! Ask about the work itself.' }] }
+      ],
+      open: { p: 'Close the interview: in 45 seconds, explain why you are the right person — one skill, one story, one reason.', h: 'Useful lines: “To sum up… / I believe I can… / I’d love the chance to…”' }
+    }
   },
   it: {
     A1: {
-      t: 'Al bar', icon: '☕', tip: 'Ordina da bere e da mangiare in modo gentile.',
+      t: 'Al Bar del Corso', icon: '☕', tip: 'Ordina con gentilezza, chiedi il prezzo e ringrazia — una visita completa.',
       steps: [
-        { ai: 'Buongiorno! Cosa desidera?', opts: [
-          { t: 'Un caffè, per favore.', ok: 1, fb: 'Perfetto e gentile!' },
-          { t: 'Caffè!', ok: 0, fb: 'Più gentile: Un caffè, per favore.' },
-          { t: 'Io piace caffè.', ok: 0, fb: 'Dì: Un caffè, per favore.' }] },
-        { ai: 'Un caffè. Altro?', opts: [
-          { t: 'Sì, una brioche, per favore.', ok: 1, fb: 'Ottimo!' },
-          { t: 'No, grazie.', ok: 1, fb: 'Anche corretto!' },
-          { t: 'Dammi brioche.', ok: 0, fb: 'Prova: Una brioche, per favore.' }] },
-        { ai: 'Sono 2 euro.', opts: [
-          { t: 'Ecco a lei.', ok: 1, fb: 'Naturale e cortese.' },
-          { t: 'Prendi soldi.', ok: 0, fb: 'Dì: Ecco a lei.' },
-          { t: 'È caro.', ok: 0, fb: 'Concentrati: Ecco a lei.' }] },
-        { ai: 'Grazie! Buona giornata!', opts: [
-          { t: 'Grazie, arrivederci!', ok: 1, fb: 'Ottima chiusura!' },
-          { t: 'Ciao ciao ciao.', ok: 0, fb: 'Semplice: Arrivederci!' },
-          { t: 'Anche a lei.', ok: 1, fb: 'Anche educato!' }] }
-      ] },
+        { ai: 'Buongiorno! Benvenuto al Bar del Corso. Cosa prende?', boost: 'Buongiorno + …, per favore', opts: [
+          { t: 'Buongiorno! Un cappuccino e una brioche, per favore.', ok: 1, fb: 'Saluto + ordine gentile — perfetto!' },
+          { t: 'Caffè! Presto!', ok: 0, fb: 'Aggiungi il saluto e “per favore”: Buongiorno! Un cappuccino, per favore.' },
+          { t: 'Io sono cappuccino.', ok: 0, fb: 'Dì: Vorrei un cappuccino, per favore.' }] },
+        { ai: 'Ottima scelta! Al banco o al tavolo?', boost: 'Quanto costa?', opts: [
+          { t: 'Al tavolo, per favore. Quanto costa?', ok: 1, fb: 'Risposta + domanda naturale — eccellente!' },
+          { t: 'Dove?', ok: 0, fb: 'Completo: Al tavolo, per favore.' },
+          { t: 'Tavolo grande!', ok: 0, fb: 'Dì: Al tavolo, per favore.' }] },
+        { ai: 'Sono tre euro e cinquanta.', boost: 'Ecco a lei', opts: [
+          { t: 'Ecco a lei. Grazie mille!', ok: 1, fb: 'Esattamente ciò che dice un cliente educato!' },
+          { t: 'Prendi.', ok: 0, fb: 'Dì: Ecco a lei.' },
+          { t: 'Troppo caro!', ok: 0, fb: 'Puoi pensarlo — ma dì: Ecco a lei!' }] },
+        { ai: 'Desidera altro? I nostri cornetti sono famosi!', boost: 'Sì, grazie / No, grazie', opts: [
+          { t: 'Sì, grazie! Un cornetto, per favore.', ok: 1, fb: 'Perfetto — gentile ed entusiasta!' },
+          { t: 'No, grazie, solo il cappuccino.', ok: 1, fb: 'Anche perfetto — rifiuto educato!' },
+          { t: 'Dammi cornetto.', ok: 0, fb: 'Dì: Un cornetto, per favore.' }] },
+        { ai: 'Ecco a lei. Buona giornata! Le piace il nostro bar?', boost: 'Mi piace…', opts: [
+          { t: 'Sì! Mi piace molto questo posto. Grazie!', ok: 1, fb: 'Bell complimento per finire!' },
+          { t: 'Sì buono.', ok: 0, fb: 'Completo: Mi piace molto questo posto.' },
+          { t: 'Io piace questo bar.', ok: 0, fb: 'Dì: Mi piace questo bar.' }] }
+      ],
+      open: { p: 'Ordina la tua colazione preferita: saluta il cameriere, dì cosa vuoi, chiedi il prezzo e ringrazia.', h: 'Frase utile: “Buongiorno! Vorrei… per favore. Quanto costa? Grazie!”' }
+    },
     A2: {
-      t: 'Conoscere una persona', icon: '👋', tip: 'Presentati, fai e rispondi a domande personali.',
+      t: 'La Prenotazione Scomparsa', icon: '🏨', tip: 'Rimani calmo quando l’hotel non trova la prenotazione: spiega, verifica, risolvi.',
       steps: [
-        { ai: 'Ciao! Io sono Marco. Come ti chiami?', opts: [
-          { t: 'Ciao Marco, io sono Elena. Piacere!', ok: 1, fb: 'Presentazione naturale!' },
-          { t: 'Elena.', ok: 0, fb: 'Aggiungi: Piacere!' },
-          { t: 'Il mio nome è Elena e tu?', ok: 0, fb: 'Più fluido: Piacere di conoscerti!' }] },
-        { ai: 'Di dove sei, Elena?', opts: [
-          { t: 'Sono di Roma. E tu?', ok: 1, fb: 'Risposta + domanda — ottimo!' },
-          { t: 'Roma.', ok: 0, fb: 'Frase intera: Sono di Roma.' },
-          { t: 'Io di Roma.', ok: 0, fb: 'Non dimenticare “sono”: Sono di Roma.' }] },
-        { ai: 'Cosa fai nel fine settimana?', opts: [
-          { t: 'Di solito gioco a calcio e vedo gli amici.', ok: 1, fb: 'Risposta ricca!' },
-          { t: 'Calcio.', ok: 0, fb: 'Frase intera: Gioco a calcio.' },
-          { t: 'Gioco a calcio nel fine settimana.', ok: 1, fb: 'Anche corretto!' }] },
-        { ai: 'È stato un piacere! Ci vediamo domani?', opts: [
-          { t: 'Sì, ci vediamo domani! Ciao!', ok: 1, fb: 'Congedo amichevole!' },
-          { t: 'Domani sì.', ok: 0, fb: 'Completo: Ci vediamo domani!' },
-          { t: 'Io vado ora.', ok: 0, fb: 'Naturale: Ci vediamo domani!' }] }
-      ] },
+        { ai: 'Buonasera, Hotel Bella Vista. Come posso aiutarla?', boost: 'Ho una prenotazione a nome…', opts: [
+          { t: 'Buonasera! Ho una prenotazione per stasera, a nome Rossi.', ok: 1, fb: 'Chiaro e professionale — perfetto!' },
+          { t: 'Io sono qui per dormire.', ok: 0, fb: 'Dì: Ho una prenotazione, a nome…' },
+          { t: 'Camera dove?', ok: 0, fb: 'Prima spiega: Ho una prenotazione per stasera.' }] },
+        { ai: 'Un momento… mi dispiace, non trovo la sua prenotazione.', boost: 'È possibile che…?', opts: [
+          { t: 'Che disastro! È possibile che sia a nome di mia moglie, Anna Rossi?', ok: 1, fb: 'Calmo e costruttivo — stai risolvendo il problema!' },
+          { t: 'È colpa vostra! Cambiate hotel!', ok: 0, fb: 'Respira — prima cerca una soluzione: È possibile che…?' },
+          { t: 'Non capisco, perché?', ok: 0, fb: 'Proponi una verifica: È possibile che sia a nome…?' }] },
+        { ai: 'Ah sì! Ecco: due notti, camera doppia con vista mare.', boost: 'È inclusa…?', opts: [
+          { t: 'Perfetto! La colazione è inclusa?', ok: 1, fb: 'Domanda pratica e intelligente!' },
+          { t: 'Dov’è la mia camera adesso?', ok: 0, fb: 'Prima conferma i dettagli: Perfetto, e la colazione?' },
+          { t: 'Non mi piace la vista.', ok: 0, fb: 'Il problema è risolto — conferma i dettagli!' }] },
+        { ai: 'Sì, inclusa dalle sette alle dieci. Desidera altro?', boost: 'Lei è stata molto gentile', opts: [
+          { t: 'No, grazie. Lei è stata molto gentile!', ok: 1, fb: 'Chiusura elegante e riconoscente!' },
+          { t: 'Dammi la chiave.', ok: 0, fb: 'Gentile: Grazie, può avere la chiave?' },
+          { t: 'Basta, vado a dormire.', ok: 0, fb: 'Troppo brusco: No grazie, buona serata!' }] }
+      ],
+      open: { p: 'Racconta al tuo amico il problema dell’hotel: cosa è successo e come l’hai risolto.', h: 'Frasi utili: “Prima… / Poi… / Alla fine…”' }
+    },
     B1: {
-      t: 'Chiedere indicazioni', icon: '🗺️', tip: 'Chiedi dove si trovano i posti e capisci la risposta.',
+      t: 'Il Colloquio di Lavoro', icon: '💼', tip: 'Dai motivi veri, esempi concreti e domande intelligenti — pensa prima di rispondere.',
       steps: [
-        { ai: 'Mi scusi, posso aiutarla?', opts: [
-          { t: 'Sì, per favore. Dov’è la stazione?', ok: 1, fb: 'Domanda chiara — perfetto.' },
-          { t: 'Stazione dove?', ok: 0, fb: 'Gentile: Dov’è la stazione?' },
-          { t: 'Io bisogno stazione.', ok: 0, fb: 'Dì: Dov’è la stazione, per favore?' }] },
-        { ai: 'Sempre dritto, poi giri a sinistra alla banca.', opts: [
-          { t: 'Sempre dritto e a sinistra alla banca — grazie!', ok: 1, fb: 'Hai ripetuto per confermare!' },
-          { t: 'OK.', ok: 0, fb: 'Ripeti le indicazioni.' },
-          { t: 'Banca sinistra.', ok: 0, fb: 'Ripeti: Sempre dritto, poi a sinistra.' }] },
-        { ai: 'Ci vogliono circa dieci minuti a piedi.', opts: [
-          { t: 'Perfetto, è vicino al museo?', ok: 1, fb: 'Bella domanda di follow-up!' },
-          { t: 'Dieci minuti.', ok: 0, fb: 'Reagisci: Perfetto, grazie!' },
-          { t: 'Museo vicino?', ok: 0, fb: 'Completo: È vicino al museo?' }] },
-        { ai: 'Sì, è di fronte al museo.', opts: [
-          { t: 'Perfetto. Grazie mille per l’aiuto!', ok: 1, fb: 'Chiusura cortese!' },
-          { t: 'Ciao.', ok: 0, fb: 'Dì: Grazie mille!' },
-          { t: 'Di fronte.', ok: 0, fb: 'Completo: Grazie mille per l’aiuto!' }] }
-      ] },
+        { ai: 'Grazie per essere venuto. Per prima cosa — perché vuole lavorare con noi?', boost: 'Ammiro… / Mi appassiona…', opts: [
+          { t: 'Ammiro come la vostra azienda sostiene progetti locali, e vorrei crescere qui come designer.', ok: 1, fb: 'Motivo specifico + obiettivo personale — risposta modello!' },
+          { t: 'Mi servono soldi e l’ufficio è vicino a casa.', ok: 0, fb: 'Vero, forse — ma mostra interesse per LORO: Ammiro…' },
+          { t: 'Non so, ho mandato tanti CV.', ok: 0, fb: 'Mai dirlo! Prepara un motivo vero per ogni colloquio.' }] },
+        { ai: 'Interessante! E qual è il suo punto di forza?', boost: '…, per esempio…', opts: [
+          { t: 'Resto calmo sotto pressione — per esempio, l’anno scorso ho consegnato un progetto con tempi molto stretti.', ok: 1, fb: 'Punto di forza + prova. È esattamente così!' },
+          { t: 'Sono bravissimo in tutto.', ok: 0, fb: 'La sicurezza serve prove: una qualità + un esempio.' },
+          { t: 'Forse ne ho qualcuno.', ok: 0, fb: 'Preparane uno: “Sono bravo a… per esempio…”' }] },
+        { ai: 'Mi può raccontare di un errore che ha fatto e cosa ne ha imparato?', boost: 'Una volta… Ora sempre…', opts: [
+          { t: 'Una volta ho sottovalutato un compito. Ora marco sempre tempo extra e controllo subito le ipotesi.', ok: 1, fb: 'Onesto + crescita — ai colloqui lo adorano.' },
+          { t: 'Non faccio mai errori.', ok: 0, fb: 'Nessuno ci crede! Una lezione imparata è un punto di forza.' },
+          { t: 'Non ricordo, mi dispiace.', ok: 0, fb: 'Prepara un piccolo errore + cosa hai cambiato.' }] },
+        { ai: 'Dove si vede tra cinque anni?', boost: 'Idealmente… / a capo di…', opts: [
+          { t: 'A capo di un piccolo team, che forma i colleghi — idealmente qui, in questa azienda.', ok: 1, fb: 'Ambizioso ma leale — equilibrio perfetto.' },
+          { t: 'Al posto suo!', ok: 0, fb: 'Divertente — ma rischioso! Ambizione con rispetto.' },
+          { t: 'Non penso al futuro.', ok: 0, fb: 'Serve una direzione: “Mi piacerebbe essere…”' }] },
+        { ai: 'Infine — ha delle domande per noi?', boost: 'Com’è il successo…?', opts: [
+          { t: 'Sì — come gestisce il feedback il team, e com’è il successo nei primi sei mesi?', ok: 1, fb: 'Domande intelligenti — sembri già un collega!' },
+          { t: 'Nessuna domanda.', ok: 0, fb: 'Chiedi sempre qualcosa — mostra vero interesse.' },
+          { t: 'Quanto dura la pausa pranzo?', ok: 0, fb: 'Salvala per l’assunzione! Chiedi del lavoro vero.' }] }
+      ],
+      open: { p: 'Chiuda il colloquio: in 45 secondi spieghi perché è la persona giusta — un’abilità, una storia, un motivo.', h: 'Frasi utili: “In sintesi… / Credo di poter… / Mi piacerebbe l’occasione di…”' }
+    },
     B2: {
-      t: 'Dal medico', icon: '🩺', tip: 'Descrivi i sintomi e capisci i consigli.',
+      t: 'Dal Medico', icon: '🩺', tip: 'Descrivi i sintomi con precisione, fai domande e capisci i consigli.',
       steps: [
-        { ai: 'Buongiorno. Che problema ha?', opts: [
-          { t: 'Ho mal di gola e mal di testa da lunedì.', ok: 1, fb: 'Sintomi precisi + tempo — perfetto.' },
-          { t: 'La gola mi fa male.', ok: 0, fb: 'Aggiungi: da lunedì.' },
-          { t: 'Sono molto malato.', ok: 0, fb: 'Sii specifico: mal di gola, mal di testa.' }] },
-        { ai: 'Ha preso qualcosa?', opts: [
-          { t: 'Ho preso del paracetamolo ieri, ma non ha aiutato molto.', ok: 1, fb: 'Risposta dettagliata!' },
-          { t: 'No.', ok: 0, fb: 'Espandi: Non ho preso niente.' },
-          { t: 'Prendo paracetamolo ieri.', ok: 0, fb: 'Passato: Ho preso…' }] },
-        { ai: 'Vediamo. Probabilmente è un’infezione virale.', opts: [
-          { t: 'È grave? Quanto durerà?', ok: 1, fb: 'Ottime domande!' },
-          { t: 'Virus?', ok: 0, fb: 'Chiedi: È grave?' },
-          { t: 'Io preoccupo.', ok: 0, fb: 'Chiedi: È grave, dottore?' }] },
-        { ai: 'Niente affatto. Riposi, beva acqua e torni tra una settimana.', opts: [
-          { t: 'Grazie, dottore. Seguirò i suoi consigli.', ok: 1, fb: 'Chiusura professionale!' },
-          { t: 'OK ciao.', ok: 0, fb: 'Dì: Grazie, dottore.' },
+        { ai: 'Buongiorno. Che problema ha?', boost: 'Ho… da…', opts: [
+          { t: 'Ho mal di gola e mal di testa da lunedì, e stasera ho anche un po’ di febbre.', ok: 1, fb: 'Sintomi precisi + durata — perfetto.' },
+          { t: 'La gola mi fa male.', ok: 0, fb: 'Aggiungi la durata: …da lunedì.' },
+          { t: 'Sono molto malato.', ok: 0, fb: 'Sii specifico: mal di gola, mal di testa, febbre.' }] },
+        { ai: 'Ha preso qualcosa?', boost: 'Ho preso… ma…', opts: [
+          { t: 'Ho preso del paracetamolo ieri, ma non ha aiutato molto.', ok: 1, fb: 'Risposta dettagliata e chiara!' },
+          { t: 'No.', ok: 0, fb: 'Espandi: Non ho ancora preso niente.' },
+          { t: 'Prendo paracetamolo ieri.', ok: 0, fb: 'Passato prossimo: Ho preso…' }] },
+        { ai: 'Vediamo… Probabilmente è un’infezione virale.', boost: 'È grave? Quanto durerà?', opts: [
+          { t: 'Capisco. È grave? Quanto durerà?', ok: 1, fb: 'Domande giuste al momento giusto!' },
+          { t: 'Virus?', ok: 0, fb: 'Chiedi per intero: È grave? Quanto durerà?' },
+          { t: 'Io preoccupo.', ok: 0, fb: 'Dì: Sono preoccupato. È grave?' }] },
+        { ai: 'Niente affatto. Riposi, beva molta acqua e torni tra una settimana se non migliora.', boost: 'Seguirò i consigli', opts: [
+          { t: 'Grazie, dottore. Seguirò i suoi consigli.', ok: 1, fb: 'Chiusura professionale e rassicurata!' },
+          { t: 'OK ciao.', ok: 0, fb: 'Più formale: Grazie, dottore.' },
           { t: 'Io vado a riposare.', ok: 0, fb: 'Completo: Seguirò i suoi consigli.' }] }
-      ] }
+      ],
+      open: { p: 'Spiega al tuo capo perché devi prendere un giorno di malattia: sintomi, visita del medico e piano di recupero.', h: 'Frasi utili: “Il medico mi ha detto che… / Ho bisogno di… / Tornerò…”' }
+    }
   }
 };
 function lvName(lang, i) { return lang === 'it' ? ['A1', 'A2', 'B1', 'B2'][i] : ['Pre-A1', 'A1', 'A2', 'B1'][i]; }
 function rpCard(lang) {
+  const tt = lang === 'it';
   const sc = RP_SCENES[lang][lvName(lang, state.actLevel)] || RP_SCENES[lang][Object.keys(RP_SCENES[lang])[0]];
   if (!state.rp || state.rp.k !== sc.t) state.rp = { k: sc.t, si: 0, sc: 0 };
   const done = state.rp.si >= sc.steps.length;
   const step = sc.steps[Math.min(state.rp.si, sc.steps.length - 1)];
   const tts = lang === 'it' ? 'it-IT' : 'en-US';
-  const opts = done ? '' : step.opts.map(o => `<button class="rp-opt" onclick="rpChoose(this,${o.ok},${jarg(o.fb)})">${o.t}</button>`).join('');
-  return `<div class="card rp-card"><div class="illus">${sc.icon}</div><h3>Dialogue Theatre · ${sc.t}</h3><p class="muted">${sc.tip} Choose the best reply — the partner always answers.</p><div class="rp-score">${done ? `<b>${state.rp.sc}/${sc.steps.length}</b> ${lang === 'it' ? 'risposte perfette!' : 'perfect replies!'} ${state.rp.sc === sc.steps.length ? '🌟' : '— try again!'}` : `${lang === 'it' ? 'Turno' : 'Line'} ${state.rp.si + 1}/${sc.steps.length}`}</div>${done ? `<button class="btn dark" onclick="state.rp=null;render()">↺ ${lang === 'it' ? 'Ripeti' : 'Replay'}</button>` : `<div class="rp-ai"><span class="rp-av">🤖</span><div><b>${lang === 'it' ? 'Partner' : 'Partner'}</b><p class="rp-ai-t">${esc(step.ai)}</p></div><button class="btn light mini-btn" onclick="speakText(${jarg(step.ai)},'${tts}')">🔊</button></div><div class="rp-opts" id="rp-opts">${opts}</div><div id="rp-fb" class="muted small"></div><button id="rp-next" class="btn" style="display:none;margin-top:10px" onclick="state.rp.si++;render()">${lang === 'it' ? 'Prossima battuta →' : 'Next line →'}</button>`}</div>`;
+  const opts = done ? '' : step.opts.map(o => `<button class="rp-opt" onclick="rpChoose(this,${o.ok},${jarg(o.fb)})">${esc(o.t)}</button>`).join('');
+  return `<div class="card rp-card"><div class="illus">${sc.icon}</div><h3>Dialogue Theatre · ${sc.t}</h3><p class="muted">${esc(sc.tip)}</p><div class="rp-score">${done ? `<b>${state.rp.sc}/${sc.steps.length}</b> ${tt ? 'risposte perfette!' : 'perfect replies!'} ${state.rp.sc === sc.steps.length ? '🌟' : ''}` : `${tt ? 'Battuta' : 'Line'} ${state.rp.si + 1}/${sc.steps.length}`}</div>${done ? `<div class="rp-open"><b>🎤 ${tt ? 'Tocca a te — parla di più!' : 'Your turn — speak up!'}</b><p>${esc(sc.open.p)}</p><div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" onclick="speakText(${jarg(sc.open.p)},'${tts}')">🔊 ${tt ? 'Ascolta il compito' : 'Listen to the task'}</button><button class="btn light" onclick="startTimer2('rptimer',45)">⏱ 45″</button><span class="qtime-timer" id="rptimer">0:45</span></div><p class="muted small" style="margin-top:8px">🧰 ${esc(sc.open.h)}</p></div><button class="btn dark" onclick="state.rp=null;render()">↺ ${tt ? 'Ripeti la scena' : 'Replay the scene'}</button>` : `<div class="rp-ai"><span class="rp-av">${sc.icon}</span><div><b>${tt ? 'Partner' : 'Partner'}</b><p class="rp-ai-t">${esc(step.ai)}</p></div><button class="btn light mini-btn" onclick="speakText(${jarg(step.ai)},'${tts}')">🔊</button></div>${step.boost ? `<div class="rp-boost">💪 ${tt ? 'Prova a usare' : 'Try to use'}: <b>${esc(step.boost)}</b></div>` : ''}<div class="rp-opts" id="rp-opts">${opts}</div><div id="rp-fb" class="muted small"></div><button id="rp-next" class="btn" style="display:none;margin-top:10px" onclick="state.rp.si++;render()">${tt ? 'Prossima battuta →' : 'Next line →'}</button>`}</div>`;
 }
 function rpChoose(el, ok, fb) {
   const wrap = document.getElementById('rp-opts');
   if (!wrap || wrap.dataset.locked) return;
   wrap.dataset.locked = '1';
-  [...wrap.children].forEach(b => { b.disabled = true; b.classList.remove('rp-hover'); });
+  [...wrap.children].forEach(b => { b.disabled = true; });
   el.classList.add(ok ? 'rp-ok' : 'rp-no');
   if (ok) state.rp.sc++;
   document.getElementById('rp-fb').innerHTML = `<span class="wbscore ${ok ? 'all' : ''}">${ok ? '✓ ' : '✗ '}${esc(fb)}</span>`;
   document.getElementById('rp-next').style.display = '';
 }
 
-/* ================= Question Time (conversation starters) ================= */
-const QT_BANK = {
+/* ================= Question Time PRO (discussion decks) ================= */
+const QT_DECKS = {
   en: {
-    'Pre-A1': ['What’s your name?', 'How are you today?', 'Where are you from?', 'How old are you?', 'What’s your favourite colour?', 'What day is it today?'],
-    A1: ['What do you do at the weekend?', 'Describe your family.', 'What’s your favourite food?', 'What’s the weather like today?', 'What time do you get up?', 'Do you have any pets?'],
-    A2: ['What did you do last summer?', 'How often do you exercise?', 'What would you do with a free day?', 'Tell me about your best friend.', 'Why are you learning English?', 'What did you eat yesterday?'],
-    B1: ['If you could live anywhere, where would you live?', 'What are the pros and cons of social media?', 'Describe a skill you want to learn and why.', 'What’s your opinion on remote work?', 'Tell me about a book or film that changed you.', 'What makes you feel stressed and how do you relax?']
+    'Pre-A1': [
+      { q: 'Tell me about your family.', use: 'There are … people in my family.', probes: ['Who is in your family?', 'What do you like to do together?', 'Who is the funniest — and why?'] },
+      { q: 'What is your favourite day of the week?', use: 'My favourite day is … because…', probes: ['What do you do on that day?', 'Who do you see?', 'Is Monday a good day for you?'] },
+      { q: 'What food is in your kitchen right now?', use: 'There is / There are…', probes: ['What is your favourite thing in the kitchen?', 'What is healthy in your fridge?', 'What food is always in your home?'] },
+      { q: 'Describe your best friend.', use: 'He/She is … and we…', probes: ['What does he or she look like?', 'What do you do together?', 'Why is this friend special?'] },
+      { q: 'What can you see from your window?', use: 'I can see…', probes: ['What colours can you see?', 'Are there people or animals?', 'Do you like this view? Why?'] },
+      { q: 'What makes you happy?', use: '… makes me happy.', probes: ['When did you last feel very happy?', 'What makes your family happy?', 'What do you do when you feel sad?'] }
+    ],
+    A1: [
+      { q: 'Describe your morning, from waking up to leaving home.', use: 'First…, then…, after that…', probes: ['What time do you wake up?', 'What do you have for breakfast?', 'What do you never forget to take?'] },
+      { q: 'What is your favourite food? Explain how to make it.', use: 'You need… First…, then…', probes: ['What ingredients do you need?', 'Who cooks it better — you or your family?', 'Do you like food from other countries?'] },
+      { q: 'Talk about your town or city.', use: 'In my town there is / there are…', probes: ['What can a visitor see there?', 'What do you like most about it?', 'What one thing would you change?'] },
+      { q: 'What did you do last weekend?', use: 'On Saturday I… / On Sunday I…', probes: ['Where did you go?', 'Who was with you?', 'Was it a good weekend — why?'] },
+      { q: 'What are your plans for the next holiday?', use: 'I’m going to…', probes: ['Where do you want to go?', 'Who will you travel with?', 'What do you want to see or eat there?'] },
+      { q: 'Describe a photo that you love.', use: 'In the photo… / It was taken…', probes: ['Where were you?', 'Who took the photo?', 'Why is it special for you?'] }
+    ],
+    A2: [
+      { q: 'Is it better to live in a city or in the countryside?', use: 'In my opinion… / On the other hand…', probes: ['Give two reasons for your choice.', 'What are the disadvantages of your choice?', 'Where would you like to live in ten years?'] },
+      { q: 'Should students wear school uniforms?', use: 'I think… / For example…', probes: ['What are the advantages?', 'What would students say against it?', 'Now argue the opposite side!'] },
+      { q: 'Tell me about a skill you want to learn — and why.', use: 'I’d love to learn… because…', probes: ['How will you start learning it?', 'How will it change your life?', 'Is it easy or hard to learn — why?'] },
+      { q: 'How much screen time is too much?', use: 'Too much… / It depends on…', probes: ['How many hours do you spend online a day?', 'What do you do instead?', 'Should parents limit children’s screens?'] },
+      { q: 'You win 1,000 euros — but you must spend it in one day. What do you do?', use: 'If I won…, I would…', probes: ['What is the first thing you buy?', 'Would you share it with anyone?', 'Is one day enough to spend it well?'] },
+      { q: 'Describe the best meal you have ever eaten.', use: 'It was… / It tasted…', probes: ['Where were you, and who cooked it?', 'What made it better than other meals?', 'Would you like to eat it again today?'] }
+    ],
+    B1: [
+      { q: 'Does social media bring people closer or push them apart?', use: 'The way I see it… / That said…', probes: ['Give one example from your own life.', 'What would a week without it feel like?', 'What advice would you give a teenager?'] },
+      { q: 'Is it ever OK to tell a lie?', use: 'It depends… / A white lie is…', probes: ['When is a small lie acceptable?', 'Tell about a time a lie helped or hurt.', 'Would you always want to hear the truth?'] },
+      { q: 'Should everyone learn a second language?', use: 'I firmly believe… / Mainly because…', probes: ['What changes in the brain and in travel?', 'Which language should be first — why?', 'Is English enough in the modern world?'] },
+      { q: 'Money or passion — what should decide a career?', use: 'I’d argue that… / In an ideal world…', probes: ['Can you have both?', 'What would you tell a young artist?', 'Has your own answer changed with age?'] },
+      { q: 'If you could fix one problem in the world, what would it be — and how?', use: 'If I could, I would…', probes: ['Why this problem above others?', 'What could one person really do?', 'Who should be responsible — people or governments?'] },
+      { q: 'What does success mean to you?', use: 'To me, success is… / It used to be…', probes: ['Has this changed since you were younger?', 'Is success personal or social?', 'Name one person you consider successful — why?'] }
+    ]
   },
   it: {
-    A1: ['Come ti chiami?', 'Come stai oggi?', 'Di dove sei?', 'Quanti anni hai?', 'Qual è il tuo colore preferito?', 'Che giorno è oggi?'],
-    A2: ['Cosa fai nel fine settimana?', 'Descrivi la tua famiglia.', 'Qual è il tuo cibo preferito?', 'Che tempo fa oggi?', 'A che ora ti alzi?', 'Hai animali domestici?'],
-    B1: ['Cosa hai fatto l’estate scorsa?', 'Quanto spesso fai sport?', 'Cosa faresti con un giorno libero?', 'Parlami del tuo migliore amico.', 'Perché studi l’italiano?', 'Cosa hai mangiato ieri?'],
-    B2: ['Se potessi vivere ovunque, dove vivresti?', 'Quali sono i pro e i contro dei social media?', 'Descrivi un’abilità che vuoi imparare.', 'Qual è la tua opinione sul lavoro da remoto?', 'Parlami di un libro o film che ti ha cambiato.', 'Cosa ti stressa e come ti rilassi?']
+    A1: [
+      { q: 'Parlami della tua famiglia.', use: 'Ci sono… persone nella mia famiglia.', probes: ['Chi c’è nella tua famiglia?', 'Cosa vi piace fare insieme?', 'Chi è il più divertente — e perché?'] },
+      { q: 'Qual è il tuo giorno preferito della settimana?', use: 'Il mio giorno preferito è… perché…', probes: ['Cosa fai quel giorno?', 'Chi vedi?', 'Il lunedì è un buon giorno per te?'] },
+      { q: 'Cosa c’è nella tua cucina adesso?', use: 'C’è / Ci sono…', probes: ['Qual è la tua cosa preferita in cucina?', 'Cosa c’è di sano nel frigo?', 'Quale cibo non manca mai a casa tua?'] },
+      { q: 'Descrivi il tuo migliore amico.', use: 'Lui/Lei è… e noi…', probes: ['Com’è fisicamente?', 'Cosa fate insieme?', 'Perché è speciale per te?'] },
+      { q: 'Cosa vedi dalla tua finestra?', use: 'Vedo…', probes: ['Quali colori vedi?', 'Ci sono persone o animali?', 'Ti piace questa vista? Perché?'] },
+      { q: 'Cosa ti rende felice?', use: '… mi rende felice.', probes: ['Quando sei stato felice l’ultima volta?', 'Cosa rende felice la tua famiglia?', 'Cosa fai quando sei triste?'] }
+    ],
+    A2: [
+      { q: 'Descrivi la tua mattina, dal risveglio all’uscita di casa.', use: 'Prima…, poi…, dopo…', probes: ['A che ora ti svegli?', 'Cosa fai a colazione?', 'Cosa non dimentichi mai?'] },
+      { q: 'Qual è il tuo piatto preferito? Spiega come si prepara.', use: 'Ci vogliono… Prima…, poi…', probes: ['Quali ingredienti servono?', 'Chi cucina meglio — tu o la tua famiglia?', 'Ti piace il cibo di altri paesi?'] },
+      { q: 'Parlami della tua città.', use: 'Nella mia città c’è / ci sono…', probes: ['Cosa può vedere un turista?', 'Cosa preferisci?', 'Che cosa cambieresti?'] },
+      { q: 'Cosa hai fatto lo scorso weekend?', use: 'Sabato ho… / Domenica ho…', probes: ['Dove sei andato?', 'Chi era con te?', 'È stato un buon weekend — perché?'] },
+      { q: 'Cosa farai nelle prossime vacanze?', use: 'Ho intenzione di… / Voglio…', probes: ['Dove vuoi andare?', 'Con chi viaggerai?', 'Cosa vuoi vedere o mangiare?'] },
+      { q: 'Descrivi una foto che ami.', use: 'Nella foto… / È stata scattata…', probes: ['Dove eri?', 'Chi ha fatto la foto?', 'Perché è speciale per te?'] }
+    ],
+    B1: [
+      { q: 'È meglio vivere in città o in campagna?', use: 'Secondo me… / D’altra parte…', probes: ['Dai due motivi della tua scelta.', 'Quali sono gli svantaggi?', 'Dove vorresti vivere tra dieci anni?'] },
+      { q: 'Gli studenti dovrebbero indossare la divisa scolastica?', use: 'Penso che… / Per esempio…', probes: ['Quali sono i vantaggi?', 'Cosa direbbero gli studenti contrari?', 'Ora difendi il lato opposto!'] },
+      { q: 'Parlami di un’abilità che vuoi imparare — e perché.', use: 'Mi piacerebbe imparare… perché…', probes: ['Come inizieresti?', 'Come cambierebbe la tua vita?', 'È facile o difficile — perché?'] },
+      { q: 'Quanto tempo davanti allo schermo è troppo?', use: 'Troppo… / Dipende da…', probes: ['Quante ore passi online al giorno?', 'Cosa fai invece?', 'I genitori dovrebbero limitare i figli?'] },
+      { q: 'Vinci 1.000 euro — ma devi spenderli in un giorno. Cosa fai?', use: 'Se vincessi…, comprerei…', probes: ['Qual è la prima cosa che compri?', 'Lo divideresti con qualcuno?', 'Un giorno basta per spenderli bene?'] },
+      { q: 'Descrivi il miglior pasto della tua vita.', use: 'Era… / Sapeva di…', probes: ['Dove eri, e chi l’ha cucinato?', 'Cosa lo rese speciale?', 'Lo mangeresti di nuovo oggi?'] }
+    ],
+    B2: [
+      { q: 'I social media avvicinano le persone o le allontanano?', use: 'Dal mio punto di vista… / Detto questo…', probes: ['Dai un esempio della tua vita.', 'Come sarebbe una settimana senza?', 'Che consiglio daresti a un ragazzo?'] },
+      { q: 'È mai giusto dire una bugia?', use: 'Dipende… / Una bugia bianca è…', probes: ['Quando è accettabile?', 'Racconta una volta che una bugia ha aiutato o ferito.', 'Vorresti sempre sentire la verità?'] },
+      { q: 'Tutti dovrebbero imparare una seconda lingua?', use: 'Sono convinto che… / Soprattutto perché…', probes: ['Cosa cambia nel cervello e nei viaggi?', 'Quale lingua per prima — perché?', 'L’inglese basta nel mondo moderno?'] },
+      { q: 'Soldi o passione: cosa dovrebbe decidere una carriera?', use: 'Direi che… / In un mondo ideale…', probes: ['Si possono avere entrambi?', 'Cosa diresti a un giovane artista?', 'La tua risposta è cambiata con gli anni?'] },
+      { q: 'Se potessi risolvere un problema del mondo, quale — e come?', use: 'Se potessi, risolverei…', probes: ['Perché questo problema prima degli altri?', 'Cosa può fare davvero una persona sola?', 'Chi è responsabile — le persone o i governi?'] },
+      { q: 'Cosa significa successo per te?', use: 'Per me il successo è… / Una volta era…', probes: ['È cambiato con gli anni?', 'Il successo è personale o sociale?', 'Chi consideri di successo — perché?'] }
+    ]
   }
 };
 function qtimeCard(lang) {
-  const bank = QT_BANK[lang][lvName(lang, state.actLevel)];
-  const q = bank[state.qIdx % bank.length];
+  const tt = lang === 'it';
+  const deck = QT_DECKS[lang][lvName(lang, state.actLevel)] || QT_DECKS[lang][Object.keys(QT_DECKS[lang])[0]];
+  const c = deck[state.qIdx % deck.length];
   const tts = lang === 'it' ? 'it-IT' : 'en-US';
-  return `<div class="card rp-card"><div class="illus">⏳</div><h3>Question Time</h3><p class="muted">${lang === 'it' ? 'Scegli una carta, ascolta la domanda e rispondi ad alta voce per 30 secondi.' : 'Pick a card, listen to the question, and answer out loud for 30 seconds.'}</p><div class="qtime-card">${esc(q)}<div class="qtime-timer" id="qtimer">0:30</div></div><div class="row" style="gap:8px;margin-top:10px"><button class="btn" onclick="speakText(${jarg(q)},'${tts}')">🔊 ${lang === 'it' ? 'Ascolta' : 'Listen'}</button><button class="btn light" onclick="startTimer2()">⏱ 30″</button><button class="btn light" onclick="state.qIdx++;render()">${lang === 'it' ? 'Prossima →' : 'Next →'}</button></div><div class="muted small" style="margin-top:8px">${lang === 'it' ? 'Suggerimento: apri con una frase completa, aggiungi un dettaglio e chiudi con un’opinione.' : 'Tip: open with a full sentence, add one detail, finish with an opinion.'}</div></div>`;
+  const t = state.qtTime === 60 ? 60 : 30;
+  return `<div class="card rp-card"><div class="illus">⏳</div><h3>Question Time</h3><p class="muted">${tt ? 'Carte di discussione: rispondi ad alta voce fino alla fine del timer, poi approfondisci con i follow-up.' : 'Discussion cards: speak until the timer ends, then go deeper with the follow-up probes.'}</p><div class="qtime-card">${esc(c.q)}<div class="qtime-timer" id="qtimer">0:${String(t).padStart(2, '0')}</div></div><div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" onclick="speakText(${jarg(c.q)},'${tts}')">🔊 ${tt ? 'Ascolta' : 'Listen'}</button><button class="btn light" onclick="startTimer2('qtimer',${t})">▶ ⏱ ${t}″</button><button class="btn light ${t === 60 ? 'seg-on' : ''}" onclick="state.qtTime=${t === 60 ? 30 : 60};render()">${t === 60 ? '⏱ 30″' : '⏱ 60″'}</button><button class="btn light" onclick="state.qIdx++;render()">${tt ? 'Prossima →' : 'Next →'}</button></div><div class="qt-use">🧰 ${tt ? 'Linguaggio utile' : 'Useful language'}: <b>${esc(c.use)}</b></div><div class="qt-probes">${c.probes.map((p, i) => `<button class="qt-probe" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">💬 ${tt ? 'Approfondimento' : 'Follow-up'} ${i + 1}</button><div class="qt-probe-q" style="display:none">${esc(p)}</div>`).join('')}</div><p class="muted small">${tt ? 'Regola d’oro: mai risposte di una parola — apri, dai un dettaglio, dai la tua opinione.' : 'Golden rule: never one-word answers — open, add a detail, give your opinion.'}</p></div>`;
 }
 
 /* ================= Mood Games (emoji feelings + intonation) ================= */
@@ -1125,7 +1224,7 @@ function itWriting() {
 
 function speakText(t, lang) { if ('speechSynthesis' in window) { speechSynthesis.cancel(); let u = new SpeechSynthesisUtterance(t); u.lang = lang || 'en-US'; u.rate = .9; speechSynthesis.speak(u); } }
 function startTimer() { let s = 60, el = document.getElementById('timer'); clearInterval(window.tm); window.tm = setInterval(() => { s--; el.textContent = `00:${String(s).padStart(2, '0')}`; if (s <= 0) { clearInterval(window.tm); el.textContent = 'Time!'; } }, 1000); }
-function startTimer2() { let s = 30, el = document.getElementById('qtimer'); if (!el) return; el.textContent = `0:${String(s).padStart(2, '0')}`; clearInterval(window.tm2); window.tm2 = setInterval(() => { s--; if (!document.getElementById('qtimer')) { clearInterval(window.tm2); return; } el = document.getElementById('qtimer'); el.textContent = `0:${String(s).padStart(2, '0')}`; if (s <= 0) { clearInterval(window.tm2); el.textContent = 'Time! 🎉'; } }, 1000); }
+function startTimer2(id, secs) { id = id || 'qtimer'; let s = secs || 30; let el = document.getElementById(id); if (!el) return; el.textContent = `0:${String(s).padStart(2, '0')}`; clearInterval(window.tm2); window.tm2 = setInterval(() => { s--; if (!document.getElementById(id)) { clearInterval(window.tm2); return; } el = document.getElementById(id); el.textContent = `0:${String(s).padStart(2, '0')}`; if (s <= 0) { clearInterval(window.tm2); el.textContent = 'Time! 🎉'; } }, 1000); }
 function addHW(t) { state.homework.push({ text: t, done: false }); save(); toast('Homework assigned ✓'); }
 function toast(t) { let x = document.getElementById('toast'); x.innerHTML = `<div class="pill" style="position:fixed;right:25px;bottom:25px;background:#22233a;color:#fff;padding:13px 16px;z-index:10">${t}</div>`; setTimeout(() => x.innerHTML = '', 1800); }
 render();
