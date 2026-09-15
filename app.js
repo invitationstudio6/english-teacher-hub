@@ -621,11 +621,26 @@ function flipView() {
   const it = f.lang === 'it';
   const closed = f.i >= n;
   const L = closed ? n - 1 : f.i, R = closed ? n : f.i + 1;
-  const lp = f.pages[L] || '', rp = f.pages[R] || '';
-  return `<div class="section flip-section"><div class="flip-top"><div><h2>${f.title}</h2><p class="muted">${it ? 'Sfoglia il libro — apri le pagine con i comandi sotto.' : 'Flip through the book — turn the pages with the controls below.'}</p></div><div class="row" style="gap:8px"><button class="btn light" onclick="state.flip=null;render()">✕ ${it ? 'Chiudi' : 'Close'}</button></div></div><div class="book3d ${closed ? 'closed' : ''}" style="--bc:${f.c}" onclick="${closed ? `state.flip.i=0;render()` : ''}"><div class="bpage left">${lp}</div><div class="bspine"></div><div class="bpage right">${rp}</div></div>${closed ? `<p class="center"><button class="btn dark" onclick="state.flip.i=0;render()">📖 ${it ? 'Apri di nuovo il libro' : 'Open the book again'}</button></p>` : `<div class="flip-nav"><button class="btn light" ${f.i > 0 ? `onclick="state.flip.i=${Math.max(0, f.i - 2)};render()"` : 'disabled'}>◀ ${it ? 'Indietro' : 'Back'}</button><span class="pill">${Math.floor(f.i / 2) + 1} / ${Math.ceil(n / 2)}</span><button class="btn" ${f.i + 1 < n ? `onclick="state.flip.i=${f.i + 1};render()"` : `onclick="state.flip.i=${n};render()"`}>${it ? 'Avanti' : 'Next'} ▶</button></div><p class="muted small center">${f.i + 1 < n ? (it ? 'Continua a sfogliare…' : 'Keep flipping…') : (it ? 'Fine del libro — sfoglia ancora per chiuderlo.' : 'End of the book — flip once more to close it.')}</p>`}</div>`;
+  const lp = String(f.pages[L] || ''), rp = String(f.pages[R] || '');
+  const wrap = (content, num) => {
+    const isCover = content.indexOf('book-cover') >= 0 || content.indexOf('flip-cover') >= 0;
+    const ph = isCover ? '' : `<div class="page-head"><span>${f.title}</span><span class="ph-ed">${it ? 'EDIZIONE ITALIANA' : 'ENGLISH EDITION'}</span></div>`;
+    const pf = isCover ? '' : `<div class="page-foot"><span class="pn">${num}</span></div>`;
+    return `${ph}<div class="page-body${isCover ? ' is-cover' : ''}">${content}</div>${pf}`;
+  };
+  return `<div class="section flip-section"><div class="flip-top"><div><h2>${f.title}</h2><p class="muted">${it ? 'Sfoglia il libro — apri le pagine con i comandi sotto.' : 'Flip through the book — turn the pages with the controls below.'}</p></div><div class="row" style="gap:8px"><button class="btn light" onclick="state.flip=null;render()">✕ ${it ? 'Chiudi' : 'Close'}</button></div></div><div class="book3d ${closed ? 'closed' : ''}" style="--bc:${f.c}" onclick="${closed ? `state.flip.i=0;render()` : ''}"><div class="bpage left">${wrap(lp, f.i + 1)}</div><div class="bspine"></div><div class="bpage right">${wrap(rp, f.i + 2)}</div></div>${closed ? `<p class="center"><button class="btn dark" onclick="state.flip.i=0;render()">📖 ${it ? 'Apri di nuovo il libro' : 'Open the book again'}</button></p>` : `<div class="flip-nav"><button class="btn light" ${f.i > 0 ? `onclick="state.flip.i=${Math.max(0, f.i - 2)};render()"` : 'disabled'}>◀ ${it ? 'Indietro' : 'Back'}</button><span class="pill">${Math.floor(f.i / 2) + 1} / ${Math.ceil(n / 2)}</span><button class="btn" ${f.i + 1 < n ? `onclick="state.flip.i=${f.i + 1};render()"` : `onclick="state.flip.i=${n};render()"`}>${it ? 'Avanti' : 'Next'} ▶</button></div><p class="muted small center">${f.i + 1 < n ? (it ? 'Continua a sfogliare…' : 'Keep flipping…') : (it ? 'Fine del libro — sfoglia ancora per chiuderlo.' : 'End of the book — flip once more to close it.')}</p>`}</div>`;
+}
+function enCoverArt(title, lv) {
+  const set = /vocab|lessico/i.test(title) ? ['📘', '🔤', '🗣️', '✍️', '🌍', '🎧'] : /gramm|grammatica/i.test(title) ? ['Aa', 'B2', '?', '!', '→', '&'] : ['🎒', '👩‍🏫', '🗣️', '✍️', '🎧', '📖'];
+  return set.map((x, i) => `<span class="bc-glyph g${i}" ${x.length > 1 ? 'data-txt="' + x + '"' : ''}>${x}</span>`).join('');
+}
+function enCoverPage(title, subtitle, band, meta, c1, c2, flag) {
+  const en = flag !== 'ITALIAN';
+  return `<div class="book-cover" style="--c:${c1};--c2:${c2}"><div class="bc-inner"><div class="bc-top"><span>LINGUA FORGE ELT</span><span>${en ? 'SECOND EDITION' : 'SECONDA EDIZIONE'}</span></div><div class="bc-art"><div class="bc-art-bg"><span class="bc-water">Aa</span>${enCoverArt(title, band[0])}</div><div class="bc-art-tag">${en ? 'ENGLISH LANGUAGE TEACHING' : 'INSEGNAMENTO DELL’ITALIANO'}</div></div><div class="bc-body"><div class="bc-title">${title}</div><div class="bc-sub">${subtitle}</div><div class="bc-levels">${band.map(x => `<span class="bc-level">${x}</span>`).join('')}</div></div><div class="bc-meta"><span class="bc-meta-l">${meta}</span><span class="bc-isbn">${en ? 'STUDENT’S BOOK · ELT EDITION' : 'LIBRO DELLO STUDENTE'}</span></div></div></div>`;
 }
 function itCoverPage(b, kind) {
-  return `<div class="flip-cover" style="--c:${b.c1};--c2:${b.c2}"><div class="fc-top">LINGUA FORGE ACADEMY · ${kind}</div><div class="fc-flag">🇮🇹</div><div class="fc-title">${b.title}</div><div class="fc-sub">${b.subtitle}</div><div class="fc-band">${b.band.join(' · ')}</div><div class="fc-foot">${b.units ? b.units.length + ' unità · ' + b.units.reduce((s, u) => s + u.lessons.length, 0) + ' lezioni' : ''}${b.words ? b.words + ' parole' : ''}${b.topics ? b.topics + ' punti' : ''}</div></div>`;
+  const meta = `${b.units ? b.units.length + ' unità · ' + b.units.reduce((s, u) => s + u.lessons.length, 0) + ' lezioni' : ''}${b.words ? b.words + ' parole' : ''}${b.topics ? b.topics + ' punti' : ''}`;
+  return enCoverPage(b.title, b.subtitle, b.band, meta, b.c1 || '#2e9e4f', b.c2 || '#146b34', 'ITALIAN');
 }
 function itBookPages(b) {
   const pages = [itCoverPage(b, 'CORSO'), `<div class="fp"><h3 class="fp-title">Sommario · ${b.title}</h3><p class="muted small">${b.intro}</p><div class="fp-contents">${b.units.map((u, ui) => `<div class="fp-row" onclick="state.flip=null;state.itBook=IT.books[${IT.books.indexOf(b)}];state.itLesson=itLessons(state.itBook)[${itLessons(b).findIndex(x => x.ui === ui && x.li === 0)}];state.view='itlesson';render()"><span class="un">${ui + 1}</span><div><b>${u.title}</b><div class="muted small">${u.lessons.map(x => x.title).join(' · ')}</div></div><span class="go">→</span></div>`).join('')}</div></div>`];
@@ -653,9 +668,6 @@ function itVocabPages(lv) {
   return pages;
 }
 /* ---- English flip books ---- */
-function enCoverPage(title, subtitle, band, meta, c1, c2, flag) {
-  return `<div class="flip-cover" style="--c:${c1};--c2:${c2}"><div class="fc-top">LINGUA FORGE ACADEMY · ${flag}</div><div class="fc-flag">${flag === 'ENGLISH' ? '🇬🇧' : '🇮🇹'}</div><div class="fc-title">${title}</div><div class="fc-sub">${subtitle}</div><div class="fc-band">${band.join(' · ')}</div><div class="fc-foot">${meta}</div></div>`;
-}
 function enVocabPages(lv) {
   const units = vocabUnits(lv); const arr = VOCAB[lv];
   const col = ['#45a3ff', '#ef629f', '#23935f', '#e05252', '#5d50e9', '#b06a10', '#1499ce'][levels.indexOf(lv) % 7];
@@ -673,7 +685,7 @@ function enBookPages(b) {
   const pages = [enCoverPage(b.title, b.subtitle, [b.level], b.units.length + ' units · 64 lessons', '#5d50e9', '#22233a', 'ENGLISH'), `<div class="fp"><h3 class="fp-title">Contents · ${b.title}</h3><p class="muted small">${b.subtitle} — open a unit to teach it with the 60/90-minute programme.</p><div class="fp-contents">${b.units.map((u, i) => `<div class="fp-row" onclick="state.flip.i=${i * 2 + 2};render()"><span class="un">${u.number}</span><div><b>${u.title}</b><div class="muted small">Big Question: “${u.bigQ}”</div></div><span class="go">→</span></div>`).join('')}</div></div>`];
   b.units.forEach(u => {
     pages.push(`<div class="fp"><div class="fp-unith"><span class="giu-num" style="--c:#5d50e9">Unit ${u.number}</span><h3>${u.title}</h3></div><p class="muted small">Big Question: “${u.bigQ}” · ${u.theme}</p><div class="fp-prev">${u.lessons.map((l, li) => `<div class="fp-lcard" onclick="state.flip=null;openLesson('${l.id}')"><span class="pill" style="background:${['#5d50e9', '#1499ce'][li % 2]};color:#fff">${li + 1} · ${l.stage}</span><b>${l.title}</b><p class="muted small">${l.aim}</p><div class="muted small">📖 ${l.reading.title}</div></div>`).join('')}</div></div>`);
-    pages.push(`<div class="fp"><div class="fp-unith"><span class="giu-num" style="--c:#5d50e9">Unit ${u.number} · Grammar</span><h3>${u.lessons[0].grammar.title}</h3></div>${grammarUnitCard({ g: u.lessons[0].grammar, lv: b.level, n: u.number * 2 }, bookFor(b.level))}</div>`);
+    pages.push(`<div class="fp"><div class="fp-unith"><span class="giu-num" style="--c:#5d50e9">Unit ${u.number} · Grammar</span><h3>${u.lessons[0].grammar.title}</h3></div>${grammarUnitCard({ g: GRAMMAR.find(x => x.id === u.lessons[0].grammar.id) || u.lessons[0].grammar, lv: b.level, n: u.number * 2 }, bookFor(b.level))}</div>`);
   });
   return pages;
 }
