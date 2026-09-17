@@ -137,22 +137,90 @@ function diagSubmit() {
 }
 /* ---------- 5 · Study plan ---------- */
 const PLAN_SKILLS = [
-  { k: 'listening', n: 'Listening', ico: '🎧', base: 3 }, { k: 'reading', n: 'Reading', ico: '📚', base: 3 }, { k: 'writing', n: 'Writing', ico: '✍️', base: 4 }, { k: 'speaking', n: 'Speaking', ico: '🗣️', base: 3 },
-  { k: 'vocabulary', n: 'Vocabulary', ico: '🔤', base: 2 }, { k: 'grammar', n: 'Grammar', ico: '📐', base: 2 }, { k: 'review', n: 'Review & Mistakes', ico: '📒', base: 1 }, { k: 'mock', n: 'Mock / Practice Test', ico: '🧪', base: 1 }
+  { k: 'listening', n: 'Listening', ico: '🎧', w: 3 }, { k: 'reading', n: 'Reading', ico: '📚', w: 3 }, { k: 'writing', n: 'Writing', ico: '✍️', w: 4 }, { k: 'speaking', n: 'Speaking', ico: '🗣️', w: 3 },
+  { k: 'vocabulary', n: 'Vocabulary', ico: '🔤', w: 2 }, { k: 'grammar', n: 'Grammar', ico: '📐', w: 2 }, { k: 'review', n: 'Review & Mistakes', ico: '📒', w: 1 }, { k: 'mock', n: 'Mock / Practice Test', ico: '🧪', w: 1 }
 ];
+const PLAN_SKILL_NAME = { listening: 'Listening', reading: 'Reading', writing: 'Writing', speaking: 'Speaking', vocabulary: 'Vocabulary', grammar: 'Grammar' };
 function planPct() { const ticks = Object.values(IST.planTicks).filter(Boolean).length; const total = (IST.planCfg ? IST.planCfg.weeks : 0) * PLAN_SKILLS.length; return total ? Math.round(100 * ticks / total) : 0; }
+function planHours(c) {
+  const weak = (IST.diag && IST.diag.weak) || [];
+  const wk = c.hrs * 7;
+  const ws = PLAN_SKILLS.map(s => s.w * (PLAN_SKILL_NAME[s.k] && weak.includes(PLAN_SKILL_NAME[s.k]) ? 1.5 : 1));
+  const sum = ws.reduce((a, b) => a + b, 0);
+  const out = ws.map(x => Math.max(0.25, Math.round(wk * x / sum * 4) / 4));
+  const drift = Math.round((wk - out.reduce((a, b) => a + b, 0)) * 4) / 4;
+  if (drift !== 0) { const mi = out.indexOf(Math.max(...out)); out[mi] = Math.max(0.25, Math.round((out[mi] + drift) * 4) / 4); }
+  return out;
+}
+function planSessions(c, w) {
+  const acad = c.type === 'Academic';
+  const reads = acad ? [0, 1] : [2, 3];
+  const readName = i => ({ 0: 'Urban design', 1: 'Food systems', 2: 'Workplace (GT Section 1)', 3: 'Workplace (GT Section 2)' }[i]);
+  const topics = IELTS_VOCAB.map(v => v.topic);
+  const cur = parseFloat(c.cur) || 5;
+  const gBase = cur <= 5.5 ? 0 : cur <= 6 ? 4 : cur <= 6.5 ? 8 : 10;
+  const gIdx = Math.min(IELTS_GRAM.length - 1, gBase + ((w - 1) % Math.max(1, IELTS_GRAM.length - gBase)));
+  const isMockWeek = w === c.weeks || (c.weeks >= 8 && w % 4 === 0);
+  const listening = [
+    { n: `Part 1 · Social conversation — form completion`, d: 'Predict the word type for every gap before you press play. Listen once at normal speed, submit, then replay at 0.85× and mark exactly where each answer appeared.', g: '7/10+ on the track', link: "IL.track=0;go('ielts-listening')" },
+    { n: `Part 2 · Monologue — map & matching`, d: 'Follow the route words (“past”, “opposite”, “just beyond”) and sketch the map as you hear it. Match meaning, not words — paraphrase is the whole game.', g: '6/8+ correct', link: "IL.track=1;go('ielts-listening')" },
+    { n: `Part 3 · Academic discussion`, d: 'The answer often comes after “but / however / actually”. Note the speaker names and who agrees with whom while listening.', g: '6/8+ correct', link: "IL.track=2;go('ielts-listening')" },
+    { n: `Dictation & spelling drill`, d: 'Replay any track and write down every number, name, date and address you hear. In IELTS a correct answer spelled wrongly scores zero.', g: '10 items written correctly', link: "IL.track=0;go('ielts-listening')" }
+  ][(w - 1) % 4];
+  const reading = [
+    { n: `Passage · ${readName(reads[0])} — full task set`, d: 'Skim for 3 minutes, then go to the questions. Keep a strict 20-minute limit and copy words for completions exactly from the text.', g: 'Finish within 20 minutes', link: `IR.passage=${reads[0]};go('ielts-reading')` },
+    { n: `True / False / Not Given focus · ${readName(reads[1])}`, d: 'TRUE = the text states it, FALSE = the text contradicts it, NOT GIVEN = the text does not say. “Not mentioned” is not the same as false.', g: 'Max 1 error on T/F/NG items', link: `IR.passage=${reads[1]};go('ielts-reading')` },
+    { n: `Timed re-test · ${readName(reads[0])}`, d: 'Second attempt at your first passage: aim to beat last week’s time and score. Read every explanation, even for correct answers.', g: 'Beat your previous score', link: `IR.passage=${reads[0]};go('ielts-reading')` },
+    { n: `Strategy + vocabulary harvest`, d: 'Read the strategy card in the Reading hub, then add 8 unknown words from the passage vocabulary to your vocabulary review.', g: '8 new words collected', link: "go('ielts-reading')" }
+  ][(w - 1) % 4];
+  const essay = IELTS_WRITE.a2[(w - 1) % IELTS_WRITE.a2.length];
+  const writing = w % 2 === 1
+    ? (acad
+      ? { n: `Task 1 · ${['line graph', 'bar chart', 'pie chart', 'process diagram'][Math.floor((w - 1) / 2) % 4]}`, d: 'Plan 5 minutes: overview sentence first, then two body paragraphs with data. Never give opinions in Task 1.', g: '150+ words in 20 minutes', link: `IW.group='a1';IW.task=IELTS_WRITE.a1[${(w - 1) % IELTS_WRITE.a1.length}];go('ielts-writing')` }
+      : { n: `Task 1 · ${['formal letter', 'semi-formal letter', 'informal letter'][Math.floor((w - 1) / 2) % 3]}`, d: 'Match the tone to the reader: formal = no contractions, informal = friendly openers. Cover every bullet point from the prompt.', g: '150+ words in 20 minutes', link: `IW.group='gt1';IW.task=IELTS_WRITE.gt1[${(w - 1) % IELTS_WRITE.gt1.length}];go('ielts-writing')` })
+    : { n: `Task 2 · ${essay.title}`, d: 'Plan 5 minutes: your position, two main ideas, one example each. Open the vocabulary bank and useful structures in the task before writing.', g: '250+ words in 40 minutes', link: `IW.group='a2';IW.task=IELTS_WRITE.a2[${(w - 1) % IELTS_WRITE.a2.length}];go('ielts-writing')` };
+  const speaking = [
+    { n: `Part 2 · Cue card “${IELTS_SPEAK.p2[(w - 1) % IELTS_SPEAK.p2.length].card.slice(0, 38)}…”`, d: '1 minute to plan (two details + one mini-story), then speak for the full 2 minutes. Record yourself and check the four criteria honestly.', g: 'Full 2 minutes, no long pauses', link: `IS.part=2;IS.cue=${(w - 1) % IELTS_SPEAK.p2.length};go('ielts-speaking')` },
+    { n: `Part 3 · Discussion — ${IELTS_SPEAK.p3[(w - 1) % IELTS_SPEAK.p3.length].theme}`, d: 'Build every answer: claim → reason → example → concession (“That said…”). Answer aloud — speaking is a muscle, not a reading task.', g: '45+ seconds per answer', link: `IS.part=3;go('ielts-speaking')` },
+    { n: `Part 1 · Interview topics — ${IELTS_SPEAK.p1[(w - 1) % IELTS_SPEAK.p1.length].topic}`, d: 'Answer six questions with the pattern: direct answer → reason → example. Record, replay and score yourself against the self-assessment criteria.', g: '3–4 natural sentences per answer', link: `IS.part=1;go('ielts-speaking')` }
+  ][(w - 1) % 3];
+  const vocab = w % 4 === 0
+    ? { n: `Collocations · ${IELTS_COLL[(w / 4 - 1) % IELTS_COLL.length].cat}`, d: 'Work through the fill-in-the-blank practice for this category and write out the full correct phrases.', g: '8/10 correct', link: `IC.cat=${(w / 4 - 1) % IELTS_COLL.length};go('ielts-colloc')` }
+    : { n: `Topic family · ${topics[(w - 1) % topics.length]} — 8 words`, d: 'Flip every card, say the example sentence aloud, mark Know / Need practice honestly, then run the quiz on the topic.', g: '5+ words marked “known”', link: `IV.topic='${topics[(w - 1) % topics.length]}';IV.flip=null;go('ielts-vocab')` };
+  const grammar = { n: `Grammar for IELTS · ${IELTS_GRAM[gIdx].t} (${IELTS_GRAM[gIdx].band})`, d: 'Read the simple explanation and the “in the exam” note, memorise the common mistake, then take the mini quiz at the end of the unit.', g: 'Mini quiz: all correct before moving on', link: `IG.open='${IELTS_GRAM[gIdx].id}';go('ielts-grammar')` };
+  const weakView = { Listening: 'ielts-listening', Reading: 'ielts-reading', Writing: 'ielts-writing', Speaking: 'ielts-speaking', Vocabulary: 'ielts-vocab', Grammar: 'ielts-grammar' };
+  const weak0 = (IST.diag && IST.diag.weak && IST.diag.weak[0]) || 'Writing';
+  const review = [
+    { n: 'Mistake notebook sweep', d: 'Re-answer every saved mistake without looking at the explanation first; remove the ones you now get right.', g: 'Notebook fully reviewed', link: "go('ielts-mistakes')" },
+    { n: 'Daily practice session', d: 'Complete today’s mixed session — vocabulary, grammar, reading, listening and a speaking task, exactly as the Daily Practice builds it.', g: 'Today’s daily goal completed', link: "go('ielts-daily')" },
+    { n: `Re-test your weakest skill (${weak0})`, d: 'Do one scored exercise in the skill your diagnostic flagged weakest and compare the score with last week.', g: 'Score improved vs last week', link: `go('${weakView[weak0] || 'ielts-mocks'}')` }
+  ][(w - 1) % 3];
+  const mock = isMockWeek
+    ? { n: 'Full mock simulation · all four skills', d: 'Strict timing: Listening ~30 min, Reading 60 min, Writing 60 min, Speaking 11–14 min. Sit all four sections in one go, then log every mistake in the notebook.', g: 'All four sections in one sitting', link: "go('ielts-mocks')" }
+    : { n: 'Timed mini-mock · Listening + Reading', d: 'One listening track plus one passage under exam timing, marked immediately — read every explanation before moving on.', g: 'Both sections inside the time limit', link: "go('ielts-mocks')" };
+  return { listening, reading, writing, speaking, vocabulary: vocab, grammar, review, mock };
+}
+function weekPhase(c, w) {
+  const p = w / c.weeks;
+  if (w === c.weeks) return ['Exam week — simulation & polish', '#8e2f8e'];
+  if (p <= 0.34) return ['Phase 1 · Foundations & accuracy', '#22b07d'];
+  if (p <= 0.7) return ['Phase 2 · Skills building', '#3aa0e8'];
+  return ['Phase 3 · Exam technique & timing', '#e8853a'];
+}
 function ieltsPlan() {
   const c = IST.planCfg;
   if (!c) {
-    return `<div class="section"><div class="crumb"><button class="btn light" onclick="go('ielts')">← IELTS Hub</button></div><h2>📅 IELTS Study Plan</h2><p class="muted">Answer five questions and get a week-by-week plan with checkable activities and progress tracking.</p><div class="card"><div class="grid2"><label class="bc-lab">🎯 Target band<select class="input" id="pl-t">${[5.5, 6, 6.5, 7, 7.5, 8].map(v => `<option value="${v}">${v.toFixed(1)}</option>`).join('')}</select></label><label class="bc-lab">📍 Current estimated level<select class="input" id="pl-cur"><option>${IST.diag ? IST.diag.band : '5.0'}</option>${[4.5, 5, 5.5, 6, 6.5, 7].map(v => `<option value="${v}">${v.toFixed(1)}</option>`).join('')}</select></label><label class="bc-lab">📋 Exam type<select class="input" id="pl-type"><option value="Academic">IELTS Academic</option><option value="General">IELTS General Training</option></select></label><label class="bc-lab">⏳ Preparation duration<select class="input" id="pl-w">${[4, 6, 8, 12, 16].map(v => `<option value="${v}" ${v === 8 ? 'selected' : ''}>${v} weeks</option>`).join('')}</select></label><label class="bc-lab">🕐 Hours available per day<select class="input" id="pl-h"><option value="1">1 hour</option><option value="1.5">1.5 hours</option><option value="2">2 hours</option><option value="3">3 hours</option></select></label><label class="bc-lab">📆 Exam date (optional)<input class="input" id="pl-date" type="date"></label></div><button class="btn dark" style="margin-top:14px" onclick="planBuild()">Generate my plan →</button></div></div>`;
+    return `<div class="section"><div class="crumb"><button class="btn light" onclick="go('ielts')">← IELTS Hub</button></div><h2>📅 IELTS Study Plan</h2><p class="muted">Answer five questions and get a week-by-week plan. Every week is fully expanded: each task says exactly what to do, how to do it, the target to hit, and links straight to the exercise. The weekly load always matches your hours per day (1 h/day = ~7 h/week), and weak skills from your diagnostic get extra time.</p><div class="card"><div class="grid2"><label class="bc-lab">🎯 Target band<select class="input" id="pl-t">${[5.5, 6, 6.5, 7, 7.5, 8].map(v => `<option value="${v}">${v.toFixed(1)}</option>`).join('')}</select></label><label class="bc-lab">📍 Current estimated level<select class="input" id="pl-cur"><option>${IST.diag ? IST.diag.band : '5.0'}</option>${[4.5, 5, 5.5, 6, 6.5, 7].map(v => `<option value="${v}">${v.toFixed(1)}</option>`).join('')}</select></label><label class="bc-lab">📋 Exam type<select class="input" id="pl-type"><option value="Academic">IELTS Academic</option><option value="General">IELTS General Training</option></select></label><label class="bc-lab">⏳ Preparation duration<select class="input" id="pl-w">${[4, 6, 8, 12, 16].map(v => `<option value="${v}" ${v === 8 ? 'selected' : ''}>${v} weeks</option>`).join('')}</select></label><label class="bc-lab">🕐 Hours available per day<select class="input" id="pl-h"><option value="1">1 hour</option><option value="1.5">1.5 hours</option><option value="2">2 hours</option><option value="3">3 hours</option></select></label><label class="bc-lab">📆 Exam date (optional)<input class="input" id="pl-date" type="date"></label></div><button class="btn dark" style="margin-top:14px" onclick="planBuild()">Generate my plan →</button></div>${IST.diag ? '' : `<div class="card" style="margin-top:15px"><h3>Want a smarter plan?</h3><p class="muted small">Take the 10-minute diagnostic first — the plan will weight your weakest skills with extra study time and start grammar at the right difficulty.</p><button class="btn" onclick="go('ielts-diagnostic')">🩺 Take the diagnostic →</button></div>`}</div>`;
   }
+  const hours = planHours(c);
   const weeks = [];
-  const focusPool = { listening: ['Part 1 form completion drill', 'Part 2 map/matching practice', 'Part 3 discussion listening', 'Part 4 lecture notes'], reading: ['Academic passage + TFNG', 'Matching headings set', 'Summary completion drill', 'GT section practice'], writing: ['Task 1 chart practice', 'Task 2 opinion essay', 'Task 2 problem/solution', 'GT letter + review'], speaking: ['Part 1 topic block', 'Part 2 cue card ×2', 'Part 3 discussion', 'Full mock speaking'], vocabulary: ['Topic family flashcards', 'Collocation gap-fills', 'Quiz + mistake review'], grammar: ['Grammar-for-IELTS unit + quiz', 'Error-correction drill'], review: ['Mistake notebook review', 'Re-test saved mistakes'], mock: ['Timed mini-mock (Listening+Reading)', 'Full mock simulation'] };
   for (let w = 1; w <= c.weeks; w++) {
-    weeks.push({ w, items: PLAN_SKILLS.map(s => { const pool = focusPool[s.k]; return { k: s.k, ico: s.ico, n: s.n, task: s.k === 'mock' ? (w === c.weeks ? 'Full mock simulation' : 'Timed mini-mock') : pool[w % pool.length], hrs: s.base * c.hrs } }) });
+    const ses = planSessions(c, w);
+    weeks.push({ w, items: PLAN_SKILLS.map((s, si) => ({ k: s.k, ico: s.ico, n: s.n, hrs: hours[si], ses: ses[s.k] })) });
   }
   const pct = planPct();
-  return `<div class="section"><div class="crumb"><button class="btn light" onclick="go('ielts')">← IELTS Hub</button><button class="btn light" onclick="if(confirm('Reset the plan?')){IST.planCfg=null;IST.planTicks={};istSave();render()}">↺ New plan</button></div><h2>📅 Your ${c.weeks}-Week IELTS Plan</h2><div class="ih-planhead"><div class="ih-planmeta"><span class="pill">${c.type}</span><span class="pill">Target ${(+c.target).toFixed(1)}</span><span class="pill">${c.hrs} h/day</span>${c.date ? `<span class="pill">📆 ${c.date}</span>` : ''}</div><div class="ih-planbar"><div class="ih-planfill" style="width:${pct}%"></div></div><b>${pct}% complete</b></div><div class="list">${weeks.map(wk => `<div class="card ih-week"><h3>Week ${wk.w}${wk.w === c.weeks ? ' · exam week' : ''}</h3><div class="ih-weekgrid">${wk.items.map(it => { const key = 'w' + wk.w + '-' + it.k; const done = !!IST.planTicks[key]; return `<label class="ih-planitem ${done ? 'done' : ''}"><input type="checkbox" ${done ? 'checked' : ''} onchange="IST.planTicks['${key}']=this.checked;istSave();render()"> <span>${it.ico} <b>${it.n}</b> — ${esc(it.task)} <span class="muted small">(~${it.hrs}h)</span></span></label>`; }).join('')}</div></div>`).join('')}</div></div>`;
+  const weekTotal = Math.round(hours.reduce((a, b) => a + b, 0) * 10) / 10;
+  return `<div class="section"><div class="crumb"><button class="btn light" onclick="go('ielts')">← IELTS Hub</button><button class="btn light" onclick="if(confirm('Reset the plan?')){IST.planCfg=null;IST.planTicks={};istSave();render()}">↺ New plan</button></div><h2>📅 Your ${c.weeks}-Week IELTS Plan</h2><div class="ih-planhead"><div class="ih-planmeta"><span class="pill">${c.type}</span><span class="pill">Target ${(+c.target).toFixed(1)}</span><span class="pill">From ${(+c.cur).toFixed(1)}</span><span class="pill">${c.hrs} h/day → ≈${weekTotal} h/week</span>${c.date ? `<span class="pill">📆 ${c.date}</span>` : ''}</div><div class="ih-planbar"><div class="ih-planfill" style="width:${pct}%"></div></div><b>${pct}% complete</b></div><p class="muted small">${IST.diag ? `Weighted for your diagnostic — extra time goes to: <b>${IST.diag.weak.join(', ')}</b>.` : 'Take the diagnostic so the plan can weight your weakest skills with extra time.'} Grammar starts at the right difficulty for your level and moves up week by week; Writing alternates Task 1 / Task 2 weeks; full mocks every 4 weeks and in exam week.</p><div class="list">${weeks.map(wk => { const [ph, pc] = weekPhase(c, wk.w); return `<div class="card ih-week"><div class="row" style="justify-content:space-between;flex-wrap:wrap"><h3 style="margin:0">Week ${wk.w}${wk.w === c.weeks ? ' · exam week' : ''}</h3><div class="row"><span class="pill" style="background:${pc}1a;color:${pc}">${ph}</span><span class="pill">≈${weekTotal}h</span></div></div><div class="ih-weekgrid">${wk.items.map(it => { const key = 'w' + wk.w + '-' + it.k; const done = !!IST.planTicks[key]; return `<div class="ih-planitem ${done ? 'done' : ''}"><div class="ih-planrow"><label><input type="checkbox" ${done ? 'checked' : ''} onchange="IST.planTicks['${key}']=this.checked;istSave();render()"> <span>${it.ico} <b>${it.n}</b> — ${esc(it.ses.n)}</span></label><span class="pill">~${it.hrs}h</span></div><p class="ih-planhow"><b>How:</b> ${esc(it.ses.d)}<br><b>Target:</b> ${esc(it.ses.g)}</p><button class="btn light mini-btn" onclick="${it.ses.link}">Open the exercise →</button></div>`; }).join('')}</div></div>`; }).join('')}</div></div>`;
 }
 function planBuild() {
   const g = id => document.getElementById(id).value;

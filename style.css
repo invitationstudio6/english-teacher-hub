@@ -450,8 +450,15 @@
 .ih-planbar{flex:1;min-width:160px;height:12px;background:#f2f0fb;border-radius:99px;overflow:hidden}
 .ih-planfill{height:100%;background:linear-gradient(90deg,#0891b2,#22c55e);border-radius:99px}
 .ih-weekgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.ih-planitem{display:flex;gap:8px;align-items:flex-start;background:#f8f7ff;border:1.5px solid #e6e2f6;border-radius:11px;padding:9px 12px;font-size:13px;cursor:pointer;transition:.15s}
-.ih-planitem.done{background:#e6f9ee;border-color:#22c55e;text-decoration:line-through;opacity:.75}
+.ih-planitem{display:flex;gap:8px;align-items:flex-start;background:#f8f7ff;border:1.5px solid #e6e2f6;border-radius:11px;padding:9px 12px;font-size:13px;cursor:pointer;transition:.15s;flex-direction:column;cursor:default}
+.ih-planitem.done{background:#e6f9ee;border-color:#22c55e;opacity:.75}
+.ih-planitem.done .ih-planhow{opacity:.6}
+.ih-planrow{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;width:100%}
+.ih-planrow label{display:flex;gap:8px;align-items:flex-start;cursor:pointer;flex:1}
+.ih-planrow input{margin-top:3px;width:auto}
+.ih-planhow{margin:8px 0 6px;color:#4b4f6b;line-height:1.55;width:100%}
+.mini-btn{padding:5px 12px;font-size:12px;border-radius:9px}
+.ih-week{margin-bottom:14px}
 .ih-dailyhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:10px 0;flex-wrap:wrap}
 .ih-doneday{background:#e6f9ee;color:#15803d;font-weight:800;border-radius:99px;padding:8px 16px}
 .ih-statrow{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
