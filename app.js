@@ -253,8 +253,8 @@ function makeBook(age, level) {
 }
 const books = [...kids.map(l => makeBook('Kids', l)), ...teens.map(l => makeBook('Teens', l)), ...adults.map(l => makeBook('Adults', l))];
 const allVocab = levels.flatMap(l => VOCAB[l].map((w, i) => ({ ...w, level: l, icon: icons[i % icons.length], topic: TOPICS[i % TOPICS.length].title })));
-const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: JSON.parse(localStorage.getItem('lf_homework') || '[]'), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false };
-function save() { localStorage.setItem('lf_students', JSON.stringify(state.student)); localStorage.setItem('lf_homework', JSON.stringify(state.homework)); localStorage.setItem('lf_plans', JSON.stringify(state.plans)); }
+const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: (function (h) { return (h || []).map(x => x && x.id ? x : { id: 'hw' + Math.random().toString(36).slice(2, 8), title: (x && x.text) || '', instr: '', type: 'custom', level: '', unit: '', mins: 20, due: '', who: 'all', status: x && x.done ? 'graded' : 'assigned', sub: null, grade: null, fb: '', legacy: true }); })(JSON.parse(localStorage.getItem('lf_homework') || '[]')), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false, exam: (function () { try { return JSON.parse(localStorage.getItem('lf_exam') || 'null'); } catch (e) { return null; } })(), examResult: null, hwOpen: null, hwSubOpen: null, mistakes: JSON.parse(localStorage.getItem('lf_mistakes') || '[]'), examRes: JSON.parse(localStorage.getItem('lf_exams') || '[]'), wbSave: JSON.parse(localStorage.getItem('lf_wbsave') || '{}') };
+function save() { localStorage.setItem('lf_students', JSON.stringify(state.student)); localStorage.setItem('lf_homework', JSON.stringify(state.homework)); localStorage.setItem('lf_plans', JSON.stringify(state.plans)); try { localStorage.setItem('lf_mistakes', JSON.stringify(state.mistakes)); localStorage.setItem('lf_exams', JSON.stringify(state.examRes)); localStorage.setItem('lf_wbsave', JSON.stringify(state.wbSave)); } catch (e) {} }
 
 /* ---------------- Shell & navigation ---------------- */
 function layout(content) {
@@ -401,6 +401,20 @@ function vocabulary() {
   return `<div class="section"><h2>Vocabulary in Use · ${state.level} · Unit ${u2.n}</h2>${filterRow}${vocabUnitCard(u2, col)}<div class="unit-nav"><button class="btn light" ${prev ? `onclick="state.vunit--;render()"` : 'disabled'}>← Previous unit</button><button class="btn light" onclick="state.vunit=null;render()">📑 Contents</button><button class="btn" ${next ? `onclick="state.vunit++;render()"` : 'disabled'}>Next unit →</button></div></div>`;
 }
 
+function wbCard(id, title, sub, items, btn) {
+  const saved = state.wbSave[id] || {};
+  return `<div class="card wb" data-wb="${id}"><h3>${title}</h3><p class="muted small">${sub}</p>${saved.score != null ? `<span class="wbbadge">Last attempt: ${saved.score}/${saved.n}</span>` : ''}${items.map((m, i) => {
+    const val = saved.v ? (saved.v[i] || '') : '';
+    return `<div class="q wbq"><b>${i + 1}.</b> ${m.q}${m.opts
+      ? `<select class="input" onchange="wbSaveVal('${id}',${i},this.value)"><option value="">— choose —</option>${m.opts.map(o => `<option value="${esc(o)}" ${o === m.ans ? 'data-ok="1"' : ''}${val === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`
+      : `<input class="input" data-ans="${esc(Array.isArray(m.ans) ? m.ans.join(' | ') : m.ans)}" value="${esc(val)}" oninput="wbSaveVal('${id}',${i},this.value)" placeholder="Type your answer…">`}<div class="wbex">${m.expl || ''}</div></div>`;
+  }).join('')}<button class="btn" onclick="checkWB()">${btn || 'Check answers'}</button><div class="wbfb"></div></div>`;
+}
+function wbSaveVal(id, i, val) {
+  const rec = state.wbSave[id] = state.wbSave[id] || { v: {} };
+  rec.v = rec.v || {}; rec.v[i] = val; save();
+}
+function wbWordCount(el) { document.getElementById('wbwc').textContent = (el.value.trim() ? el.value.trim().split(/\s+/).length : 0) + ' words · saved'; }
 function workbook() {
   const lv = state.level === 'All' ? 'B1' : state.level;
   const idx = levels.indexOf(lv);
@@ -408,29 +422,47 @@ function workbook() {
   const gs = GRAMMAR.filter(g => g.range.includes(lv));
   const t = TOPICS[(idx * 2 + 1) % 16];
   const pick = g => g.levels[lv] || g.levels[g.range[0]];
-  const m1 = v.slice(0, 4).map((w, i) => ({ word: w.word, opts: shuffled([w.meaning, v[(i + 4) % 20].meaning, v[(i + 7) % 20].meaning, v[(i + 11) % 20].meaning], i + 1), ans: w.meaning }));
+  const m1 = v.slice(0, 4).map((w, i) => ({ q: `<b>${esc(w.word)}</b> — choose the meaning`, opts: shuffled([w.meaning, v[(i + 4) % 20].meaning, v[(i + 7) % 20].meaning, v[(i + 11) % 20].meaning], i + 1), ans: w.meaning, expl: `“${esc(w.word)}” — ${esc(w.meaning)}` }));
   const g3 = [gs[idx % gs.length], gs[(idx + 1) % gs.length], gs[(idx + 2) % gs.length]];
-  const m2 = g3.map((g, i) => ({ title: g.title, opts: shuffled([pick(g).examples[0], pick(g3[(i + 1) % 3]).examples[0], pick(g3[(i + 2) % 3]).examples[1]], i + 3), ans: pick(g).examples[0] }));
-  const m3 = v.slice(4, 8).map((w, i) => ({ q: blankWord(w.example, w.word), opts: shuffled([w.word, v[(i + 9) % 20].word, v[(i + 13) % 20].word], i + 5), ans: w.word }));
-  return `<div class="section"><h2>Workbook · ${lv}</h2><p class="muted">Interactive practice with instant checking. Choose a level to generate the activities.</p>${bannerSVG('workbook')}<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}</div><div class="wb-grid"><div class="card wb"><h3>1 · Vocabulary Builder</h3><p class="muted small">Match each word to its meaning.</p>${m1.map((m, i) => `<div class="q wbq"><b>${i + 1}. ${m.word}</b><select class="input"><option value="">— choose —</option>${m.opts.map(o => `<option value="${esc(o)}" ${o === m.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check answers</button><div class="wbfb"></div></div><div class="card wb"><h3>2 · Grammar in Context</h3><p class="muted small">Which sentence uses the target structure?</p>${m2.map((m, i) => `<div class="q wbq"><b>${i + 1}. ${m.title}</b><select class="input"><option value="">— choose —</option>${m.opts.map(o => `<option value="${esc(o)}" ${o === m.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check answers</button><div class="wbfb"></div></div><div class="card wb"><h3>3 · Use of English</h3><p class="muted small">Complete the sentence with the correct word.</p>${m3.map((m, i) => `<div class="q wbq"><b>${i + 1}.</b> ${esc(m.q)}<select class="input"><option value="">— choose —</option>${m.opts.map(o => `<option value="${esc(o)}" ${o === m.ans ? 'data-ok="1"' : ''}>${esc(o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check answers</button><div class="wbfb"></div></div><div class="card wb"><h3>4 · Reading Skills · IELTS</h3><p class="muted small">Read the passage, then complete the exam-style tasks and check your score.</p>${ieltsPassage(t.reading)}${ieltsTasks([t.reading.tasks[0], t.reading.tasks[2]])}</div><div class="card wb"><h3>5 · Writing Practice</h3><p class="muted small">Plan → draft → check.</p><p><b>Task.</b> ${t.writing.prompt}</p><textarea class="input" rows="8" placeholder="Write your draft here…"></textarea><div class="task"><b>Checklist</b>${t.writing.checklist.map(x => `<p>☐ ${x}</p>`).join('')}</div></div><div class="card wb"><h3>6 · Unit Review</h3><p class="muted small">Five mixed questions. Score yourself at the end.</p>${makeReview(lv, idx).map((q, i) => `<div class="q wbq"><b>${i + 1}.</b> ${esc(q.q)}<select class="input"><option value="">— choose —</option>${shuffled(q.opts.map(o => ({ o, ok: o === q.ans })), i + 7).map(o => `<option value="${esc(o.o)}" ${o.ok ? 'data-ok="1"' : ''}>${esc(o.o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Submit & score</button><div class="wbfb"></div></div></div></div>`;
+  const m2 = g3.map((g, i) => ({ q: `<b>${esc(g.title)}</b> — which sentence uses the target structure?`, opts: shuffled([pick(g).examples[0], pick(g3[(i + 1) % 3]).examples[0], pick(g3[(i + 2) % 3]).examples[1]], i + 3), ans: pick(g).examples[0], expl: `Target structure: ${esc(g.form || g.title)}` }));
+  const m3 = v.slice(4, 8).map((w, i) => ({ q: esc(blankWord(w.example, w.word)), opts: shuffled([w.word, v[(i + 9) % 20].word, v[(i + 13) % 20].word], i + 5), ans: w.word, expl: `Full sentence: “${esc(w.example)}”` }));
+  const ec = EXAM_ITEMS.filter(x => x.lvl === lv && x.type === 'error').map(x => ({ q: esc(x.q), opts: x.opts, ans: x.ans, expl: esc(x.expl) }));
+  const ue = EXAM_ITEMS.filter(x => x.lvl === lv && ['gap', 'transform', 'short'].includes(x.type)).map(x => ({ q: esc(x.q), ans: x.ans, expl: esc(x.expl) }));
+  const draftKey = `en-${lv}-writing`;
+  const draft = ((state.wbSave[draftKey] || {}).v || {})[0] || '';
+  return `<div class="section"><h2>Workbook · ${lv}</h2><p class="muted">Interactive practice with instant checking, explanations and automatic progress saving — leave and return without losing your work.</p>${bannerSVG('workbook')}<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}</div><div class="wb-grid">${wbCard(`en-${lv}-1`, '1 · Vocabulary Builder', 'Match each word to its meaning.', m1)}${wbCard(`en-${lv}-2`, '2 · Grammar in Context', 'Which sentence uses the target structure?', m2)}${wbCard(`en-${lv}-3`, '3 · Use of English', 'Complete the sentence with the correct word.', m3)}${ec.length ? wbCard(`en-${lv}-ec`, '4 · Error Correction · Exam workshop', 'Choose the correct sentence — each option is a classic learner trap.', ec) : ''}${ue.length ? wbCard(`en-${lv}-ue`, '5 · Use of English · Exam workshop', 'Gap-fill, word formation and sentence transformations — type your answers.', ue, 'Submit & score') : ''}<div class="card wb"><h3>6 · Reading Skills · IELTS</h3><p class="muted small">Read the passage, then complete the exam-style tasks and check your score.</p>${ieltsPassage(t.reading)}${ieltsTasks([t.reading.tasks[0], t.reading.tasks[2]])}</div><div class="card wb"><h3>7 · Writing Practice</h3><p class="muted small">Plan → draft → check. Your draft is saved automatically as you type.</p><p><b>Task.</b> ${t.writing.prompt}</p><textarea class="input" rows="8" placeholder="Write your draft here…" oninput="wbSaveVal('${draftKey}',0,this.value);wbWordCount(this)">${esc(draft)}</textarea><div class="row" style="margin-top:8px"><span class="muted small" id="wbwc">${draft ? draft.trim().split(/\s+/).length + ' words · saved' : '0 words'}</span></div><div class="task"><b>Checklist</b>${t.writing.checklist.map(x => `<p>☐ ${x}</p>`).join('')}</div></div>${wbCard(`en-${lv}-6`, '8 · Unit Review', 'Five mixed questions. Submit to score the unit.', makeReview(lv, idx).map((q, i) => ({ q: esc(q.q), opts: shuffled(q.opts, i + 7), ans: q.ans, expl: `Correct answer: ${esc(q.ans)}` })), 'Submit & score')}</div></div>`;
 }
 function checkWB() {
   const rows = [...document.querySelectorAll('.wbq')];
-  let ok = 0;
   rows.forEach(r => {
     const s = r.querySelector('select');
-    if (!s) return;
-    const right = s.querySelector('option[data-ok="1"]')?.value;
-    const pass = s.value && s.value === right;
+    let pass = false;
+    if (s) {
+      const right = s.querySelector('option[data-ok="1"]')?.value;
+      pass = !!s.value && s.value === right;
+    } else {
+      const inp = r.querySelector('input[data-ans]');
+      if (inp) pass = !!inp.value.trim() && inp.dataset.ans.split('|').some(a => exNorm(a) === exNorm(inp.value));
+    }
     r.classList.remove('good', 'bad');
     r.classList.add(pass ? 'good' : 'bad');
-    if (pass) ok++;
+    const ex = r.querySelector('.wbex');
+    if (ex) ex.style.display = 'block';
   });
   document.querySelectorAll('.wbfb').forEach(f => {
     const card = f.closest('.wb, .giu, .viu, .ielts, .ielts-read');
+    if (!card) return;
     const qs = card.querySelectorAll('.wbq');
     const o = card.querySelectorAll('.wbq.good').length;
     f.innerHTML = `<div class="wbscore ${o === qs.length ? 'all' : ''}">Score: ${o} / ${qs.length}${o === qs.length ? ' — excellent work!' : ' — review the marked questions.'}</div>`;
+    if (card.dataset.wb) {
+      const id = card.dataset.wb;
+      state.wbSave[id] = Object.assign({}, state.wbSave[id], { score: o, n: qs.length });
+      save();
+      const badge = card.querySelector('.wbbadge');
+      if (badge) badge.textContent = `Last attempt: ${o}/${qs.length}`;
+      else card.querySelector('p.muted.small')?.insertAdjacentHTML('afterend', `<span class="wbbadge">Last attempt: ${o}/${qs.length}</span>`);
+    }
   });
 }
 
@@ -452,16 +484,177 @@ function speaking() {
   return `<div class="section"><h2>Speaking Studio</h2>${bannerSVG('speaking')}<div class="card"><span class="pill">1 minute challenge</span><h3>Speak about a topic you know well.</h3><p>Use an opening, two supporting details and a closing sentence. Try to use five target words.</p><div class="hero" style="text-align:center;margin:18px 0"><div id="timer" style="font:800 54px 'Plus Jakarta Sans'">01:00</div><button class="btn dark" onclick="startTimer()">Start timer</button></div><h3>Useful phrases</h3><div class="row">${['In my experience…', 'One reason is…', 'For example…', 'However…', 'Overall…'].map(x => `<span class="pill">${x}</span>`).join('')}</div></div></div>`;
 }
 function writing() {
-  return `<div class="section"><h2>Writing Studio</h2>${bannerSVG('writing')}<div class="card"><span class="pill">Guided writing</span><h3>Write about a goal you want to achieve.</h3><p>Plan → draft → check. Aim for 120 words. Include one example and one reason.</p><textarea id="writer" rows="12" placeholder="Start writing here…" oninput="document.getElementById('wc').textContent=this.value.trim()?this.value.trim().split(/\\s+/).length:0"></textarea><div class="row" style="justify-content:space-between;margin-top:10px"><span class="muted"><b id="wc">0</b> words</span><button class="btn" onclick="alert('Draft saved in this session. Review spelling, grammar, organization and task completion.')">Check my draft</button></div><div class="card" style="margin-top:15px;background:#fafaff"><b>Writer’s checklist</b><p>☐ Clear opening & purpose<br>☐ Supporting details<br>☐ Target grammar<br>☐ Linking words<br>☐ Spelling & punctuation</p></div></div></div>`;
+  return `<div class="section"><h2>Writing Studio</h2>${bannerSVG('writing')}<div class="card"><span class="pill">Guided writing</span><h3>Write about a goal you want to achieve.</h3><p>Plan → draft → check. Aim for 120 words. Include one example and one reason.</p><textarea id="writer" rows="12" placeholder="Start writing here…" oninput="document.getElementById('wc').textContent=this.value.trim()?this.value.trim().split(/\\s+/).length:0"></textarea><div class="row" style="justify-content:space-between;margin-top:10px"><span class="muted"><b id="wc">0</b> words</span><button class="btn" onclick="try{localStorage.setItem('lf_wbdraft',document.getElementById('writer').value)}catch(e){};toast('Draft saved. Review spelling, grammar, organization and task completion.')">Save my draft</button></div><div class="card" style="margin-top:15px;background:#fafaff"><b>Writer’s checklist</b><p>☐ Clear opening & purpose<br>☐ Supporting details<br>☐ Target grammar<br>☐ Linking words<br>☐ Spelling & punctuation</p></div></div></div>`;
+}
+/* ---------------- Assessment Studio · real exam engine ---------------- */
+const EXAM_ITEMS = [
+  /* ---- A1 ---- */
+  { lvl: 'A1', skill: 'Grammar', type: 'mcq', topic: 'Present Simple', q: 'My sister ___ to school every day.', opts: ['go', 'goes', 'going'], ans: 'goes', expl: 'Third person singular (she) takes -s in the Present Simple.' },
+  { lvl: 'A1', skill: 'Vocabulary', type: 'mcq', topic: 'Food', q: 'Which word is a fruit?', opts: ['chair', 'banana', 'spoon'], ans: 'banana', expl: 'Bananas, apples and oranges are fruits; a chair and a spoon are objects.' },
+  { lvl: 'A1', skill: 'Grammar', type: 'gap', topic: 'Verb “be”', q: 'Complete with the correct form of “be”: We ___ happy today.', ans: ['are', "'re"], expl: '“We” takes “are” in the Present Simple of “be”.' },
+  { lvl: 'A1', skill: 'Reading', type: 'mcq', topic: 'Daily routine', passage: 'Tom gets up at seven o’clock. He has breakfast with his family and then goes to work by bus. In the evening he cooks dinner and reads a book.', q: 'How does Tom go to work?', opts: ['By bus', 'By car', 'On foot'], ans: 'By bus', expl: 'The text says: “goes to work by bus”.' },
+  { lvl: 'A1', skill: 'Grammar', type: 'mcq', topic: 'Have / has', q: 'Choose the correct sentence.', opts: ['She have a dog.', 'She has a dog.', 'She has an dog.'], ans: 'She has a dog.', expl: 'With he/she/it we use “has”; “dog” starts with a consonant sound, so “a dog”.' },
+  { lvl: 'A1', skill: 'Use of English', type: 'error', topic: 'Verb patterns', q: 'Choose the correct sentence.', opts: ['I am agree with you.', 'I agree with you.', 'I am agreeing with you.'], ans: 'I agree with you.', expl: '“Agree” is a verb in English — “I agree”, not “I am agree”.' },
+  { lvl: 'A1', skill: 'Grammar', type: 'gap', topic: 'There is / there are', q: 'Complete: There ___ two apples on the table.', ans: 'are', expl: 'A plural noun (two apples) needs “there are”.' },
+  { lvl: 'A1', skill: 'Vocabulary', type: 'mcq', topic: 'Adjectives', q: 'The opposite of “cold” is ___ .', opts: ['cool', 'hot', 'wet'], ans: 'hot', expl: 'hot ↔ cold; “cool” is only slightly cold and “wet” describes water.' },
+  { lvl: 'A1', skill: 'Reading', type: 'tfng', topic: 'Pets', passage: 'Sara has a small cat. The cat’s name is Max and it sleeps on Sara’s bed every night.', q: 'Statement: Sara has a dog.', opts: ['True', 'False', 'Not Given'], ans: 'False', expl: 'The text says Sara has a cat, so the statement is false.' },
+  { lvl: 'A1', skill: 'Use of English', type: 'short', topic: 'Plurals', q: 'Write the plural of “child”.', ans: ['children'], expl: '“Child” has the irregular plural “children”.' },
+  { lvl: 'A1', skill: 'Grammar', type: 'mcq', topic: 'Word order', q: 'Choose the sentence with the correct word order.', opts: ['I like very much football.', 'I like football very much.', 'Very much I like football.'], ans: 'I like football very much.', expl: 'English order: subject + verb + object + adverb phrase.' },
+  /* ---- A2 ---- */
+  { lvl: 'A2', skill: 'Grammar', type: 'gap', topic: 'Past Simple', q: 'Complete with the Past Simple: Yesterday we ___ (go) to the cinema.', ans: ['went'], expl: '“Go” is irregular: go → went.' },
+  { lvl: 'A2', skill: 'Grammar', type: 'mcq', topic: 'Comparatives', q: 'This book is ___ than the film.', opts: ['more interesting', 'interestinger', 'most interesting'], ans: 'more interesting', expl: 'Long adjectives take “more” for comparatives; never add -er to them.' },
+  { lvl: 'A2', skill: 'Vocabulary', type: 'mcq', topic: 'Jobs', q: 'A person who teaches you at school is a ___ .', opts: ['waiter', 'teacher', 'driver'], ans: 'teacher', expl: 'teach → teacher; a waiter serves food and a driver drives.' },
+  { lvl: 'A2', skill: 'Use of English', type: 'error', topic: 'Past Simple negative', q: 'Choose the correct sentence.', opts: ['I didn’t went out last night.', 'I didn’t go out last night.', 'I not went out last night.'], ans: 'I didn’t go out last night.', expl: 'After “didn’t” we use the base form: didn’t go.' },
+  { lvl: 'A2', skill: 'Grammar', type: 'transform', topic: 'Linking words', q: 'Rewrite as one sentence using “because”: “It was cold. We stayed at home.”', ans: ['we stayed at home because it was cold', 'because it was cold we stayed at home'], expl: '“Because” joins the reason and the result in one sentence.' },
+  { lvl: 'A2', skill: 'Reading', type: 'tfng', topic: 'Everyday texts', passage: 'Dear Anna, the party starts at 6 p.m. on Friday at my new flat. Please bring your guitar! Best wishes, Ben', q: 'Statement: The party is on Saturday.', opts: ['True', 'False', 'Not Given'], ans: 'False', expl: 'The note clearly says Friday.' },
+  { lvl: 'A2', skill: 'Grammar', type: 'mcq', topic: 'Gerunds', q: 'I’m looking forward to ___ you soon.', opts: ['meet', 'meeting', 'met'], ans: 'meeting', expl: '“Look forward to” is always followed by the -ing form.' },
+  { lvl: 'A2', skill: 'Use of English', type: 'gap', topic: 'Quantifiers', q: 'Complete: How ___ water do you drink every day?', ans: ['much'], expl: 'Water is uncountable, so we ask “how much”.' },
+  { lvl: 'A2', skill: 'Vocabulary', type: 'short', topic: 'School objects', q: 'What do you carry your books to school in? (one word)', ans: ['schoolbag', 'backpack', 'rucksack', 'bag'], expl: 'A schoolbag / backpack is a bag for carrying books.' },
+  { lvl: 'A2', skill: 'Reading', type: 'mcq', topic: 'Jobs and dreams', passage: 'Mia works in a small café at the weekend. She loves making coffee for people, but her dream is to be a chef in a big hotel.', q: 'What does Mia want to be?', opts: ['A waiter', 'A chef', 'A hotel manager'], ans: 'A chef', expl: 'Her dream is “to be a chef”.' },
+  { lvl: 'A2', skill: 'Use of English', type: 'error', topic: 'Modal verbs', q: 'Choose the correct sentence.', opts: ['He can swims very well.', 'He can swim very well.', 'He cans swim very well.'], ans: 'He can swim very well.', expl: 'After “can” we use the base form without “to” or -s.' },
+  /* ---- B1 ---- */
+  { lvl: 'B1', skill: 'Grammar', type: 'gap', topic: 'Present Perfect', q: 'Complete: I ___ (know) her since 2019.', ans: ['have known', "'ve known", 've known'], expl: '“Since + point in time” goes with the Present Perfect: have known.' },
+  { lvl: 'B1', skill: 'Grammar', type: 'mcq', topic: 'Conditionals', q: 'If it ___ tomorrow, we’ll stay at home.', opts: ['rains', 'will rain', 'rain'], ans: 'rains', expl: 'First conditional: present simple after “if”, “will” in the other clause.' },
+  { lvl: 'B1', skill: 'Vocabulary', type: 'mcq', topic: 'Collocations', q: 'Choose the correct collocation: ___ a decision.', opts: ['make', 'do', 'take'], ans: 'make', expl: 'make a decision / make a mistake / make an effort.' },
+  { lvl: 'B1', skill: 'Use of English', type: 'error', topic: 'Verb patterns', q: 'Choose the correct sentence.', opts: ['She suggested to go by train.', 'She suggested going by train.', 'She suggested that going by train.'], ans: 'She suggested going by train.', expl: '“Suggest” is followed by the -ing form (or “that we go”).' },
+  { lvl: 'B1', skill: 'Grammar', type: 'transform', topic: 'Passive voice', q: 'Rewrite in the passive: “Someone stole my bike last night.”', ans: ['my bike was stolen last night', 'my bike was stolen'], expl: 'Passive: object + be + past participle — “my bike was stolen”.' },
+  { lvl: 'B1', skill: 'Reading', type: 'mcq', topic: 'Urban life', passage: 'More and more city residents are turning empty rooftops into small gardens. The gardens give people fresh vegetables, but researchers say their biggest value is social: neighbours who garden together report knowing far more people on their street than before.', q: 'What is the main idea of the text?', opts: ['Rooftop gardens mostly help people eat more cheaply.', 'The most important benefit of rooftop gardens is social.', 'Cities should ban rooftop gardens.'], ans: 'The most important benefit of rooftop gardens is social.', expl: 'The text stresses that “their biggest value is social”.' },
+  { lvl: 'B1', skill: 'Grammar', type: 'mcq', topic: 'used to', q: 'When I was a child, I ___ play outside every day.', opts: ['used to', 'use to', 'am used to'], ans: 'used to', expl: '“Used to + verb” describes past habits that have stopped.' },
+  { lvl: 'B1', skill: 'Use of English', type: 'gap', topic: 'Word formation', q: 'Complete with the correct form of “help”: Thanks for the advice — it was very ___ .', ans: ['helpful'], expl: 'An adjective is needed after “was”: helpful.' },
+  { lvl: 'B1', skill: 'Grammar', type: 'mcq', topic: 'Relative clauses', q: 'She’s the woman ___ car was stolen.', opts: ['who', 'whose', 'which'], ans: 'whose', expl: '“Whose” shows possession: her car → whose car.' },
+  { lvl: 'B1', skill: 'Vocabulary', type: 'mcq', topic: 'Linking words', q: 'The film was long; ___, it was excellent.', opts: ['nevertheless', 'because', 'so'], ans: 'nevertheless', expl: '“Nevertheless” shows contrast between two facts.' },
+  { lvl: 'B1', skill: 'Reading', type: 'tfng', topic: 'Work', passage: 'A survey of 2,000 office workers found that 61% prefer working from home two days a week, while only 12% want to return to the office full time. Younger employees were the most likely to miss the social side of the office.', q: 'Statement: Most office workers want to return to the office full time.', opts: ['True', 'False', 'Not Given'], ans: 'False', expl: 'Only 12% want to return full time, so the statement is false.' },
+  { lvl: 'B1', skill: 'Vocabulary', type: 'short', topic: 'Opposites', q: 'Write the opposite of “arrive”.', ans: ['leave', 'depart'], expl: 'arrive ↔ leave / depart.' },
+  /* ---- B2 ---- */
+  { lvl: 'B2', skill: 'Grammar', type: 'mcq', topic: 'Future perfect', q: 'By next June, I ___ at this school for ten years.', opts: ['will have been working', 'will work', 'am working'], ans: 'will have been working', expl: 'An action continuing up to a future point takes the Future Perfect Continuous.' },
+  { lvl: 'B2', skill: 'Use of English', type: 'gap', topic: 'Word formation', q: 'Complete with the correct form of “grow”: The company showed impressive ___ in its first year.', ans: ['growth'], expl: 'A noun is needed after “impressive”: growth.' },
+  { lvl: 'B2', skill: 'Use of English', type: 'error', topic: 'Linking words', q: 'Choose the correct sentence.', opts: ['Despite of the rain, we walked home.', 'Despite the rain, we walked home.', 'Although the rain, we walked home.'], ans: 'Despite the rain, we walked home.', expl: '“Despite” is never followed by “of”; “although” needs a full clause.' },
+  { lvl: 'B2', skill: 'Grammar', type: 'transform', topic: 'Conditionals', q: 'Rewrite using “unless”: “If you don’t hurry, you’ll miss the train.”', ans: ['unless you hurry you will miss the train', "unless you hurry you'll miss the train", "you'll miss the train unless you hurry"], expl: '“Unless” means “if… not”, so the negative disappears.' },
+  { lvl: 'B2', skill: 'Vocabulary', type: 'mcq', topic: 'Academic adjectives', q: 'The opposite of “feasible” is ___ .', opts: ['practicable', 'impracticable', 'viable'], ans: 'impracticable', expl: 'feasible = possible to do; impracticable = not possible to do.' },
+  { lvl: 'B2', skill: 'Reading', type: 'mcq', topic: 'Environment', passage: 'Cities are warming faster than the countryside around them, a phenomenon known as the urban heat island. Dark roofs and asphalt absorb heat during the day and release it slowly at night. Planting trees and painting roofs white are cheap ways to cool streets, and studies suggest they could reduce peak summer temperatures by several degrees.', q: 'Why do cities stay hot at night, according to the text?', opts: ['Because of traffic fumes.', 'Because surfaces such as asphalt release stored heat slowly.', 'Because cities have fewer parks than before.'], ans: 'Because surfaces such as asphalt release stored heat slowly.', expl: 'The text says dark surfaces “absorb heat during the day and release it slowly at night”.' },
+  { lvl: 'B2', skill: 'Grammar', type: 'mcq', topic: 'Verb patterns', q: 'He denied ___ the money.', opts: ['to take', 'taking', 'take'], ans: 'taking', expl: '“Deny” is followed by the -ing form.' },
+  { lvl: 'B2', skill: 'Grammar', type: 'mcq', topic: 'Relative clauses', q: 'The report, ___ was published in May, caused a heated debate.', opts: ['that', 'which', 'what'], ans: 'which', expl: 'In a non-defining clause (after a comma) we use “which”, never “that”.' },
+  { lvl: 'B2', skill: 'Vocabulary', type: 'mcq', topic: 'Collocations', q: 'Choose the correct collocation: ___ attention to detail.', opts: ['pay', 'give', 'make'], ans: 'pay', expl: '“Pay attention (to)” is the fixed collocation.' },
+  { lvl: 'B2', skill: 'Grammar', type: 'transform', topic: 'Reported speech', q: 'Complete the reported sentence: “I’ll call you later,” she said. → She said she ___ call me later.', ans: ['would'], expl: '“Will” becomes “would” in reported speech.' },
+  { lvl: 'B2', skill: 'Use of English', type: 'gap', topic: 'Set phrases', q: 'Complete: It’s high time we ___ (go) home.', ans: ['went'], expl: '“It’s high time” is followed by the Past Simple: we went.' },
+  { lvl: 'B2', skill: 'Reading', type: 'tfng', topic: 'Technology', passage: 'A two-year trial in three secondary schools replaced paper textbooks with tablets for one year group. Attendance barely changed, but teachers reported that students handed in written work more often. However, 40% of parents said they missed seeing their children’s notebooks.', q: 'Statement: Students’ attendance improved noticeably during the trial.', opts: ['True', 'False', 'Not Given'], ans: 'False', expl: '“Attendance barely changed” — it did not improve noticeably.' },
+  /* ---- C1 ---- */
+  { lvl: 'C1', skill: 'Grammar', type: 'mcq', topic: 'Inversion', q: 'Not until the results were published ___ the scale of the error.', opts: ['we realised', 'did we realise', 'we did realise'], ans: 'did we realise', expl: '“Not until…” at the front of the sentence triggers inversion: did we realise.' },
+  { lvl: 'C1', skill: 'Use of English', type: 'gap', topic: 'Word formation', q: 'Complete with the correct form of “logic”: His argument was dismissed as ___ .', ans: ['illogical'], expl: 'A negative adjective is needed: illogical.' },
+  { lvl: 'C1', skill: 'Use of English', type: 'error', topic: 'Inversion', q: 'Choose the correct sentence.', opts: ['Hardly had he arrived when the meeting began.', 'Hardly he had arrived when the meeting began.', 'Hardly had he arrived than the meeting began.'], ans: 'Hardly had he arrived when the meeting began.', expl: '“Hardly … when” is the fixed pattern, with inversion.' },
+  { lvl: 'C1', skill: 'Grammar', type: 'transform', topic: 'Inversion', q: 'Rewrite beginning with “No sooner”: “As soon as she sat down, the phone rang.”', ans: ['no sooner had she sat down than the phone rang'], expl: 'No sooner + had + subject + past participle … than …' },
+  { lvl: 'C1', skill: 'Vocabulary', type: 'mcq', topic: 'Advanced adjectives', q: '“Ubiquitous” most nearly means ___ .', opts: ['rare', 'widespread', 'obsolete'], ans: 'widespread', expl: 'ubiquitous = present everywhere; obsolete = out of date.' },
+  { lvl: 'C1', skill: 'Reading', type: 'mcq', topic: 'Economics and behaviour', passage: 'When a nursery introduced a fine for parents who collected their children late, late pick-ups rose rather than fell. The fine turned a moral obligation into a simple fee, and parents felt licensed to arrive late. Removing the fine did not restore the earlier norm, a pattern economists have observed well beyond childcare.', q: 'What does the passage suggest about fines?', opts: ['They are the most efficient deterrent.', 'They can crowd out people’s sense of moral duty.', 'They only work in professional settings.'], ans: 'They can crowd out people’s sense of moral duty.', expl: 'The fine replaced a moral obligation with a price, so lateness rose.' },
+  { lvl: 'C1', skill: 'Grammar', type: 'mcq', topic: 'Subjunctive', q: 'The committee insisted that the rule ___ abolished immediately.', opts: ['be', 'is', 'was'], ans: 'be', expl: 'After “insist that”, the subjunctive base form “be” is used.' },
+  { lvl: 'C1', skill: 'Use of English', type: 'gap', topic: 'Participle clauses', q: 'Complete: ___ for his tact, he was chosen to lead the negotiation. (know)', ans: ['known'], expl: 'A past participle clause is needed: (Having been) known → Known.' },
+  { lvl: 'C1', skill: 'Grammar', type: 'transform', topic: 'Inversion', q: 'Rewrite beginning with “Little”: “Few people realise how demanding teaching is.”', ans: ['little do people realise how demanding teaching is', 'little do people realize how demanding teaching is'], expl: '“Little” with a negative meaning triggers inversion: little do people realise…' },
+  { lvl: 'C1', skill: 'Reading', type: 'tfng', topic: 'Media', passage: 'The newspaper’s investigation relied on documents leaked by two former employees, neither of whom had worked at the company for more than a year. Lawyers for the company challenged the documents’ authenticity but did not dispute that internal targets had been lowered.', q: 'Statement: The company admitted lowering internal targets.', opts: ['True', 'False', 'Not Given'], ans: 'Not Given', expl: 'The lawyers did not dispute the claim, but the text never says the company admitted it.' }
+];
+function exNorm(s) { return String(s).toLowerCase().replace(/[’'".,!?;:()]/g, '').replace(/\s+/g, ' ').trim(); }
+function exCorrect(q, ua) {
+  if (ua == null || ua === '') return false;
+  const list = Array.isArray(q.ans) ? q.ans : [q.ans];
+  if (q.opts) return list.includes(ua);
+  return list.some(a => exNorm(a) === exNorm(ua));
+}
+function examVocabItems(lvl) {
+  const db = (window.VP_WORDS || []).filter(w => w.level === lvl && w.def && w.def.length < 85);
+  if (db.length < 4) return [];
+  return shuffled(db, 5 + lvl.length).slice(0, 4).map((w, i) => {
+    const others = shuffled(db.filter(x => x.id !== w.id), i + 11).slice(0, 3).map(x => x.def);
+    return { lvl, skill: 'Vocabulary', type: 'mcq', topic: w.cat || 'Vocabulary', q: `What does “${w.word}” mean?`, opts: shuffled([w.def, ...others], i + 3), ans: w.def, expl: `${w.word} — ${w.def}${w.az ? ` · Azərbaycanca: ${w.az}` : ''}` };
+  });
+}
+function buildExam(lvl, n) {
+  const t = Date.now() % 9973;
+  return shuffled(EXAM_ITEMS.filter(x => x.lvl === lvl), t + 3).concat(shuffled(examVocabItems(lvl), t + 13)).slice(0, Math.min(n, 99));
+}
+function startExam() {
+  const lvl = state.exLvl || 'B1', n = state.exLen || 10;
+  state.examResult = null;
+  state.exam = { lvl, timed: state.exTimed !== false, mins: n, qs: buildExam(lvl, n), answers: {}, flags: {}, idx: 0, start: Date.now() };
+  save(); exTimerStart(); render();
+}
+function startMistakeExam() {
+  const items = state.mistakes.slice(0, 10).map(m => m.item).filter(Boolean);
+  if (!items.length) { toast('No saved mistakes yet — take an exam first.'); return; }
+  state.examResult = null;
+  state.exam = { lvl: 'Mistake review', timed: false, mins: items.length, qs: items, answers: {}, flags: {}, idx: 0, start: Date.now() };
+  save(); render();
+}
+function exPersist() { try { localStorage.setItem('lf_exam', JSON.stringify(state.exam)); } catch (e) {} }
+function exAns(i, v) {
+  const ex = state.exam; if (!ex) return;
+  ex.answers[i] = v; exPersist();
+  const c = document.getElementById('exCount');
+  if (c) c.textContent = Object.keys(ex.answers).filter(k => ex.answers[k] !== '' && ex.answers[k] != null).length + ' / ' + ex.qs.length + ' answered';
+  const b = document.getElementById('exnav' + i);
+  if (b && v !== '' && v != null) b.classList.add('answered');
+}
+function exFlag(i) {
+  const ex = state.exam; if (!ex) return;
+  ex.flags[i] = !ex.flags[i]; exPersist();
+  const b = document.getElementById('exnav' + i);
+  if (b) b.classList.toggle('flagged', !!ex.flags[i]);
+  const f = document.getElementById('exflag');
+  if (f) f.textContent = ex.flags[i] ? 'Unflag' : 'Flag for review';
+}
+function exGo(i) { const ex = state.exam; if (!ex) return; ex.idx = Math.max(0, Math.min(ex.qs.length - 1, i)); exPersist(); render(); exTimerStart(); }
+function exTimerStart() {
+  clearInterval(window.exTm);
+  const ex = state.exam;
+  if (!ex || !ex.timed) return;
+  window.exTm = setInterval(() => {
+    const e = state.exam; if (!e) { clearInterval(window.exTm); return; }
+    const left = Math.max(0, e.mins * 60 - Math.floor((Date.now() - e.start) / 1000));
+    const el = document.getElementById('exTimer');
+    if (el) el.textContent = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
+    if (left <= 0) { clearInterval(window.exTm); toast('Time is up — your exam was submitted automatically.'); finishExam(); }
+  }, 1000);
+}
+function finishExam() {
+  clearInterval(window.exTm);
+  const ex = state.exam; if (!ex) return;
+  const secs = Math.round((Date.now() - ex.start) / 1000);
+  let score = 0; const rows = [];
+  ex.qs.forEach((q, i) => {
+    const ua = ex.answers[i] != null ? ex.answers[i] : '';
+    const ok = exCorrect(q, ua);
+    if (ok) score++;
+    rows.push({ q, i, ua, ok });
+    if (!ok) state.mistakes.unshift({ item: q, q: q.q, skill: q.skill, lvl: q.lvl, topic: q.topic || '', ua: ua || '(unanswered)', ca: Array.isArray(q.ans) ? q.ans[0] : q.ans, expl: q.expl, date: new Date().toLocaleDateString() });
+  });
+  if (state.mistakes.length > 120) state.mistakes.length = 120;
+  const total = ex.qs.length, skills = {};
+  rows.forEach(r => { const s = skills[r.q.skill] = skills[r.q.skill] || { ok: 0, n: 0 }; s.n++; if (r.ok) s.ok++; });
+  state.examRes.unshift({ date: new Date().toLocaleDateString(), lvl: ex.lvl, score, total, pct: Math.round(score / total * 100), secs, skills });
+  if (state.examRes.length > 40) state.examRes.length = 40;
+  state.examResult = { rows, score, total, secs, skills, unanswered: rows.filter(r => !r.ua).length, lvl: ex.lvl, timed: ex.timed };
+  state.exam = null; save(); exPersist(); render();
+}
+function exQ(q, i) {
+  const ex = state.exam, ua = ex.answers[i];
+  return `<div class="card ex-qcard"><div class="row" style="justify-content:space-between"><span class="pill">${q.skill} · ${q.topic || ''}</span><button class="btn light" id="exflag" onclick="exFlag(${i})">${ex.flags[i] ? 'Unflag' : 'Flag for review'}</button></div>${q.passage ? `<div class="ex-passage">${q.passage}</div>` : ''}<div class="ex-q"><b>${i + 1}.</b> ${q.q}</div>${q.opts
+    ? q.opts.map(o => `<label class="ex-opt ${ua === o ? 'picked' : ''}"><input type="radio" name="ex${i}" ${ua === o ? 'checked' : ''} onchange="exAns(${i},${jarg(o)})"><span>${esc(o)}</span></label>`).join('')
+    : `<input class="input ex-in" value="${esc(ua || '')}" oninput="exAns(${i},this.value)" placeholder="Type your answer…">`}</div>`;
+}
+function exRunner() {
+  const ex = state.exam;
+  const answered = Object.keys(ex.answers).filter(k => ex.answers[k] !== '' && ex.answers[k] != null).length;
+  return `<div class="section ex-wrap"><div class="ex-head"><div><span class="pill">${ex.lvl}</span> <span class="muted small">${ex.timed ? `${ex.mins} minutes · 1 mark per question` : 'Practice mode · untimed'}</span></div><div class="row"><span class="muted small" id="exCount">${answered} / ${ex.qs.length} answered</span>${ex.timed ? `<b class="ex-timer" id="exTimer">${String(ex.mins).padStart(2, '0')}:00</b>` : ''}</div></div><div class="progress" style="margin:12px 0"><i style="width:${Math.round(answered / ex.qs.length * 100)}%"></i></div>${exQ(ex.qs[ex.idx], ex.idx)}<div class="row" style="justify-content:space-between;margin-top:14px"><button class="btn light" onclick="exGo(${ex.idx - 1})" ${ex.idx === 0 ? 'disabled' : ''}>← Previous</button><div class="ex-nav">${ex.qs.map((_, k) => `<button id="exnav${k}" class="exnav ${k === ex.idx ? 'cur' : ''} ${ex.answers[k] ? 'answered' : ''} ${ex.flags[k] ? 'flagged' : ''}" onclick="exGo(${k})">${k + 1}</button>`).join('')}</div><button class="btn light" onclick="exGo(${ex.idx + 1})" ${ex.idx === ex.qs.length - 1 ? 'disabled' : ''}>Next →</button></div><div class="row" style="margin-top:16px;justify-content:center"><button class="btn dark" onclick="if(confirm('Submit your exam? Unanswered questions are marked incorrect.'))finishExam()">Submit exam</button></div></div>`;
+}
+function exResults() {
+  const r = state.examResult;
+  const recs = { Vocabulary: ['vpx', 'Vocabulary Explorer'], Grammar: ['grammar', 'Grammar in Use'], Reading: ['reading', 'Reading Studio'], 'Use of English': ['workbook', 'Workbooks'] };
+  const weak = Object.entries(r.skills).filter(([, s]) => s.ok / s.n < 0.5).map(([k]) => k);
+  return `<div class="section"><h2>Assessment results · ${esc(r.lvl)}</h2><div class="grid"><div class="stat"><span class="muted">Score</span><br><b>${r.score}/${r.total}</b></div><div class="stat"><span class="muted">Percentage</span><br><b>${Math.round(r.score / r.total * 100)}%</b></div><div class="stat"><span class="muted">Unanswered</span><br><b>${r.unanswered}</b></div><div class="stat"><span class="muted">Time taken</span><br><b>${Math.floor(r.secs / 60)}m ${r.secs % 60}s</b></div></div><div class="card"><h3>Skill breakdown</h3>${Object.entries(r.skills).map(([k, s]) => `<div class="ex-skill"><div class="row" style="justify-content:space-between"><b>${k}</b><span class="muted small">${s.ok}/${s.n}</span></div><div class="progress"><i style="width:${Math.round(s.ok / s.n * 100)}%"></i></div></div>`).join('')}</div>${weak.length ? `<div class="card"><h3>Weak areas & recommended practice</h3>${weak.map(k => recs[k] ? `<div class="item"><div><b>${k}</b><div class="muted small">Below 50% — review and practise this area.</div></div><button class="btn" onclick="go('${recs[k][0]}')">Open ${recs[k][1]} →</button></div>` : '').join('')}</div>` : '<div class="card"><h3>Recommended practice</h3><p class="muted">No weak areas this time — keep the streak going with a higher level or the mistake review.</p></div>'}<div class="card"><h3>Answer review</h3>${r.rows.map(row => `<div class="q ${row.ok ? 'good' : 'bad'}"><b>${row.i + 1}. ${row.q.q}</b><p class="muted small" style="margin:6px 0">Your answer: <b>${esc(row.ua || '(unanswered)')}</b>${row.ok ? ' — correct' : ` — correct answer: <b>${esc(Array.isArray(row.q.ans) ? row.q.ans[0] : row.q.ans)}</b>`}</p><p class="muted small">${esc(row.q.expl || '')}</p><span class="pill">${row.q.skill} · ${row.q.lvl}</span></div>`).join('')}</div><div class="row" style="margin-top:16px"><button class="btn" onclick="state.examResult=null;startExam()">Retake ${esc(r.lvl)} exam</button><button class="btn light" onclick="state.examResult=null;startMistakeExam()">Practice my mistakes</button><button class="btn light" onclick="state.examResult=null;render()">Back to assessment setup</button></div></div>`;
 }
 function tests() {
-  let qs = ['Choose the best word for the context.', 'Choose the correct grammar form.', 'Identify the main idea of a short text.', 'Choose the appropriate response in a conversation.', 'Rewrite the sentence accurately.', 'Select the best linking expression.', 'Complete the collocation.', 'Choose the correct tense.', 'Infer the speaker’s intention.', 'Select the most precise word.'];
-  return `<div class="section"><h2>Assessment Studio</h2><p class="muted">A reusable skills check with automatic scoring and targeted feedback.</p>${bannerSVG('tests')}<div class="card"><span class="pill">Mixed skills</span><h3>10-question diagnostic</h3><form id="testform">${qs.map((q, i) => `<div class="q"><b>${i + 1}. ${q}</b><label><input type="radio" name="q${i}" value="1"> Option A</label><label><input type="radio" name="q${i}" value="0"> Option B</label></div>`).join('')}<button class="btn" type="button" onclick="scoreTest()">Submit & score</button></form><div id="score"></div></div></div>`;
-}
-function scoreTest() {
-  let s = 0;
-  for (let i = 0; i < 10; i++) { let x = document.querySelector(`input[name=q${i}]:checked`); if (x) s += +x.value; }
-  document.getElementById('score').innerHTML = `<div class="card" style="margin-top:15px"><h3>Score: ${s}/10</h3><div class="progress"><i style="width:${s * 10}%"></i></div><p>${s >= 8 ? 'Strong performance — move to extension practice.' : s >= 5 ? 'Developing — review the target language and try again.' : 'Needs support — revisit vocabulary and grammar before retesting.'}</p></div>`;
+  if (state.exam) { setTimeout(exTimerStart, 0); return exRunner(); }
+  if (state.examResult) return exResults();
+  const exLvls = ['A1', 'A2', 'B1', 'B2', 'C1'];
+  const lvl = state.exLvl || 'B1';
+  return `<div class="section"><h2>Assessment Studio</h2><p class="muted">Levelled skills exams with automatic marking, a timer, full answer review and a personal mistake notebook. Questions cover Vocabulary, Grammar, Reading and Use of English.</p>${bannerSVG('tests')}<div class="card"><span class="pill">Exam setup</span><h3>Choose your level and length</h3><div class="filters" style="margin:14px 0">${exLvls.map(x => `<button class="filter ${lvl === x ? 'active' : ''}" onclick="state.exLvl='${x}';render()">${x}</button>`).join('')}</div><div class="filters">${[10, 15, 20].map(n => `<button class="filter ${(state.exLen || 10) === n ? 'active' : ''}" onclick="state.exLen=${n};render()">${n} questions</button>`).join('')}<button class="filter ${state.exTimed === false ? '' : 'active'}" onclick="state.exTimed=state.exTimed===false;render()">${state.exTimed === false ? 'Untimed practice' : 'Timed · 1 min per question'}</button></div><button class="btn dark" style="margin-top:8px" onclick="startExam()">Start exam →</button></div><div class="card" style="margin-top:15px"><h3>My mistakes <span class="muted small">(${state.mistakes.length})</span></h3><p class="muted small">Every question you get wrong in an exam is saved here automatically for targeted review.</p>${state.mistakes.slice(0, 8).map((m, i) => `<div class="item"><div><b>${esc(m.q)}</b><div class="muted small">Your answer: ${esc(m.ua)} · Correct: ${esc(m.ca)} · ${m.skill} ${m.lvl}</div></div><button class="btn light" onclick="state.mistakes.splice(${i},1);save();render()">Remove</button></div>`).join('') || '<div class="empty">No mistakes saved yet. Take an exam to build your review list.</div>'}${state.mistakes.length ? `<div class="row" style="margin-top:12px"><button class="btn" onclick="startMistakeExam()">Practice my mistakes →</button></div>` : ''}</div>${state.examRes.length ? `<div class="card" style="margin-top:15px"><h3>Exam history</h3>${state.examRes.slice(0, 5).map(x => `<div class="item"><div><b>${esc(x.lvl)}</b><div class="muted small">${x.date} · ${Math.floor(x.secs / 60)}m ${x.secs % 60}s</div></div><span class="pill">${x.score}/${x.total} · ${x.pct}%</span></div>`).join('')}</div>` : ''}</div>`;
 }
 
 function teacher() {
@@ -471,11 +664,86 @@ function students() {
   return `<div class="section"><h2>Students</h2><div class="card"><div class="row"><input id="sn" class="input" placeholder="Student name"><select id="sl"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option></select><button class="btn" onclick="addStudent()">+ Add student</button></div></div><div class="list" style="margin-top:15px">${state.student.map((s, i) => `<div class="item"><div><b>${s.name}</b><div class="muted small">Level ${s.level}</div></div><button class="btn light" onclick="state.student.splice(${i},1);save();render()">Remove</button></div>`).join('') || '<div class="empty">No students yet. Add your first learner above.</div>'}</div></div>`;
 }
 function addStudent() { let n = document.getElementById('sn').value.trim(); if (!n) return; state.student.push({ name: n, level: document.getElementById('sl').value }); save(); render(); }
-function homework() {
-  return `<div class="section"><h2>Homework</h2><div class="card"><div class="row"><input id="hw" class="input" placeholder="Homework task"><button class="btn" onclick="let x=document.getElementById('hw').value.trim();if(x){state.homework.push({text:x,done:false});save();render()}">Assign</button></div></div><div class="list" style="margin-top:15px">${state.homework.map((h, i) => `<div class="item"><label><input type="checkbox" ${h.done ? 'checked' : ''} onchange="state.homework[${i}].done=this.checked;save()"> ${h.text}</label><button class="btn light" onclick="state.homework.splice(${i},1);save();render()">Delete</button></div>`).join('') || '<div class="empty">No homework assigned.</div>'}</div></div>`;
+/* ---------------- Homework · assign from real content, submit, grade ---------------- */
+function todayStr(off) { const d = new Date(); d.setDate(d.getDate() + (off || 0)); return d.toISOString().slice(0, 10); }
+function hwLibrary() {
+  const lib = [];
+  ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].forEach(lv => {
+    lib.push({ group: 'Workbook', title: `Workbook · ${lv}: Vocabulary Builder`, instr: 'Complete the Vocabulary Builder exercises in the Workbooks section, then submit your score.', type: 'Workbook', level: lv, mins: 20 });
+    lib.push({ group: 'Workbook', title: `Workbook · ${lv}: Exam workshop`, instr: 'Complete the Error Correction and Use of English exam-workshop exercises.', type: 'Workbook', level: lv, mins: 25 });
+    lib.push({ group: 'Exam', title: `Assessment · ${lv} skills exam (10 questions)`, instr: 'Take the 10-question timed exam at this level, then review your saved mistakes.', type: 'Exam', level: lv, mins: 15 });
+  });
+  ['A1', 'A2', 'B1', 'B2', 'C1'].forEach(lv => {
+    GRAMMAR.filter(g => g.range.includes(lv)).slice(0, 2).forEach(g => lib.push({ group: 'Grammar', title: `Grammar · ${g.title} (${lv})`, instr: 'Study the grammar unit and complete the practice exercises.', type: 'Grammar', level: lv, mins: 20 }));
+  });
+  TOPICS.slice(0, 8).forEach((t, i) => {
+    lib.push({ group: 'Reading', title: `Reading · ${t.title}`, instr: 'Read the passage in the Reading Studio and complete the exam-style tasks.', type: 'Reading', level: levels[i % 7], mins: 15 });
+    lib.push({ group: 'Writing', title: `Writing · ${t.title} task`, instr: `Write about 120 words: “${t.writing.prompt}” Submit your text here and check the writer’s checklist.`, type: 'Writing', level: levels[(i + 3) % 7], mins: 25 });
+  });
+  return lib;
 }
+function homework() {
+  const lib = hwLibrary();
+  const groups = [
+    ['Overdue', h => h.due && h.due < todayStr() && h.status !== 'graded'],
+    ['Due today', h => h.due === todayStr() && h.status !== 'graded'],
+    ['Due soon', h => h.due && h.due > todayStr() && h.due <= todayStr(3) && h.status !== 'graded'],
+    ['Upcoming', h => (!h.due || h.due > todayStr(3)) && (h.status === 'assigned')],
+    ['Submitted — needs grading', h => h.status === 'submitted'],
+    ['Needs revision', h => h.status === 'revision'],
+    ['Graded / completed', h => h.status === 'graded']
+  ];
+  return `<div class="section"><h2>Homework</h2><p class="muted">Assign tasks straight from the content library, collect submissions, grade with feedback, and request revisions — all in one workflow.</p><div class="card"><h3>Assign new homework</h3><div class="row" style="align-items:flex-start;margin-top:10px"><select id="hwlib" class="input" style="max-width:430px"><option value="-1">— Choose from the content library —</option>${['Workbook', 'Exam', 'Grammar', 'Reading', 'Writing'].map(gr => `<optgroup label="${gr}">${lib.map((x, i) => x.group === gr ? `<option value="${i}">${esc(x.title)}</option>` : '').join('')}</optgroup>`).join('')}</select><input id="hwt" class="input" style="max-width:250px" placeholder="or a custom title"><input id="hwd" class="input" style="max-width:160px" type="date"><input id="hwm" class="input" style="max-width:120px" type="number" min="5" max="180" placeholder="mins" value="20"><select id="hww" class="input" style="max-width:180px"><option value="all">Whole class</option>${state.student.map(s => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')}</select><button class="btn" onclick="addHwFull()">Assign</button></div><p class="muted small" style="margin-top:8px">Library tasks open the linked workbook, exam, grammar, reading or writing section — content is reused, never duplicated.</p></div><div style="margin-top:15px">${groups.map(([name, f]) => { const items = state.homework.map((h, i) => [h, i]).filter(([h]) => f(h)); return items.length ? `<h3 class="hwgroup">${name} <span class="muted small">(${items.length})</span></h3><div class="list">${items.map(([h, i]) => hwItem(h, i)).join('')}</div>` : ''; }).join('') || '<div class="empty">No homework yet. Assign your first task above.</div>'}</div></div>`;
+}
+function hwItem(h, i) {
+  const who = h.who === 'all' ? 'Whole class' : h.who;
+  const st = { assigned: ['Assigned', '#6557dd'], submitted: ['Submitted', '#1499ce'], graded: ['Graded', '#20855f'], revision: ['Needs revision', '#d97706'] }[h.status] || ['Assigned', '#6557dd'];
+  return `<div class="item hwitem"><div style="flex:1;min-width:0"><b>${esc(h.title)}</b><div class="muted small">${esc(h.type || 'Custom')} · ${esc(h.level || '—')} · ${esc(who)} · ${h.mins || 20} min${h.due ? ` · due ${h.due}` : ''}</div>${h.instr && state.hwOpen === h.id ? `<p class="muted small" style="margin:6px 0 0">${esc(h.instr)}</p>` : ''}${h.sub ? `<p class="muted small" style="margin:6px 0 0">Submission (${esc(h.sub.date)}): “${esc(h.sub.text.slice(0, 160))}${h.sub.text.length > 160 ? '…' : ''}”</p>` : ''}${h.status === 'graded' || h.status === 'revision' ? `<p style="margin:6px 0 0;color:#20855f;font-weight:700">Teacher feedback: ${esc(h.fb || '—')}${h.grade != null ? ` · Score ${h.grade}/100` : ''}</p>` : ''}${state.hwOpen === h.id ? hwGradeForm(h) : ''}${state.hwSubOpen === h.id ? hwSubForm(h) : ''}</div><div class="row">${h.status === 'assigned' || h.status === 'revision' ? `<button class="btn light" onclick="state.hwSubOpen=state.hwSubOpen==='${h.id}'?null:'${h.id}';state.hwOpen=null;render()">Submit answer</button>` : ''}${h.sub ? `<button class="btn" onclick="state.hwOpen=state.hwOpen==='${h.id}'?null:'${h.id}';state.hwSubOpen=null;render()">Grade / review</button>` : ''}<button class="btn light" onclick="state.homework.splice(${i},1);save();render()">Delete</button></div></div>`;
+}
+function hwSubForm(h) {
+  return `<div class="hwform"><label>Your answer<textarea class="input" id="hws-${h.id}" rows="4" placeholder="Write your answer here…">${esc((h.sub || {}).text || '')}</textarea></label><div class="row"><button class="btn" onclick="hwSubmit('${h.id}')">Send submission</button></div><p class="muted small">Writing and open tasks are reviewed by your teacher. For activity tasks, complete the linked section and describe your result here.</p></div>`;
+}
+function hwGradeForm(h) {
+  return `<div class="hwform"><label>Score (0–100)<input class="input" id="hwg-${h.id}" type="number" min="0" max="100" value="${h.grade != null ? h.grade : ''}"></label><label>Feedback<textarea class="input" id="hwf-${h.id}" rows="3">${esc(h.fb || '')}</textarea></label><div class="row"><button class="btn" onclick="hwGrade('${h.id}')">Save grade & mark graded</button><button class="btn light" onclick="hwRevise('${h.id}')">Request revision</button></div></div>`;
+}
+function hwSubmit(id) {
+  const h = state.homework.find(x => x.id === id); if (!h) return;
+  const el = document.getElementById('hws-' + id);
+  if (!el || !el.value.trim()) { toast('Write your answer first.'); return; }
+  h.sub = { text: el.value.trim(), date: new Date().toLocaleDateString() };
+  h.status = 'submitted'; state.hwSubOpen = null; save(); render(); toast('Homework submitted ✓');
+}
+function hwGrade(id) {
+  const h = state.homework.find(x => x.id === id); if (!h) return;
+  const g = document.getElementById('hwg-' + id), f = document.getElementById('hwf-' + id);
+  if (!g || !f) return;
+  if (g.value === '') { toast('Enter a score first.'); return; }
+  h.grade = Math.max(0, Math.min(100, +g.value)); h.fb = f.value.trim(); h.status = 'graded';
+  state.hwOpen = null; save(); render(); toast('Homework graded ✓');
+}
+function hwRevise(id) {
+  const h = state.homework.find(x => x.id === id); if (!h) return;
+  const f = document.getElementById('hwf-' + id);
+  h.fb = f ? f.value.trim() : h.fb; h.status = 'revision'; h.sub = null;
+  state.hwOpen = null; save(); render(); toast('Revision requested — the student can resubmit.');
+}
+function addHwFull() {
+  const lib = hwLibrary();
+  const idx = +(document.getElementById('hwlib') || {}).value;
+  const item = lib[idx] && idx > -1 ? lib[idx] : null;
+  const title = item ? item.title : (document.getElementById('hwt') || {}).value?.trim();
+  if (!title) { toast('Choose a library task or type a title.'); return; }
+  state.homework.push({ id: 'hw' + Date.now().toString(36), title, instr: item ? item.instr : '', type: item ? item.type : 'Custom', level: item ? item.level : '', mins: item ? item.mins : +((document.getElementById('hwm') || {}).value) || 20, due: (document.getElementById('hwd') || {}).value || '', who: (document.getElementById('hww') || {}).value || 'all', status: 'assigned', sub: null, grade: null, fb: '' });
+  save(); render(); toast('Homework assigned ✓');
+}
+function pbar(label, pct) { return `<div class="ex-skill"><div class="row" style="justify-content:space-between"><b>${label}</b><span class="muted small">${pct}%</span></div><div class="progress"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div></div>`; }
 function progress() {
-  return `<div class="section"><h2>Progress</h2><div class="grid"><div class="stat"><span class="muted">Students</span><br><b>${state.student.length}</b></div><div class="stat"><span class="muted">Homework done</span><br><b>${state.homework.filter(x => x.done).length}</b></div><div class="stat"><span class="muted">Planned lessons</span><br><b>${state.plans.length}</b></div><div class="stat"><span class="muted">Lessons</span><br><b>${books.length * 64}</b></div></div><div class="card"><h3>Curriculum mastery</h3><p class="muted">Use lesson activities and assessments to build evidence of progress.</p><div class="progress"><i style="width:68%"></i></div><p><b>68%</b> sample curriculum completion</p></div></div>`;
+  const done = state.homework.filter(h => h.status === 'graded').length;
+  const total = state.homework.length;
+  const hwPct = total ? Math.round(done / total * 100) : 0;
+  const avg = state.examRes.length ? Math.round(state.examRes.reduce((s, x) => s + x.pct, 0) / state.examRes.length) : null;
+  const wbDone = Object.values(state.wbSave).filter(r => r.score != null).length;
+  return `<div class="section"><h2>Progress</h2><p class="muted">Real activity data from exams, homework, workbook practice and mistakes — no placeholders.</p><div class="grid"><div class="stat"><span class="muted">Students</span><br><b>${state.student.length}</b></div><div class="stat"><span class="muted">Homework graded</span><br><b>${done} / ${total}</b></div><div class="stat"><span class="muted">Exams taken</span><br><b>${state.examRes.length}</b></div><div class="stat"><span class="muted">Avg exam score</span><br><b>${avg != null ? avg + '%' : '—'}</b></div></div><div class="card"><h3>Real activity this term</h3>${pbar('Homework graded', hwPct)}${pbar('Exam average', avg || 0)}<p class="muted small" style="margin-top:10px">Workbook activities completed: <b>${wbDone}</b> · Exam mistakes under review: <b>${state.mistakes.length}</b> · Planned lessons: <b>${state.plans.length}</b> · Coursebook lessons: <b>${books.length * 64}</b></p></div><div class="card" style="margin-top:15px"><h3>Next steps</h3>${state.mistakes.length ? `<div class="item"><div><b>Review ${state.mistakes.length} saved exam mistake${state.mistakes.length > 1 ? 's' : ''}</b><div class="muted small">Targeted practice built from your results.</div></div><button class="btn" onclick="go('tests')">Practice mistakes →</button></div>` : ''}<div class="item"><div><b>Workbook practice</b><div class="muted small">Interactive exercises with instant checking for every level.</div></div><button class="btn light" onclick="go('workbook')">Open workbooks →</button></div>${total && hwPct < 100 ? `<div class="item"><div><b>Outstanding homework</b><div class="muted small">${total - done} task${total - done > 1 ? 's' : ''} not yet graded.</div></div><button class="btn light" onclick="go('homework')">Open homework →</button></div>` : ''}</div></div>`;
 }
 function planner() {
   return `<div class="section"><h2>Lesson Planner</h2>${bannerSVG('tests')}<div class="card"><div class="row"><input id="pd" class="input" type="date"><input id="pt" class="input" placeholder="Lesson topic"><select id="pm" style="max-width:150px"><option value="60">60 minutes</option><option value="90">90 minutes</option></select><button class="btn" onclick="addPlan()">Plan lesson</button></div></div><div class="card" style="margin-top:15px"><h3>Planning workflow</h3><p>Choose level → select coursebook lesson → check aims → prepare materials → teach with the 60/90-minute programme → assign homework → record progress.</p></div><div class="list" style="margin-top:15px">${state.plans.map((p, i) => `<div class="item"><div><b>${esc(p.date)} · ${esc(p.topic)}</b><div class="muted small">${p.minutes} minutes · ${esc(p.level || '—')}</div></div><button class="btn light" onclick="state.plans.splice(${i},1);save();render()">Delete</button></div>`).join('') || '<div class="empty">No lessons planned yet.</div>'}</div></div>`;
@@ -1224,6 +1492,6 @@ function itWriting() {
 function speakText(t, lang) { if ('speechSynthesis' in window) { speechSynthesis.cancel(); let u = new SpeechSynthesisUtterance(t); u.lang = lang || 'en-US'; u.rate = .9; speechSynthesis.speak(u); } }
 function startTimer() { let s = 60, el = document.getElementById('timer'); clearInterval(window.tm); window.tm = setInterval(() => { s--; el.textContent = `00:${String(s).padStart(2, '0')}`; if (s <= 0) { clearInterval(window.tm); el.textContent = 'Time!'; } }, 1000); }
 function startTimer2(id, secs) { id = id || 'qtimer'; let s = secs || 30; let el = document.getElementById(id); if (!el) return; el.textContent = `0:${String(s).padStart(2, '0')}`; clearInterval(window.tm2); window.tm2 = setInterval(() => { s--; if (!document.getElementById(id)) { clearInterval(window.tm2); return; } el = document.getElementById(id); el.textContent = `0:${String(s).padStart(2, '0')}`; if (s <= 0) { clearInterval(window.tm2); el.textContent = 'Time! 🎉'; } }, 1000); }
-function addHW(t) { state.homework.push({ text: t, done: false }); save(); toast('Homework assigned ✓'); }
+function addHW(t) { state.homework.push({ id: 'hw' + Date.now().toString(36), title: t, instr: 'Assigned from the coursebook lesson. Complete the task, then submit your answer from the Homework page.', type: 'Lesson', level: '', mins: 20, due: '', who: 'all', status: 'assigned', sub: null, grade: null, fb: '' }); save(); toast('Homework assigned ✓'); }
 function toast(t) { let x = document.getElementById('toast'); x.innerHTML = `<div class="pill" style="position:fixed;right:25px;bottom:25px;background:#22233a;color:#fff;padding:13px 16px;z-index:10">${t}</div>`; setTimeout(() => x.innerHTML = '', 1800); }
 render();
