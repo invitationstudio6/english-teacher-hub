@@ -1411,7 +1411,7 @@ function pdfFlipView() {
   </div>
   <div class="flip-nav pdf-nav">
     <button class="btn light" ${f.i > 1 ? `onclick="pdfGo(-2);render()"` : 'disabled'}>◀ Back</button>
-    <span class="pill">Page ${f.i}${f.n ? ' / ' + f.n : ''}</span>
+    <span class="pill">${f.n ? `Spread ${f.i}–${Math.min(f.n, f.i + 1)} / ${f.n}` : 'Loading…'}</span>
     <button class="btn" ${f.n && f.i < f.n ? `onclick="pdfGo(2);render()"` : 'disabled'}>Next ▶</button>
   </div>
   <div class="pdf-jump"><label class="muted small">Jump to page</label><input id="pdf-jump" class="input" type="number" min="1" max="${f.n||1}" style="max-width:90px" onkeydown="if(event.key==='Enter')pdfJump()"><input type="button" class="btn light" value="Go" onclick="pdfJump()"></div>
