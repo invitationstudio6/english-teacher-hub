@@ -261,8 +261,9 @@ function layout(content) {
   document.getElementById('app').innerHTML = `<div class="app"><aside class="side"><div class="brand"><span>LF</span><strong>Lingua Forge</strong></div><div class="navtitle">Teach</div>${[['dashboard', '🏠', 'Dashboard'], ['students', '👩‍🎓', 'Students'], ['planner', '📅', 'Lesson Planner'], ['progress', '📊', 'Progress']].map(x => nav(...x)).join('')}<div class="navtitle">Published Library</div>${[['textbooks', '📚', 'Coursebooks'], ['grammar', '📖', 'Grammar in Use'], ['vocabulary', '🔤', 'Vocabulary in Use'], ['workbook', '📝', 'Workbooks'], ['teacher', '👩‍🏫', 'Teacher’s Book']].map(x => nav(...x)).join('')}<div class="navtitle">Skills Lab</div>${[['reading', '📚', 'Reading Studio'], ['listening', '🎧', 'Listening Lab'], ['speaking', '🗣️', 'Speaking Studio'], ['writing', '✍️', 'Writing Studio'], ['flashcards', '🃏', 'Flashcards'], ['games', '🎮', 'Activities'], ['tests', '🧪', 'Assessments'], ['homework', '🏠', 'Homework']].map(x => nav(...x)).join('')}<div class="navtitle">Tools & Strategies</div>${[['tips', '💡', 'Tips & Strategies']].map(x => nav(...x)).join('')}<div class="navtitle">Vocabulary Pro</div>${[['vpx', '🖼️', 'Vocabulary Explorer'], ['vpflash', '🃏', 'Flashcards'], ['vpvisual', '👁️', 'Visual Lab'], ['vpquiz', '🧠', 'Quiz Lab'], ['vpwotd', '📅', 'Word of the Day'], ['vpmy', '📒', 'My Vocabulary'], ['vpprogress', '📈', 'Vocab Progress'], ['vpadmin', '🛠️', 'Vocab Admin']].map(x => nav(...x)).join('')}<div class="navtitle">Italiano 🇮🇹</div>${[['italian', '🍝', 'Italiano'], ['itgrammar', '📖', 'Grammatica'], ['itvocab', '🔤', 'Lessico'], ['itreading', '📚', 'Lettura'], ['itlistening', '🎧', 'Ascolto'], ['itspeaking', '🗣️', 'Parlare'], ['itwriting', '✍️', 'Scrivere']].map(x => nav(...x)).join('')}<div class="navtitle ielts-nav">IELTS 🎯</div>${[['ielts', '🎓', 'IELTS Hub'], ['ielts-overview', 'ℹ️', 'Overview'], ['ielts-diagnostic', '🩺', 'Diagnostic'], ['ielts-plan', '📅', 'Study Plan'], ['ielts-listening', '🎧', 'Listening'], ['ielts-reading', '📚', 'Reading'], ['ielts-writing', '✍️', 'Writing'], ['ielts-speaking', '🗣️', 'Speaking'], ['ielts-vocab', '🔤', 'Vocabulary'], ['ielts-colloc', '🔗', 'Collocations'], ['ielts-grammar', '📐', 'Grammar'], ['ielts-mocks', '🧪', 'Mock Tests'], ['ielts-daily', '☀️', 'Daily Practice'], ['ielts-progress', '📊', 'Progress'], ['ielts-mistakes', '📒', 'My Mistakes'], ['ielts-calc', '🧮', 'Band Calculator'], ['ielts-resources', '📦', 'Resources']].map(x => nav(...x)).join('')}</aside><main class="main"><div class="top"><input class="search" placeholder="Search vocabulary, grammar, lessons…" onkeydown="if(event.key==='Enter')search(this.value)"><span class="pill">PRO · ELT Edition</span></div>${content}</main></div>`;
 }
 function nav(id, ico, label) { return `<button class="nav ${state.view === id ? 'active' : ''}" onclick="go('${id}')"><span>${ico}</span> ${label}</button>`; }
-function go(v) { state.view = v; state.book = null; state.lesson = null; state.flip = null; render(); }
+function go(v) { state.view = v; state.book = null; state.lesson = null; state.flip = null; state.pdfFlip = null; render(); }
 function render() {
+  if (state.pdfFlip) { layout(pdfFlipView()); return; }
   if (state.flip) { layout(flipView()); return; }
   const m = { dashboard: dashboard, textbooks: textbooks, book: bookPage, lesson: lessonPage, vocabulary: vocabulary, flashcards: flashcards, grammar: grammarPage, reading: reading, listening: listening, speaking: speaking, writing: writing, tests: tests, workbook: workbook, teacher: teacher, students: students, homework: homework, progress: progress, planner: planner, games: activities, tips: tipsPage, italian: italian, itlesson: itLessonPage, itgrammar: itGrammar, itvocab: itVocab, itreading: itReading, itlistening: itListening, itspeaking: itSpeaking, itwriting: itWriting, ielts: ieltsHub, 'ielts-overview': ieltsOverview, 'ielts-diagnostic': ieltsDiagnostic, 'ielts-plan': ieltsPlan, 'ielts-listening': ieltsListening, 'ielts-reading': ieltsReading, 'ielts-writing': ieltsWriting, 'ielts-speaking': ieltsSpeaking, 'ielts-vocab': ieltsVocab, 'ielts-colloc': ieltsColloc, 'ielts-grammar': ieltsGrammar, 'ielts-mocks': ieltsMocks, 'ielts-calc': ieltsCalc, 'ielts-progress': ieltsProgress, 'ielts-mistakes': ieltsMistakes, 'ielts-daily': ieltsDaily, 'ielts-resources': ieltsResources, vpx: vpExplorer, vpflash: vpFlash, vpvisual: vpVisual, vpquiz: vpQuiz, vpwotd: vpWotd, vpmy: vpMy, vpprogress: vpProgress, vpadmin: vpAdmin };
   layout(m[state.view]());
@@ -288,7 +289,8 @@ function coverCard(b) {
 function textbooks() {
   let list = books.filter(b => (state.age === 'All' || b.age === state.age) && (state.level === 'All' || b.level === state.level));
   const groups = [['Kids', '🦋'], ['Teens', '🎧'], ['Adults', '🌍']].filter(x => state.age === 'All' || x[0] === state.age);
-  return `<div class="section"><h2>Coursebook Library</h2><p class="muted">Publisher-style editions inspired by the world’s best ELT coursebooks — Big Questions, Grammar Banks, pronunciation, integrated skills and timed lesson programmes. Every coursebook is also a flip book.</p><div class="filters">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}${['All', 'Kids', 'Teens', 'Adults'].map(x => `<button class="filter ${state.age === x ? 'active' : ''}" onclick="state.age='${x}';render()">${x}</button>`).join('')}</div>${groups.map(([age, emoji]) => `<div class="agegroup"><h3 class="agehead">${emoji} ${age} series</h3><div class="covers">${list.filter(b => b.age === age).map(b => `<div class="coverwrap" onclick="openBook('${b.id}')"><div class="hoverc"><button class="btn dark">Open →</button><button class="btn light" onclick="event.stopPropagation();openFlip('${b.title}', enBookPages(books[${books.indexOf(b)}]), '#5d50e9')">📖 Flip →</button></div>${coverCard(b)}</div>`).join('') || '<div class="empty">No courses for this filter.</div>'}</div></div>`).join('')}</div>`;
+  const pdfBooks = `<div class="agegroup"><h3 class="agehead">📕 Real PDF Books</h3><div class="covers"><div class="coverwrap" onclick="openPdfFlip('Oxford Discover Workbook 1','assets/books/oxford-discover-workbook-1.pdf','#e85d4e')"><div class="hoverc"><button class="btn dark">Open flip book →</button></div><div class="cover" style="background:linear-gradient(135deg,#e85d4e,#ff9f7a);display:grid;place-items:center;padding:22px;color:#fff"><div style="text-align:center"><div style="font:800 64px 'Plus Jakarta Sans';opacity:.25">OD</div><h3 style="margin:10px 0 6px;font:800 22px 'Plus Jakarta Sans'">Oxford Discover</h3><p style="opacity:.9;font-size:12px">Workbook 1 · 170 pages · real PDF</p><span class="pill" style="background:#fff;color:#e85d4e;margin-top:8px">Kids · A1/A2</span></div></div></div></div></div>`;
+  return `<div class="section"><h2>Coursebook Library</h2><p class="muted">Publisher-style editions inspired by the world’s best ELT coursebooks — Big Questions, Grammar Banks, pronunciation, integrated skills and timed lesson programmes. Every coursebook is also a flip book.</p><div class="filters">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}${['All', 'Kids', 'Teens', 'Adults'].map(x => `<button class="filter ${state.age === x ? 'active' : ''}" onclick="state.age='${x}';render()">${x}</button>`).join('')}</div>${pdfBooks}${groups.map(([age, emoji]) => `<div class="agegroup"><h3 class="agehead">${emoji} ${age} series</h3><div class="covers">${list.filter(b => b.age === age).map(b => `<div class="coverwrap" onclick="openBook('${b.id}')"><div class="hoverc"><button class="btn dark">Open →</button><button class="btn light" onclick="event.stopPropagation();openFlip('${b.title}', enBookPages(books[${books.indexOf(b)}]), '#5d50e9')">📖 Flip →</button></div>${coverCard(b)}</div>`).join('') || '<div class="empty">No courses for this filter.</div>'}</div></div>`).join('')}</div>`;
 }
 function openBook(id) { state.book = books.find(b => b.id === id); state.view = 'book'; render(); }
 
@@ -1385,6 +1387,64 @@ function flipView() {
   };
   return `<div class="section flip-section"><div class="flip-top"><div><h2>${f.title}</h2><p class="muted">${it ? 'Sfoglia il libro — apri le pagine con i comandi sotto.' : 'Flip through the book — turn the pages with the controls below.'}</p></div><div class="row" style="gap:8px"><button class="btn light" onclick="state.flip=null;render()">✕ ${it ? 'Chiudi' : 'Close'}</button></div></div><div class="book3d ${closed ? 'closed' : ''}" style="--bc:${f.c}" onclick="${closed ? `state.flip.i=0;render()` : ''}"><div class="bpage left">${wrap(lp, f.i + 1)}</div><div class="bspine"></div><div class="bpage right">${wrap(rp, f.i + 2)}</div></div>${closed ? `<p class="center"><button class="btn dark" onclick="state.flip.i=0;render()">📖 ${it ? 'Apri di nuovo il libro' : 'Open the book again'}</button></p>` : `<div class="flip-nav"><button class="btn light" ${f.i > 0 ? `onclick="state.flip.i=${Math.max(0, f.i - 2)};render()"` : 'disabled'}>◀ ${it ? 'Indietro' : 'Back'}</button><span class="pill">${Math.floor(f.i / 2) + 1} / ${Math.ceil(n / 2)}</span><button class="btn" ${f.i + 1 < n ? `onclick="state.flip.i=${f.i + 1};render()"` : `onclick="state.flip.i=${n};render()"`}>${it ? 'Avanti' : 'Next'} ▶</button></div><p class="muted small center">${f.i + 1 < n ? (it ? 'Continua a sfogliare…' : 'Keep flipping…') : (it ? 'Fine del libro — sfoglia ancora per chiuderlo.' : 'End of the book — flip once more to close it.')}</p>`}</div>`;
 }
+
+/* ---- real PDF flip book ---- */
+function openPdfFlip(title, url, c) {
+  if (typeof pdfjsLib === 'undefined') { alert('PDF viewer is loading. Please wait a moment and try again.'); return; }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  state.pdfFlip = { title, url, c: c || '#e85d4e', i: 1, n: 0, loading: true, err: null, doc: null };
+  render();
+  pdfjsLib.getDocument(url).promise.then(doc => {
+    state.pdfFlip.doc = doc; state.pdfFlip.n = doc.numPages; state.pdfFlip.loading = false;
+    render(); pdfRender();
+  }).catch(e => { state.pdfFlip.err = String(e.message || e); state.pdfFlip.loading = false; render(); });
+}
+function pdfFlipView() {
+  const f = state.pdfFlip;
+  return `<div class="section flip-section"><div class="flip-top"><div><h2>${esc(f.title)}</h2><p class="muted">Real PDF flip book — turn the pages with the controls below.</p></div><div class="row" style="gap:8px"><button class="btn light" onclick="state.pdfFlip=null;render()">✕ Close</button></div></div>
+  ${f.err ? `<div class="empty warn">Could not load PDF: ${esc(f.err)}</div>` : ''}
+  ${f.loading ? `<div class="pdf-loading"><div class="spinner"></div><p class="muted">Loading PDF…</p></div>` : ''}
+  <div class="pdf-book" style="--bc:${f.c}">
+    <div class="pdf-page-col"><canvas id="pdf-left" width="600" height="800"></canvas><div class="pdf-pn" id="pdf-pn-left"></div></div>
+    <div class="pdf-spine"></div>
+    <div class="pdf-page-col"><canvas id="pdf-right" width="600" height="800"></canvas><div class="pdf-pn" id="pdf-pn-right"></div></div>
+  </div>
+  <div class="flip-nav pdf-nav">
+    <button class="btn light" ${f.i > 1 ? `onclick="pdfGo(-2);render()"` : 'disabled'}>◀ Back</button>
+    <span class="pill">Page ${f.i}${f.n ? ' / ' + f.n : ''}</span>
+    <button class="btn" ${f.n && f.i < f.n ? `onclick="pdfGo(2);render()"` : 'disabled'}>Next ▶</button>
+  </div>
+  <div class="pdf-jump"><label class="muted small">Jump to page</label><input id="pdf-jump" class="input" type="number" min="1" max="${f.n||1}" style="max-width:90px" onkeydown="if(event.key==='Enter')pdfJump()"><input type="button" class="btn light" value="Go" onclick="pdfJump()"></div>
+  </div>`;
+}
+function pdfRender() {
+  const f = state.pdfFlip; if (!f || !f.doc) return;
+  const renderOne = (num, side) => {
+    const canvas = document.getElementById('pdf-' + side); if (!canvas) return;
+    const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (num < 1 || num > f.n) { document.getElementById('pdf-pn-' + side).textContent = ''; return; }
+    f.doc.getPage(num).then(page => {
+      const scale = Math.min(canvas.width / page.getViewport({ scale: 1 }).width, canvas.height / page.getViewport({ scale: 1 }).height) * 0.96;
+      const vp = page.getViewport({ scale });
+      canvas.width = vp.width; canvas.height = vp.height;
+      page.render({ canvasContext: ctx, viewport: vp }).promise.then(() => {
+        document.getElementById('pdf-pn-' + side).textContent = String(num);
+      });
+    });
+  };
+  renderOne(f.i, 'left'); renderOne(f.i + 1, 'right');
+}
+function pdfGo(delta) {
+  const f = state.pdfFlip; if (!f || !f.n) return;
+  let next = f.i + delta; next = Math.max(1, Math.min(f.n, next)); if (next === f.i) return;
+  f.i = next; render(); setTimeout(pdfRender, 0);
+}
+function pdfJump() {
+  const v = parseInt(document.getElementById('pdf-jump').value, 10); const f = state.pdfFlip;
+  if (!f || !f.n || isNaN(v)) return;
+  f.i = Math.max(1, Math.min(f.n, v)); render(); setTimeout(pdfRender, 0);
+}
+
 function enCoverArt(title, lv) {
   const set = /vocab|lessico/i.test(title) ? ['📘', '🔤', '🗣️', '✍️', '🌍', '🎧'] : /gramm|grammatica/i.test(title) ? ['Aa', 'B2', '?', '!', '→', '&'] : ['🎒', '👩‍🏫', '🗣️', '✍️', '🎧', '📖'];
   return set.map((x, i) => `<span class="bc-glyph g${i}" ${x.length > 1 ? 'data-txt="' + x + '"' : ''}>${x}</span>`).join('');

@@ -621,3 +621,14 @@
 .hwform label{display:grid;gap:6px;font-weight:700;font-size:13px;color:#4b4f6b}
 @media(max-width:760px){.ex-nav{width:100%}.item.hwitem{flex-direction:column;gap:10px}.ex-timer{font-size:18px}}
 @media(max-width:760px){.vp-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.vp-grid-cards{grid-template-columns:1fr}.vp-pick-grid{grid-template-columns:1fr 1fr;gap:8px}.vp-strip{grid-template-columns:repeat(3,1fr)}.vp-bar-row{grid-template-columns:86px 1fr 44px}.vp-match{grid-template-columns:1fr}.vp-img-row{width:60px;height:60px}.vp-search{min-width:100%}.vp-sel{max-width:48%;flex:1}}
+.pdf-book{display:flex;justify-content:center;align-items:flex-start;gap:0;background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 18px;box-shadow:var(--shadow);margin:18px auto;max-width:1100px;position:relative}
+.pdf-spine{width:18px;align-self:stretch;background:linear-gradient(90deg,rgba(0,0,0,.08),rgba(0,0,0,.18) 45%,rgba(0,0,0,.08));border-radius:6px;margin:0 10px}
+.pdf-page-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
+.pdf-page-col canvas{max-width:100%;height:auto;border-radius:10px;box-shadow:0 10px 28px rgba(35,34,75,.12);background:#fff}
+.pdf-pn{margin-top:8px;font-size:12px;font-weight:700;color:var(--muted)}
+.pdf-nav{max-width:1100px;margin:0 auto 10px}
+.pdf-jump{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.pdf-loading{display:grid;place-items:center;padding:60px 20px;gap:14px}
+.spinner{width:44px;height:44px;border:4px solid #ececf3;border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:900px){.pdf-book{flex-direction:column;align-items:center;gap:16px}.pdf-spine{display:none}}
