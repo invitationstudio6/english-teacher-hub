@@ -641,4 +641,43 @@
 .login-pin{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px}
 .login-pin input{max-width:160px;text-align:center;letter-spacing:4px;font-size:18px;margin:10px auto 14px;display:block}
 .student-hero{background:linear-gradient(135deg,#5d50e9,#8b5cf6)}
+.speaking-book-page{max-width:1280px;margin-left:auto;margin-right:auto}
+.speak-book-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.speak-book-layout{display:grid;grid-template-columns:minmax(245px,300px) minmax(0,1fr);gap:18px;align-items:start}
+.speak-toc,.speak-chapter{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.speak-toc{padding:17px;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+.speak-toc h3{font:800 15px 'Plus Jakarta Sans';margin:0 0 12px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.speak-toc-item{width:100%;display:flex;gap:10px;align-items:center;text-align:left;background:#fff;border:1px solid transparent;border-radius:12px;padding:10px 8px;color:var(--ink)}
+.speak-toc-item:hover,.speak-toc-item.active{background:#f5f3ff;border-color:#ddd8ff}
+.toc-num{font:800 12px 'Plus Jakarta Sans';color:var(--purple);background:#efedff;border-radius:8px;padding:7px}
+.toc-text{display:grid;gap:3px;min-width:0}
+.toc-text b{font-size:12px;line-height:1.35}
+.toc-text small{font-size:10px;color:var(--muted)}
+.speak-chapter{min-height:480px;padding:22px}
+.speak-book-cover{min-height:430px;border-radius:18px;padding:clamp(26px,6vw,58px);color:#fff;background:linear-gradient(140deg,#252a52 0%,#6254f7 60%,#f1689e 100%);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;position:relative;overflow:hidden}
+.speak-book-cover:after{content:'Aa';position:absolute;right:5%;bottom:-60px;font:800 clamp(130px,24vw,230px) 'Plus Jakarta Sans';opacity:.08;pointer-events:none}
+.speak-book-cover h1{font:800 clamp(36px,5vw,58px) 'Plus Jakarta Sans';margin:24px 0 2px;max-width:650px}
+.speak-book-cover h2{font:700 clamp(21px,3vw,32px) 'Plus Jakarta Sans';margin:0 0 14px}
+.speak-book-cover p{max-width:580px;line-height:1.7;color:#f1efff}
+.speak-cover-marks{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 24px}
+.speak-cover-marks span{padding:8px 11px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:99px;font-size:12px;font-weight:700}
+.speak-chapter-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.speak-chapter-top h1{font:800 clamp(25px,3.4vw,36px) 'Plus Jakarta Sans';margin:13px 0 0}
+.speak-block{padding:16px 0;border-bottom:1px solid var(--line);line-height:1.7}
+.speak-block h3{font:800 15px 'Plus Jakarta Sans';margin:0 0 8px;color:#4f45c7}
+.speak-block p{margin:0;white-space:normal}
+.speak-steps{padding-left:24px;margin:8px 0}
+.speak-steps li{padding:4px 0 7px 5px;line-height:1.65}
+.speak-complete{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:18px 0;padding:16px;border-radius:14px;background:#f7f6ff;border:1px solid #e6e2f6}
+.speak-complete p{margin:4px 0 0}
+.speak-page-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line)}
+.speak-editor{max-width:760px;margin:auto}
+.speak-editor form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.speak-field{display:grid;gap:6px;font-weight:700;font-size:13px;color:#4b4f6b}
+.speak-field:nth-of-type(n+6){grid-column:1/-1}
+.speak-field textarea{resize:vertical;line-height:1.55}
+.speak-editor form>.row{grid-column:1/-1;margin-top:8px}
+.btn.danger{background:#fff0f0;color:#b73232}
+@media(max-width:920px){.speak-book-layout{grid-template-columns:1fr}.speak-toc{position:relative;top:auto;max-height:320px}.speak-toc h3{position:sticky;top:-17px;background:#fff;padding:8px 0;z-index:1}}
+@media(max-width:600px){.speak-editor form{grid-template-columns:1fr}.speak-field:nth-of-type(n){grid-column:1}.speak-chapter{padding:16px}.speak-page-nav{flex-wrap:wrap}.speak-page-nav .muted{order:-1;width:100%;text-align:center}.speak-book-cover{min-height:350px}.speak-book-head>.row{width:100%}}
 @media(max-width:900px){.pdf-book{flex-direction:column;align-items:center;gap:16px}.pdf-spine{display:none}}
