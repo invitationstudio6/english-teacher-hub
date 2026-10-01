@@ -253,7 +253,7 @@ function makeBook(age, level) {
 }
 const books = [...kids.map(l => makeBook('Kids', l)), ...teens.map(l => makeBook('Teens', l)), ...adults.map(l => makeBook('Adults', l))];
 const allVocab = levels.flatMap(l => VOCAB[l].map((w, i) => ({ ...w, level: l, icon: icons[i % icons.length], topic: TOPICS[i % TOPICS.length].title })));
-const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, pdfFlip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, currentStudent: (function () { try { return sessionStorage.getItem('lf_currentStudent') || null; } catch (e) { return null; } })(), speakPage: 0, speakEdit: null, speakFormOpen: false, speakLevel: 'All', speakTab: 'flip', speakFlip: 0, speakGames: (function () { try { const saved = JSON.parse(localStorage.getItem('lf_speakingBook') || 'null'); if (Array.isArray(saved) && saved.length) return saved; } catch (e) {} return (window.DEFAULT_SPEAK_GAMES || []).map(g => ({ ...g })); })(), speakProgress: (function () { try { return JSON.parse(localStorage.getItem('lf_speakingProgress') || '{}'); } catch (e) { return {}; } })(), student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: (function (h) { return (h || []).map(x => x && x.id ? x : { id: 'hw' + Math.random().toString(36).slice(2, 8), title: (x && x.text) || '', instr: '', type: 'custom', level: '', unit: '', mins: 20, due: '', who: 'all', status: x && x.done ? 'graded' : 'assigned', sub: null, grade: null, fb: '', legacy: true }); })(JSON.parse(localStorage.getItem('lf_homework') || '[]')), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false, exam: (function () { try { const e = JSON.parse(localStorage.getItem('lf_exam') || 'null'); let cur = ''; try { cur = sessionStorage.getItem('lf_currentStudent') || ''; } catch (x) {} if (e && e.student && e.student !== cur) return null; return e; } catch (e) { return null; } })(), examResult: null, hwOpen: null, hwSubOpen: null, hwPick: null, mistakes: JSON.parse(localStorage.getItem('lf_mistakes') || '[]'), examRes: JSON.parse(localStorage.getItem('lf_exams') || '[]'), wbSave: JSON.parse(localStorage.getItem('lf_wbsave') || '{}') };
+const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, pdfFlip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, currentStudent: (function () { try { return sessionStorage.getItem('lf_currentStudent') || null; } catch (e) { return null; } })(), teacherSignedIn: (function () { try { return sessionStorage.getItem('lf_teacher_signed_in') === '1'; } catch (e) { return false; } })(), authMode: 'choose', speakEdit: null, speakFormOpen: false, speakLevel: 'All', speakTab: 'flip', speakFlip: 0, speakGames: (function () { try { const saved = JSON.parse(localStorage.getItem('lf_speakingBook') || 'null'); if (Array.isArray(saved) && saved.length) return saved; } catch (e) {} return (window.DEFAULT_SPEAK_GAMES || []).map(g => ({ ...g })); })(), speakProgress: (function () { try { return JSON.parse(localStorage.getItem('lf_speakingProgress') || '{}'); } catch (e) { return {}; } })(), student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: (function (h) { return (h || []).map(x => x && x.id ? x : { id: 'hw' + Math.random().toString(36).slice(2, 8), title: (x && x.text) || '', instr: '', type: 'custom', level: '', unit: '', mins: 20, due: '', who: 'all', status: x && x.done ? 'graded' : 'assigned', sub: null, grade: null, fb: '', legacy: true }); })(JSON.parse(localStorage.getItem('lf_homework') || '[]')), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false, exam: (function () { try { const e = JSON.parse(localStorage.getItem('lf_exam') || 'null'); let cur = ''; try { cur = sessionStorage.getItem('lf_currentStudent') || ''; } catch (x) {} if (e && e.student && e.student !== cur) return null; return e; } catch (e) { return null; } })(), examResult: null, hwOpen: null, hwSubOpen: null, hwPick: null, mistakes: JSON.parse(localStorage.getItem('lf_mistakes') || '[]'), examRes: JSON.parse(localStorage.getItem('lf_exams') || '[]'), wbSave: JSON.parse(localStorage.getItem('lf_wbsave') || '{}') };
 let __LF_ACTIVE_MODULE_ID = null;
 let __LF_TEACHER_VP = JSON.stringify(VP);
 let __LF_TEACHER_IST = JSON.stringify(IST);
@@ -293,7 +293,7 @@ function __lfUnloadModules() {
 }
 const __LF_PERSONAL_VIEWS = ['vpx', 'vpflash', 'vpvisual', 'vpquiz', 'vpwotd', 'vpmy', 'vpprogress', 'ielts', 'ielts-overview', 'ielts-diagnostic', 'ielts-plan', 'ielts-listening', 'ielts-reading', 'ielts-writing', 'ielts-speaking', 'ielts-vocab', 'ielts-colloc', 'ielts-grammar', 'ielts-mocks', 'ielts-calc', 'ielts-progress', 'ielts-mistakes', 'ielts-daily', 'ielts-resources'];
 function save() {
-  try { sessionStorage.setItem('lf_currentStudent', state.currentStudent || ''); } catch (e) {}
+  try { sessionStorage.setItem('lf_currentStudent', state.currentStudent || ''); sessionStorage.setItem('lf_teacher_signed_in', state.teacherSignedIn ? '1' : ''); } catch (e) {}
   try {
     localStorage.removeItem('lf_currentStudent');
     localStorage.setItem('lf_students', JSON.stringify(state.student));
@@ -370,18 +370,24 @@ migrateIdentity();
 
 /* ---------------- Shell & navigation ---------------- */
 function layout(content) {
+  if (state.view === 'login') {
+    document.getElementById('app').innerHTML = `<div class="auth-shell"><header class="auth-brand"><span>LF</span><b>Lingua Forge Academy</b></header>${content}</div>`;
+    return;
+  }
   const stu = isStudent();
-  const userPill = stu ? `<span class="pill" style="background:#e8f7ef;color:#20855f"><b>${esc(stuName(myId()))}</b> · ${esc(myLevel())}</span><button class="btn light" onclick="logout()">Logout</button>` : (state.student.length ? `<button class="btn light" onclick="go('login')">Student login</button>` : `<span class="pill">Teacher view</span>`);
+  const userPill = stu ? `<span class="pill" style="background:#e8f7ef;color:#20855f"><b>${esc(stuName(myId()))}</b> · ${esc(myLevel())}</span><button class="btn light" onclick="logout()">Logout</button>` : state.teacherSignedIn ? `<span class="pill" style="background:#e8f7ef;color:#20855f"><b>${esc(state.teacherName || 'Teacher')}</b> · Teacher</span><button class="btn light" onclick="teacherLogout()">Logout</button>` : `<button class="btn light" onclick="go('login')">${state.view === 'login' ? 'Choose sign in' : 'Sign in'}</button>`;
   const teachNav = [['dashboard', '🏠', 'Dashboard'], ['students', '👩‍🎓', 'Students'], ['planner', '📅', 'Lesson Planner'], ['progress', '📊', 'Progress'], ['speaking-book', '🗣️', 'Speaking Games Book']];
   const studentNav = [['student-dashboard', '🏠', 'My Home'], ['my-homework', '🏠', 'My Homework'], ['workbook', '📝', 'Workbook'], ['speaking-book', '🗣️', 'Speaking Games Book'], ['tests', '🧪', 'Assessments'], ['my-progress', '📊', 'My Progress'], ['my-mistakes', '📒', 'My Mistakes']];
   const navBlock = (title, items) => `<div class="navtitle">${title}</div>${items.map(x => nav(...x)).join('')}`;
   const vpNav = [['vpx', '🖼️', 'Vocabulary Explorer'], ['vpflash', '🃏', 'Flashcards'], ['vpvisual', '👁️', 'Visual Lab'], ['vpquiz', '🧠', 'Quiz Lab'], ['vpwotd', '📅', 'Word of the Day'], ['vpmy', '📒', 'My Vocabulary'], ['vpprogress', '📈', 'Vocab Progress']].concat(stu ? [] : [['vpadmin', '⚙️', 'Vocabulary Admin']]);
   document.getElementById('app').innerHTML = `<div class="app"><aside class="side"><div class="brand"><span>LF</span><strong>Lingua Forge</strong></div>${stu ? navBlock('My Program', studentNav) : navBlock('Teach', teachNav)}<div class="navtitle">Published Library</div>${[['textbooks', '📚', 'Coursebooks'], ['grammar', '📖', 'Grammar in Use'], ['vocabulary', '🔤', 'Vocabulary in Use'], ['workbook', '📝', 'Workbooks'], ['teacher', '👩‍🏫', 'Teacher’s Book']].map(x => nav(...x)).join('')}<div class="navtitle">Skills Lab</div>${[['reading', '📚', 'Reading Studio'], ['listening', '🎧', 'Listening Lab'], ['speaking', '🗣️', 'Speaking Studio'], ['writing', '✍️', 'Writing Studio'], ['flashcards', '🃏', 'Flashcards'], ['games', '🎮', 'Activities'], ['ielts', '🎓', 'IELTS Hub']].map(x => nav(...x)).join('')}<div class="navtitle">Vocabulary Pro</div>${vpNav.map(x => nav(...x)).join('')}<div class="navtitle">Italiano 🇮🇹</div>${[['italian', '🍝', 'Italiano'], ['itgrammar', '📖', 'Grammatica'], ['itvocab', '🔤', 'Lessico'], ['itreading', '📚', 'Lettura'], ['itlistening', '🎧', 'Ascolto'], ['itspeaking', '🗣️', 'Parlare'], ['itwriting', '✍️', 'Scrivere']].map(x => nav(...x)).join('')}</aside><main class="main"><div class="top"><input class="search" placeholder="Search vocabulary, grammar, lessons…" onkeydown="if(event.key==='Enter')search(this.value)">${userPill}</div>${content}</main></div>`;
 }
-const TEACHER_VIEWS = ['dashboard', 'students', 'planner', 'progress', 'homework', 'teacher', 'vpadmin', 'login'];
+const TEACHER_VIEWS = ['dashboard', 'students', 'planner', 'progress', 'homework', 'teacher', 'vpadmin'];
 function nav(id, ico, label) { return `<button class="nav ${state.view === id ? 'active' : ''}" onclick="go('${id}')"><span>${ico}</span> ${label}</button>`; }
 function go(v) { state.view = v; state.book = null; state.lesson = null; state.flip = null; state.pdfFlip = null; render(); }
 function render() {
+  if (!isStudent() && !state.teacherSignedIn && state.view !== 'login') { state.view = 'login'; state.authMode = 'choose'; }
+  if (isStudent() && state.view === 'login') { state.view = 'student-dashboard'; }
   if (isStudent() && TEACHER_VIEWS.includes(state.view)) { state.view = 'student-dashboard'; }
   if (!isStudent() && state.view === 'login') { if (__LF_ACTIVE_MODULE_ID) __lfUnloadModules(); layout(loginView()); return; }
   if (state.exam && state.exam.student && state.exam.student !== myId()) { state.exam = null; exPersist(); }
@@ -401,8 +407,55 @@ function render() {
 
 /* ---------------- Auth & student program ---------------- */
 function loginView() {
+  const mode = state.authMode || 'choose';
   const list = state.student;
-  return `<div class="section login-section"><div class="login-card"><h2>Student login</h2><p class="muted">Choose your name and enter your PIN. Every learner has their own individual program — your homework, exams, mistakes, workbook answers and progress are private to you.</p>${list.length ? `<div class="login-grid">${list.map(s => `<div class="login-stu" onclick="selectLogin(${jarg(s.id)})"><div class="login-avatar">${esc((s.name || '?').charAt(0).toUpperCase())}</div><b>${esc(s.name)}</b><span class="muted small">${esc(s.level)}${s.pin ? '' : ' · no PIN set'}</span></div>`).join('')}</div><div id="login-pin" class="login-pin" style="display:none"><input id="login-id" type="hidden"><p class="muted small">Enter the PIN for <b id="login-name"></b></p><input id="lpin" class="input" type="password" inputmode="numeric" maxlength="8" placeholder="PIN" onkeydown="if(event.key==='Enter')doLogin()"><div class="row" style="justify-content:center"><button class="btn" onclick="doLogin()">Open my program</button><button class="btn light" onclick="document.getElementById('login-pin').style.display='none'">Back</button></div></div>` : '<div class="empty">No students yet. Ask your teacher to create your account.</div>'}</div></div>`;
+    if (mode === 'choose') return `<div class="section login-section"><div class="login-card auth-choice"><span class="pill">LINGUA FORGE ACADEMY</span><h1>Welcome</h1><p class="muted">Choose your sign-in to open the right learning space.</p><div class="auth-role-grid"><button class="auth-role" onclick="authChoose('teacher')"><span class="auth-role-icon">👩‍🏫</span><b>Teacher</b><small>Manage students, assign homework and open teaching tools.</small><span class="btn">Teacher sign in →</span></button><button class="auth-role" onclick="authChoose('student')"><span class="auth-role-icon">📚</span><b>Student</b><small>Open your own lessons, homework, assessments and progress.</small><span class="btn light">Student sign in →</span></button></div><p class="muted small auth-note">Student progress is individual to each account. On this version, accounts are saved in this browser.</p></div></div>`;
+  if (mode === 'teacher') { let hasTeacherAuth = false; try { hasTeacherAuth = !!localStorage.getItem('lf_teacher_auth'); } catch (e) {} return `<div class="section login-section"><div class="login-card"><button class="btn light" onclick="authChoose('choose')">← Choose account type</button><h2 style="margin-top:16px">Teacher sign in</h2><p class="muted">Enter your teacher access phrase to open the teaching dashboard.</p><div class="login-pin"><label for="teacher-code"><b>Teacher access phrase</b></label><input id="teacher-code" class="input" type="password" autocomplete="current-password" placeholder="Access phrase" onkeydown="if(event.key==='Enter')teacherLogin()"><div class="row" style="justify-content:center"><button class="btn" onclick="teacherLogin()">Sign in as teacher</button></div>${hasTeacherAuth ? '' : `<p class="muted small" style="text-align:center;margin-top:12px">First time on this browser?</p><div class="row" style="justify-content:center"><button class="btn light" onclick="authChoose('teacher-setup')">Set up teacher access</button></div>`}<p class="muted small auth-local-note">Teacher access is stored in this browser only; it is not a server-backed account.</p></div></div></div>`; }
+  if (mode === 'teacher-setup') { let hasTeacherAuth = false; try { hasTeacherAuth = !!localStorage.getItem('lf_teacher_auth'); } catch (e) {} if (hasTeacherAuth) { state.authMode = 'teacher'; return loginView(); } return `<div class="section login-section"><div class="login-card"><button class="btn light" onclick="authChoose('teacher')">← Back to teacher sign in</button><h2 style="margin-top:16px">Set up teacher access</h2><p class="muted">Create a teacher access phrase for this browser. Use at least 12 characters and keep it safe; this local-only app cannot recover a forgotten phrase.</p><div class="login-pin"><label for="teacher-new-code"><b>New access phrase</b></label><input id="teacher-new-code" class="input" type="password" autocomplete="new-password" placeholder="At least 12 characters"><label for="teacher-confirm-code"><b>Confirm access phrase</b></label><input id="teacher-confirm-code" class="input" type="password" autocomplete="new-password" placeholder="Repeat the phrase" onkeydown="if(event.key==='Enter')teacherSetup()"><div class="row" style="justify-content:center"><button class="btn" onclick="teacherSetup()">Save teacher access</button></div><p class="muted small auth-local-note">Teacher access is stored in this browser only; it is not a server-backed account.</p></div></div></div>`; }
+  return `<div class="section login-section"><div class="login-card"><button class="btn light" onclick="authChoose('choose')">← Choose account type</button><h2 style="margin-top:16px">Student sign in</h2><p class="muted">Choose your name and enter your individual PIN. Your homework, exams, mistakes, workbook answers and progress stay separate from other students.</p>${list.length ? `<div class="login-grid">${list.map(s => `<button class="login-stu" onclick="selectLogin(${jarg(s.id)})"><span class="login-avatar">${esc((s.name || '?').charAt(0).toUpperCase())}</span><b>${esc(s.name)}</b><span class="muted small">${esc(s.level)}${s.pin ? '' : ' · PIN not set'}</span></button>`).join('')}</div><div id="login-pin" class="login-pin" style="display:none"><input id="login-id" type="hidden"><p class="muted small">Enter the PIN for <b id="login-name"></b></p><input id="lpin" class="input" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="PIN" onkeydown="if(event.key==='Enter')doLogin()"><div class="row" style="justify-content:center"><button class="btn" onclick="doLogin()">Open my program</button><button class="btn light" onclick="document.getElementById('login-pin').style.display='none'">Back</button></div></div>` : '<div class="empty">No student accounts yet. Ask the teacher to create yours.</div>'}</div></div>`;
+}
+function authChoose(mode) { state.authMode = mode; if (mode === 'choose') state.authError = ''; render(); }
+function teacherSetup() {
+  let existing = '';
+  try { existing = localStorage.getItem('lf_teacher_auth') || ''; } catch (e) {}
+  if (existing) return toast('Teacher access is already set up on this browser.');
+  const code = document.getElementById('teacher-new-code')?.value || '';
+  const confirmCode = document.getElementById('teacher-confirm-code')?.value || '';
+  if (code.trim().length < 12) return toast('Use at least 12 characters for the teacher access phrase.');
+  if (code !== confirmCode) return toast('The access phrases do not match.');
+  if (!window.crypto || !window.crypto.subtle || typeof TextEncoder === 'undefined') return toast('Secure setup requires a modern browser with Web Crypto support.');
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  const bytes = new TextEncoder().encode(code);
+  window.crypto.subtle.importKey('raw', bytes, 'PBKDF2', false, ['deriveBits']).then(key => window.crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 210000, hash: 'SHA-256' }, key, 256)).then(bits => {
+    const hash = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    localStorage.setItem('lf_teacher_auth', JSON.stringify({ salt: saltHex, hash, iterations: 210000 }));
+    state.authMode = 'teacher'; render(); toast('Teacher access set up. Sign in with your new phrase.');
+  }).catch(() => toast('Could not set up teacher access in this browser.'));
+}
+function teacherLogin() {
+  const input = document.getElementById('teacher-code');
+  const code = input ? input.value : '';
+  let auth = null;
+  try { auth = JSON.parse(localStorage.getItem('lf_teacher_auth') || 'null'); } catch (e) {}
+  if (!auth) return toast('Set up teacher access first.');
+  if (!window.crypto || !window.crypto.subtle || typeof TextEncoder === 'undefined') return toast('Secure sign-in requires a modern browser with Web Crypto support.');
+  const salt = new Uint8Array((auth.salt || '').match(/.{2}/g)?.map(x => parseInt(x, 16)) || []);
+  window.crypto.subtle.importKey('raw', new TextEncoder().encode(code), 'PBKDF2', false, ['deriveBits']).then(key => window.crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: auth.iterations || 210000, hash: 'SHA-256' }, key, 256)).then(bits => {
+    const hash = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    if (hash !== auth.hash) return toast('Incorrect teacher access phrase. Try again.');
+    state.teacherSignedIn = true; state.teacherName = 'Teacher';
+    try { sessionStorage.setItem('lf_teacher_signed_in', '1'); } catch (e) {}
+    state.currentStudent = null; try { sessionStorage.setItem('lf_currentStudent', ''); } catch (e) {}
+    state.view = 'dashboard'; state.authMode = 'choose'; save(); render(); toast('Teacher sign-in successful.');
+  }).catch(() => toast('Could not verify teacher access in this browser.'));
+}
+function teacherLogout() {
+  state.teacherSignedIn = false; state.teacherName = '';
+  state.currentStudent = null; state.authMode = 'choose'; state.view = 'login';
+  try { sessionStorage.setItem('lf_teacher_signed_in', ''); sessionStorage.setItem('lf_currentStudent', ''); } catch (e) {}
+  if (__LF_ACTIVE_MODULE_ID) __lfUnloadModules();
+  render();
 }
 function selectLogin(id) {
   const s = stuById(id); if (!s) return;
@@ -419,13 +472,15 @@ function doLogin() {
   if (!s.pin) return toast('This account needs a PIN. Ask your teacher to set one before signing in.');
   if (s.pin !== pin) return toast('Wrong PIN. Try again.');
   state.currentStudent = s.id;
+  state.teacherSignedIn = false; state.teacherName = '';
+  try { sessionStorage.setItem('lf_teacher_signed_in', ''); } catch (e) {}
   state.level = s.level;
   state.exLvl = EXAM_LEVELS.includes(s.level) ? s.level : 'B1';
   state.vunit = null; state.gunit = null; state.book = null; state.lesson = null;
   state.flashIndex = 0; state.flashFlip = false; state.examResult = null; state.exam = null;
   save(); exPersist(); go('student-dashboard'); toast(`Welcome back, ${s.name}!`);
 }
-function logout() { clearInterval(window.exTm); try { sessionStorage.setItem('lf_currentStudent', ''); } catch (e) {} state.currentStudent = null; state.level = 'All'; state.exam = null; state.examResult = null; state.hwOpen = null; state.hwSubOpen = null; state.hwPick = null; state.book = null; state.lesson = null; state.flip = null; state.pdfFlip = null; save(); exPersist(); go('login'); }
+function logout() { clearInterval(window.exTm); try { sessionStorage.setItem('lf_currentStudent', ''); sessionStorage.setItem('lf_teacher_signed_in', ''); } catch (e) {} state.currentStudent = null; state.teacherSignedIn = false; state.teacherName = ''; state.level = 'All'; state.exam = null; state.examResult = null; state.hwOpen = null; state.hwSubOpen = null; state.hwPick = null; state.book = null; state.lesson = null; state.flip = null; state.pdfFlip = null; state.authMode = 'choose'; save(); exPersist(); state.view = 'login'; render(); }
 function studentDashboard() {
   const s = me(); if (!s) { logout(); return ''; }
   const hw = myHomework();
@@ -1013,6 +1068,7 @@ function setPin(id) {
   s.pin = pin; save(); render(); toast(`PIN set for ${s.name}.`);
 }
 function loginAs(id) {
+  if (!state.teacherSignedIn) return toast('Sign in as teacher to open a student program.');
   const s = stuById(id); if (!s) return;
   state.currentStudent = s.id; state.level = s.level;
   state.exLvl = EXAM_LEVELS.includes(s.level) ? s.level : 'B1';

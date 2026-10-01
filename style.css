@@ -637,14 +637,28 @@
 .spinner{width:44px;height:44px;border:4px solid #ececf3;border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .login-section{display:grid;place-items:center;min-height:70vh;padding:20px}
-.login-card{width:100%;max-width:520px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:30px;box-shadow:var(--shadow)}
-.login-card h2{margin-bottom:8px}
+.auth-shell{min-height:100vh;background:radial-gradient(ellipse at 20% 0%,#efedff 0%,transparent 45%),#f8f9fc;padding:20px 24px 44px}
+.auth-brand{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:10px;color:#20213a;font-weight:800}
+.auth-brand>span{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,#5d50e9,#8b5cf6);color:#fff;font-size:14px}
+.auth-choice{max-width:780px;padding:clamp(24px,5vw,42px)}
+.auth-choice h1{font-size:clamp(32px,5vw,44px);margin:14px 0 4px}
+.auth-role-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:26px 0 14px}
+.auth-role{min-height:240px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;text-align:left;background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;color:var(--ink);box-shadow:var(--shadow);cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
+.auth-role:hover{transform:translateY(-3px);border-color:#b8b0ff;box-shadow:0 14px 32px rgba(43,39,93,.12)}
+.auth-role>b{font-size:22px}
+.auth-role>small{font-size:14px;line-height:1.6;color:var(--muted);min-height:44px}
+.auth-role>.btn{margin-top:auto;pointer-events:none}
+.auth-role-icon{width:50px;height:50px;display:grid;place-items:center;border-radius:15px;background:#efedff;font-size:24px}
+.auth-note{text-align:center;margin:20px 0 0}
 .login-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin:22px 0}
 .login-stu{display:flex;flex-direction:column;align-items:center;gap:6px;background:#f8f7ff;border:1.5px solid #e6e2f6;border-radius:14px;padding:16px;cursor:pointer;transition:.15s}
 .login-stu:hover{border-color:var(--purple);transform:translateY(-2px)}
 .login-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--purple),#8b5cf6);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px}
 .login-pin{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px}
-.login-pin input{max-width:160px;text-align:center;letter-spacing:4px;font-size:18px;margin:10px auto 14px;display:block}
+.login-pin input{max-width:100%;text-align:left;letter-spacing:normal;font-size:16px;margin:10px 0 14px;display:block}
+.login-pin label{display:block;margin-top:10px}
+.auth-local-note{text-align:center;margin:14px 0 0}
+@media(max-width:600px){.auth-shell{padding:14px 12px 28px}.auth-role-grid{grid-template-columns:1fr}.auth-role{min-height:190px}.auth-brand{padding:0 8px}}
 .student-hero{background:linear-gradient(135deg,#5d50e9,#8b5cf6)}
 .speaking-book-page{max-width:1280px;margin-left:auto;margin-right:auto}
 .speak-book-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
