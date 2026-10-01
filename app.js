@@ -253,7 +253,7 @@ function makeBook(age, level) {
 }
 const books = [...kids.map(l => makeBook('Kids', l)), ...teens.map(l => makeBook('Teens', l)), ...adults.map(l => makeBook('Adults', l))];
 const allVocab = levels.flatMap(l => VOCAB[l].map((w, i) => ({ ...w, level: l, icon: icons[i % icons.length], topic: TOPICS[i % TOPICS.length].title })));
-const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, pdfFlip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, currentStudent: (function () { try { return sessionStorage.getItem('lf_currentStudent') || null; } catch (e) { return null; } })(), speakPage: 0, speakEdit: null, speakFormOpen: false, speakLevel: 'All', speakGames: (function () { try { const saved = JSON.parse(localStorage.getItem('lf_speakingBook') || 'null'); if (Array.isArray(saved) && saved.length) return saved; } catch (e) {} return (window.DEFAULT_SPEAK_GAMES || []).map(g => ({ ...g })); })(), speakProgress: (function () { try { return JSON.parse(localStorage.getItem('lf_speakingProgress') || '{}'); } catch (e) { return {}; } })(), student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: (function (h) { return (h || []).map(x => x && x.id ? x : { id: 'hw' + Math.random().toString(36).slice(2, 8), title: (x && x.text) || '', instr: '', type: 'custom', level: '', unit: '', mins: 20, due: '', who: 'all', status: x && x.done ? 'graded' : 'assigned', sub: null, grade: null, fb: '', legacy: true }); })(JSON.parse(localStorage.getItem('lf_homework') || '[]')), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false, exam: (function () { try { const e = JSON.parse(localStorage.getItem('lf_exam') || 'null'); let cur = ''; try { cur = sessionStorage.getItem('lf_currentStudent') || ''; } catch (x) {} if (e && e.student && e.student !== cur) return null; return e; } catch (e) { return null; } })(), examResult: null, hwOpen: null, hwSubOpen: null, hwPick: null, mistakes: JSON.parse(localStorage.getItem('lf_mistakes') || '[]'), examRes: JSON.parse(localStorage.getItem('lf_exams') || '[]'), wbSave: JSON.parse(localStorage.getItem('lf_wbsave') || '{}') };
+const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, pdfFlip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, currentStudent: (function () { try { return sessionStorage.getItem('lf_currentStudent') || null; } catch (e) { return null; } })(), speakPage: 0, speakEdit: null, speakFormOpen: false, speakLevel: 'All', speakTab: 'flip', speakFlip: 0, speakGames: (function () { try { const saved = JSON.parse(localStorage.getItem('lf_speakingBook') || 'null'); if (Array.isArray(saved) && saved.length) return saved; } catch (e) {} return (window.DEFAULT_SPEAK_GAMES || []).map(g => ({ ...g })); })(), speakProgress: (function () { try { return JSON.parse(localStorage.getItem('lf_speakingProgress') || '{}'); } catch (e) { return {}; } })(), student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: (function (h) { return (h || []).map(x => x && x.id ? x : { id: 'hw' + Math.random().toString(36).slice(2, 8), title: (x && x.text) || '', instr: '', type: 'custom', level: '', unit: '', mins: 20, due: '', who: 'all', status: x && x.done ? 'graded' : 'assigned', sub: null, grade: null, fb: '', legacy: true }); })(JSON.parse(localStorage.getItem('lf_homework') || '[]')), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false, exam: (function () { try { const e = JSON.parse(localStorage.getItem('lf_exam') || 'null'); let cur = ''; try { cur = sessionStorage.getItem('lf_currentStudent') || ''; } catch (x) {} if (e && e.student && e.student !== cur) return null; return e; } catch (e) { return null; } })(), examResult: null, hwOpen: null, hwSubOpen: null, hwPick: null, mistakes: JSON.parse(localStorage.getItem('lf_mistakes') || '[]'), examRes: JSON.parse(localStorage.getItem('lf_exams') || '[]'), wbSave: JSON.parse(localStorage.getItem('lf_wbsave') || '{}') };
 let __LF_ACTIVE_MODULE_ID = null;
 let __LF_TEACHER_VP = JSON.stringify(VP);
 let __LF_TEACHER_IST = JSON.stringify(IST);
@@ -695,22 +695,62 @@ function listening() {
 function speaking() {
   return `<div class="section"><div class="row" style="justify-content:space-between;flex-wrap:wrap"><div><h2>Speaking Studio</h2><p class="muted">Build confidence with structured games, role-play, discussion and storytelling.</p></div><button class="btn" onclick="go('speaking-book')">Open Speaking Games Book →</button></div>${bannerSVG('speaking')}<div class="card"><span class="pill">1 minute challenge</span><h3>Speak about a topic you know well.</h3><p>Use an opening, two supporting details and a closing sentence. Try to use five target words.</p><div class="hero" style="text-align:center;margin:18px 0"><div id="timer" style="font:800 54px 'Plus Jakarta Sans'">01:00</div><button class="btn dark" onclick="startTimer()">Start timer</button></div><h3>Useful phrases</h3><div class="row">${['In my experience…', 'One reason is…', 'For example…', 'However…', 'Overall…'].map(x => `<span class="pill">${x}</span>`).join('')}</div></div></div>`;
 }
+/* ---- Speaking Games Book · flip-book edition ---- */
+function spkDone() { return state.speakProgress[myId() || '_teacher'] || {}; }
+function spkField(label, text) { return text ? `<section class="speak-block"><h3>${label}</h3><p>${esc(text).replace(/\n/g, '<br>')}</p></section>` : ''; }
+function spkPageOne(g, i, total) {
+  const isTeacher = !isStudent();
+  const done = !!spkDone()[g.id];
+  return `<div class="fp"><div class="fp-unith"><span class="giu-num" style="--c:#5d50e9">${String(i + 1).padStart(2, '0')}</span><h3>${esc(g.title)}</h3><span class="muted">Activity ${i + 1} / ${total}</span></div><div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:4px"><span class="pill">${esc(g.level)}</span><span class="pill">${g.time} min</span><span class="pill">${esc(g.group)}</span></div><p class="muted small">${esc(g.type)}</p>${spkField('Learning aim', g.aim)}${spkField('Materials', g.materials)}${spkField('Set-up', g.setup)}<div class="speak-complete"><div><b>${done ? 'Activity completed' : 'Finished this activity?'}</b><p class="muted small">${done ? 'Saved to your progress on this device. Mark it incomplete to repeat it.' : 'Mark it complete to track your progress.'}</p></div><button class="btn ${done ? 'light' : 'dark'}" onclick="speakMarkDone('${g.id}')">${done ? '✓ Completed · Undo' : 'Mark complete'}</button></div>${isTeacher ? `<div class="row" style="gap:8px"><button class="btn light" onclick="speakEditGame('${g.id}')">✎ Edit this activity</button></div>` : ''}</div>`;
+}
+function spkPageTwo(g) {
+  const steps = String(g.steps || '').split(/\n+/).filter(Boolean);
+  return `<div class="fp"><span class="pill">HOW TO RUN IT</span><h3 class="fp-title">${esc(g.title)}</h3><section class="speak-block"><h3>How to play</h3><ol class="speak-steps">${steps.map(s => `<li>${esc(s.replace(/^\d+[.)]\s*/, ''))}</li>`).join('')}</ol></section>${spkField('Useful language', g.language)}${spkField('Prompts / cards', g.prompts)}${spkField('Adapt and extend', g.variation)}${spkField('Reflect', g.reflection)}</div>`;
+}
+function speakBookPages(games) {
+  const pages = [
+    enCoverPage('Talk, Play, Connect', 'Speaking Games & Activities', ['A1', 'A2', 'B1', 'B1+', 'B2', 'B2+'], `${games.length} activities · fully editable`, '#252a52', '#f1689e'),
+    `<div class="fp"><h3 class="fp-title">Contents</h3><p class="muted small">${games.length} classroom-ready activities. Pick one, or keep flipping with the controls below.</p><div class="fp-contents">${games.map((g, i) => `<div class="fp-row" onclick="state.speakFlip=${2 + i * 2};render()"><span class="un">${String(i + 1).padStart(2, '0')}</span><div><b>${esc(g.title)}</b><div class="muted small">${esc(g.level)} · ${esc(g.type)} · ${g.time} min</div></div>${spkDone()[g.id] ? '<span class="good">✓</span>' : ''}<span class="go">→</span></div>`).join('') || '<div class="empty">No activities for this level.</div>'}</div></div>`
+  ];
+  games.forEach((g, i) => { pages.push(spkPageOne(g, i, games.length)); pages.push(spkPageTwo(g)); });
+  return pages;
+}
+function speakFlipBook(games) {
+  const pages = speakBookPages(games);
+  const n = pages.length;
+  const i = Math.max(0, Math.min(n, Number(state.speakFlip) || 0));
+  const closed = i >= n;
+  const L = closed ? n - 1 : i, R = closed ? n : i + 1;
+  const wrap = (content, num) => {
+    const isCover = content.indexOf('book-cover') >= 0;
+    const ph = isCover ? '' : `<div class="page-head"><span>Speaking Games Book</span><span class="ph-ed">TEACHER’S RESOURCE</span></div>`;
+    const pf = isCover ? '' : `<div class="page-foot"><span class="pn">${num}</span></div>`;
+    return `${ph}<div class="page-body${isCover ? ' is-cover' : ''}">${content}</div>${pf}`;
+  };
+  return `<div class="book3d ${closed ? 'closed' : ''}" style="--bc:#252a52" onclick="${closed ? 'state.speakFlip=0;render()' : ''}"><div class="bpage left">${wrap(String(pages[L] || ''), i + 1)}</div><div class="bspine"></div><div class="bpage right">${wrap(String(pages[R] || ''), i + 2)}</div></div>${closed ? `<p class="center"><button class="btn dark" onclick="state.speakFlip=0;render()">📖 Open the book again</button></p>` : `<div class="flip-nav"><button class="btn light" ${i > 0 ? `onclick="state.speakFlip=${Math.max(0, i - 2)};render()"` : 'disabled'}>◀ Back</button><span class="pill">${Math.floor(i / 2) + 1} / ${Math.ceil(n / 2)}</span><button class="btn" ${i + 1 < n ? `onclick="state.speakFlip=${i + 1};render()"` : `onclick="state.speakFlip=${n};render()"`}>Next ▶</button></div><p class="muted small center">${i + 1 < n ? 'Keep flipping…' : 'End of the book — flip once more to close it.'}</p>`}`;
+}
 function speakingBook() {
   const isTeacher = !isStudent();
   const games = state.speakGames.filter(g => state.speakLevel === 'All' || g.level === state.speakLevel);
   const game = state.speakGames.find(g => g.id === state.speakPage);
-  const done = state.speakProgress[myId() || '_teacher'] || {};
+  const done = spkDone();
   const completed = games.filter(g => done[g.id]).length;
   const levelsList = ['All', ...new Set(state.speakGames.map(g => g.level))];
-  const nav = `<div class="filters speak-filters">${levelsList.map(l => `<button class="filter ${state.speakLevel === l ? 'active' : ''}" onclick="state.speakLevel='${l}';state.speakPage=0;render()">${l}</button>`).join('')}</div>`;
-  const toc = `<div class="speak-toc"><h3>Contents <span class="muted small">${games.length} activities · ${completed} completed</span></h3>${games.map((g, i) => `<button class="speak-toc-item ${state.speakPage === g.id ? 'active' : ''}" onclick="speakOpen('${g.id}')"><span class="toc-num">${String(i + 1).padStart(2, '0')}</span><span class="toc-text"><b>${esc(g.title)}</b><small>${esc(g.level)} · ${esc(g.type)} · ${g.time} min</small></span>${done[g.id] ? '<span class="good">✓</span>' : ''}</button>`).join('')}</div>`;
-  let content;
-  if (state.speakFormOpen) content = speakEditorForm();
-  else if (game) content = speakChapter(game, games, done, isTeacher);
-  else content = `<div class="speak-book-cover"><span class="pill">TEACHER’S RESOURCE · SPEAKING</span><h1>Talk, Play, Connect</h1><h2>Speaking Games & Activities</h2><p>Practical, levelled classroom activities that get every learner talking — with steps, language support, variations and reflection built in.</p><div class="speak-cover-marks"><span>${state.speakGames.length} original & editable activities</span><span>A1–B2+</span><span>Pairs · groups · whole class</span></div>${isTeacher ? '<button class="btn dark" onclick="speakNew()">+ Add your own activity</button>' : '<p class="pill">Choose an activity from the contents to begin.</p>'}</div>`;
-  return `<div class="section speaking-book-page"><div class="speak-book-head"><div><button class="btn light" onclick="go('speaking')">← Speaking Studio</button><h2 style="margin:12px 0 4px">Speaking Games Book</h2><p class="muted">${isTeacher ? 'Edit the activities, add your own games and save your changes in this browser.' : 'Choose an activity, work through the steps and mark it complete.'}</p></div>${isTeacher ? '<div class="row"><button class="btn light" onclick="speakExport()">Export book</button><label class="btn light speak-import-label">Import book<input type="file" accept="application/json,.json" onchange="speakImport(event)" hidden></label><button class="btn" onclick="speakNew()">+ New activity</button></div>' : ''}</div>${nav}<div class="speak-book-layout">${toc}<article class="speak-chapter">${content}</article></div></div>`;
+  const nav = `<div class="filters speak-filters">${levelsList.map(l => `<button class="filter ${state.speakLevel === l ? 'active' : ''}" onclick="state.speakLevel='${l}';state.speakPage=0;state.speakFlip=0;render()">${l}</button>`).join('')}</div>`;
+  const head = `<div class="speak-book-head"><div><button class="btn light" onclick="go('speaking')">← Speaking Studio</button><h2 style="margin:12px 0 4px">Speaking Games Book</h2><p class="muted">${isTeacher ? 'Flip through the book, edit any activity or add your own — changes are saved in this browser.' : 'Flip through the book, work through the steps and mark each activity complete.'}</p></div>${isTeacher ? '<div class="row"><button class="btn light" onclick="speakExport()">Export book</button><label class="btn light speak-import-label">Import book<input type="file" accept="application/json,.json" onchange="speakImport(event)" hidden></label><button class="btn" onclick="speakNew()">+ New activity</button></div>' : ''}</div>`;
+  if (state.speakFormOpen) return `<div class="section speaking-book-page">${head}${speakEditorForm()}</div>`;
+  const tab = state.speakTab === 'list' ? 'list' : 'flip';
+  const tabs = `<div class="tabs">${[['flip', '📖 Flip book'], ['list', '☰ Contents & edit']].map(([k, l]) => `<button class="filter ${tab === k ? 'active' : ''}" onclick="state.speakTab='${k}';render()">${l}</button>`).join('')}</div>`;
+  let body;
+  if (tab === 'flip') body = speakFlipBook(games);
+  else {
+    const toc = `<div class="speak-toc"><h3>Contents <span class="muted small">${games.length} activities · ${completed} completed</span></h3>${games.map((g, i) => `<button class="speak-toc-item ${state.speakPage === g.id ? 'active' : ''}" onclick="speakOpen('${g.id}')"><span class="toc-num">${String(i + 1).padStart(2, '0')}</span><span class="toc-text"><b>${esc(g.title)}</b><small>${esc(g.level)} · ${esc(g.type)} · ${g.time} min</small></span>${done[g.id] ? '<span class="good">✓</span>' : ''}</button>`).join('')}</div>`;
+    const content = game ? speakChapter(game, games, done, isTeacher) : `<div class="speak-book-cover"><span class="pill">TEACHER’S RESOURCE · SPEAKING</span><h1>Talk, Play, Connect</h1><h2>Speaking Games & Activities</h2><p>Practical, levelled classroom activities that get every learner talking — with steps, language support, variations and reflection built in.</p><div class="speak-cover-marks"><span>${state.speakGames.length} original & editable activities</span><span>A1–B2+</span><span>Pairs · groups · whole class</span></div>${isTeacher ? '<button class="btn dark" onclick="speakNew()">+ Add your own activity</button>' : '<p class="pill">Choose an activity from the contents to begin.</p>'}</div>`;
+    body = `<div class="speak-book-layout">${toc}<article class="speak-chapter">${content}</article></div>`;
+  }
+  return `<div class="section speaking-book-page">${head}${tabs}${nav}${body}</div>`;
 }
-function speakOpen(id) { state.speakPage = id; state.speakFormOpen = false; state.speakEdit = null; render(); window.scrollTo(0, 0); }
+function speakOpen(id) { state.speakPage = id; state.speakFormOpen = false; state.speakEdit = null; const i = state.speakGames.findIndex(g => g.id === id); if (i >= 0) state.speakFlip = 2 + i * 2; render(); window.scrollTo(0, 0); }
 function speakNew() { state.speakEdit = { id: 'custom-' + Date.now(), title: '', level: 'A2', type: 'Speaking game', time: 15, group: 'Pairs', aim: '', materials: '', setup: '', steps: '', language: '', prompts: '', variation: '', reflection: '', editable: true }; state.speakFormOpen = true; state.speakPage = 0; render(); }
 function speakEditGame(id) { const g = state.speakGames.find(x => x.id === id); if (!g) return; state.speakEdit = { ...g }; state.speakFormOpen = true; render(); }
 function speakEditorForm() {
@@ -724,9 +764,9 @@ function speakSaveGame() {
   g.id = state.speakEdit.id; g.time = Math.max(1, parseInt(g.time, 10) || 15); g.editable = true;
   const i = state.speakGames.findIndex(x => x.id === g.id);
   if (i < 0) state.speakGames.push(g); else state.speakGames[i] = g;
-  state.speakPage = g.id; state.speakLevel = 'All'; state.speakFormOpen = false; state.speakEdit = null; save(); render(); toast('Activity saved on this device.');
+  state.speakPage = g.id; state.speakLevel = 'All'; state.speakFlip = 2 + (i < 0 ? state.speakGames.length - 1 : i) * 2; state.speakFormOpen = false; state.speakEdit = null; save(); render(); toast('Activity saved on this device.');
 }
-function speakDelete(id) { if (!confirm('Delete this speaking activity? This cannot be undone.')) return; state.speakGames = state.speakGames.filter(g => g.id !== id); state.speakPage = 0; save(); render(); }
+function speakDelete(id) { if (!confirm('Delete this speaking activity? This cannot be undone.')) return; state.speakGames = state.speakGames.filter(g => g.id !== id); state.speakPage = 0; state.speakFlip = 0; save(); render(); }
 function speakExport() {
   const blob = new Blob([JSON.stringify(state.speakGames, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -739,7 +779,7 @@ function speakImport(event) {
       const data = JSON.parse(reader.result);
       if (!Array.isArray(data) || data.some(g => !g || !g.id || !g.title)) throw new Error('Invalid book format');
       if (!confirm(`Import ${data.length} activities and replace the current speaking book? Export a backup first if needed.`)) return;
-      state.speakGames = data; state.speakPage = 0; state.speakFormOpen = false; state.speakEdit = null; save(); render(); toast('Speaking book imported.');
+      state.speakGames = data; state.speakPage = 0; state.speakFlip = 0; state.speakFormOpen = false; state.speakEdit = null; save(); render(); toast('Speaking book imported.');
     } catch (e) { alert('Could not import this file. Choose a valid Speaking Games Book JSON export.'); }
   }; reader.readAsText(file);
 }

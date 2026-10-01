@@ -240,6 +240,7 @@
 .bpage .fp-row:hover{background:#f7f3ff;transform:translateX(3px)}
 .bpage .fp-row b{font-size:13.5px;color:#23264d}
 .bpage .fp-row .go{color:#b7b0f0;font-size:16px;margin-left:auto}
+.good{color:#20855f;font-weight:800}
 .bpage .fp-row .un{flex:0 0 auto;display:inline-grid;place-items:center;min-width:34px;height:26px;border-radius:8px;background:#efedff;color:#5e50d7;font:800 12px 'Plus Jakarta Sans'}
 .fp-unith{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .fp-unith h3{font:800 17px 'Plus Jakarta Sans';margin:0;color:#23264d}
