@@ -253,88 +253,224 @@ function makeBook(age, level) {
 }
 const books = [...kids.map(l => makeBook('Kids', l)), ...teens.map(l => makeBook('Teens', l)), ...adults.map(l => makeBook('Adults', l))];
 const allVocab = levels.flatMap(l => VOCAB[l].map((w, i) => ({ ...w, level: l, icon: icons[i % icons.length], topic: TOPICS[i % TOPICS.length].title })));
-const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, pdfFlip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, currentStudent: localStorage.getItem('lf_currentStudent') || null, speakPage: 0, speakEdit: null, speakFormOpen: false, speakLevel: 'All', speakGames: (function () { try { const saved = JSON.parse(localStorage.getItem('lf_speakingBook') || 'null'); if (Array.isArray(saved) && saved.length) return saved; } catch (e) {} return (window.DEFAULT_SPEAK_GAMES || []).map(g => ({ ...g })); })(), speakProgress: JSON.parse(localStorage.getItem('lf_speakingProgress') || '{}'), student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: (function (h) { return (h || []).map(x => x && x.id ? x : { id: 'hw' + Math.random().toString(36).slice(2, 8), title: (x && x.text) || '', instr: '', type: 'custom', level: '', unit: '', mins: 20, due: '', who: 'all', status: x && x.done ? 'graded' : 'assigned', sub: null, grade: null, fb: '', legacy: true }); })(JSON.parse(localStorage.getItem('lf_homework') || '[]')), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false, exam: (function () { try { return JSON.parse(localStorage.getItem('lf_exam') || 'null'); } catch (e) { return null; } })(), examResult: null, hwOpen: null, hwSubOpen: null, mistakes: JSON.parse(localStorage.getItem('lf_mistakes') || '[]'), examRes: JSON.parse(localStorage.getItem('lf_exams') || '[]'), wbSave: JSON.parse(localStorage.getItem('lf_wbsave') || '{}') };
-function save() { localStorage.setItem('lf_students', JSON.stringify(state.student)); localStorage.setItem('lf_homework', JSON.stringify(state.homework)); localStorage.setItem('lf_plans', JSON.stringify(state.plans)); localStorage.setItem('lf_currentStudent', state.currentStudent || ''); try { localStorage.setItem('lf_speakingBook', JSON.stringify(state.speakGames)); localStorage.setItem('lf_mistakes', JSON.stringify(state.mistakes)); localStorage.setItem('lf_exams', JSON.stringify(state.examRes)); localStorage.setItem('lf_wbsave', JSON.stringify(state.wbSave)); } catch (e) {} }
-function me() { return state.student.find(s => s.name === state.currentStudent); }
+const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, pdfFlip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, currentStudent: (function () { try { return sessionStorage.getItem('lf_currentStudent') || null; } catch (e) { return null; } })(), speakPage: 0, speakEdit: null, speakFormOpen: false, speakLevel: 'All', speakGames: (function () { try { const saved = JSON.parse(localStorage.getItem('lf_speakingBook') || 'null'); if (Array.isArray(saved) && saved.length) return saved; } catch (e) {} return (window.DEFAULT_SPEAK_GAMES || []).map(g => ({ ...g })); })(), speakProgress: (function () { try { return JSON.parse(localStorage.getItem('lf_speakingProgress') || '{}'); } catch (e) { return {}; } })(), student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: (function (h) { return (h || []).map(x => x && x.id ? x : { id: 'hw' + Math.random().toString(36).slice(2, 8), title: (x && x.text) || '', instr: '', type: 'custom', level: '', unit: '', mins: 20, due: '', who: 'all', status: x && x.done ? 'graded' : 'assigned', sub: null, grade: null, fb: '', legacy: true }); })(JSON.parse(localStorage.getItem('lf_homework') || '[]')), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false, exam: (function () { try { const e = JSON.parse(localStorage.getItem('lf_exam') || 'null'); let cur = ''; try { cur = sessionStorage.getItem('lf_currentStudent') || ''; } catch (x) {} if (e && e.student && e.student !== cur) return null; return e; } catch (e) { return null; } })(), examResult: null, hwOpen: null, hwSubOpen: null, hwPick: null, mistakes: JSON.parse(localStorage.getItem('lf_mistakes') || '[]'), examRes: JSON.parse(localStorage.getItem('lf_exams') || '[]'), wbSave: JSON.parse(localStorage.getItem('lf_wbsave') || '{}') };
+let __LF_ACTIVE_MODULE_ID = null;
+let __LF_TEACHER_VP = JSON.stringify(VP);
+let __LF_TEACHER_IST = JSON.stringify(IST);
+const __LF_VP_DEFAULT = JSON.stringify({ saved: {}, boxes: {}, fav: {}, stats: {}, days: {}, custom: [] });
+const __LF_IST_DEFAULT = JSON.stringify({ mistakes: [], tests: [], planCfg: null, planTicks: {}, daily: {}, dailyAns: {}, vocabKnown: {}, vocabFav: {}, vocabStats: {}, colStats: {}, diag: null, mock: null, writing: {}, favWords: 0, studyTime: 0 });
+const __LF_MODULE_TABS = {};
+function __lfJson(raw, base) { try { return Object.assign({}, JSON.parse(base), JSON.parse(raw || '{}')); } catch (e) { return JSON.parse(base); } }
+function __lfLoadModules(id) {
+  if (!id || __LF_ACTIVE_MODULE_ID === id) return;
+  if (__LF_ACTIVE_MODULE_ID) __LF_MODULE_TABS[__LF_ACTIVE_MODULE_ID] = { vp: JSON.stringify(VP), ist: JSON.stringify(IST) };
+  __LF_ACTIVE_MODULE_ID = id;
+  const saved = __LF_MODULE_TABS[id] || {};
+  const vpData = __lfJson(saved.vp || localStorage.getItem('lf_vpro_student_' + id), __LF_VP_DEFAULT);
+  const istData = __lfJson(saved.ist || localStorage.getItem('lf_ielts_student_' + id), __LF_IST_DEFAULT);
+  const legacyVP = !localStorage.getItem('lf_vpro_student_' + id) && localStorage.getItem('lf_vpro');
+  const legacyIST = !localStorage.getItem('lf_ielts_student_' + id) && localStorage.getItem('lf_ielts');
+  if (legacyVP) {
+    const d = JSON.parse(legacyVP); ['saved','boxes','fav','stats','days'].forEach(k => { vpData[k] = {}; });
+    vpData.custom = Array.isArray(d.custom) ? d.custom : [];
+  }
+  if (legacyIST) {
+    const d = JSON.parse(legacyIST); ['mistakes','tests','planTicks','daily','dailyAns','vocabKnown','vocabFav','vocabStats','colStats','writing'].forEach(k => { istData[k] = {}; });
+    istData.mistakes = []; istData.tests = []; istData.planCfg = null; istData.planTicks = {}; istData.daily = {}; istData.dailyAns = {}; istData.vocabKnown = {}; istData.vocabFav = {}; istData.vocabStats = {}; istData.colStats = {}; istData.writing = {}; istData.diag = null; istData.mock = null;
+  }
+  Object.keys(VP).forEach(k => delete VP[k]); Object.assign(VP, vpData);
+  Object.keys(IST).forEach(k => delete IST[k]); Object.assign(IST, istData);
+  if (legacyVP) localStorage.setItem('lf_vpro_student_' + id, JSON.stringify(VP));
+  if (legacyIST) localStorage.setItem('lf_ielts_student_' + id, JSON.stringify(IST));
+  vpRebuild();
+}
+function __lfUnloadModules() {
+  if (__LF_ACTIVE_MODULE_ID) __LF_MODULE_TABS[__LF_ACTIVE_MODULE_ID] = { vp: JSON.stringify(VP), ist: JSON.stringify(IST) };
+  __LF_ACTIVE_MODULE_ID = null;
+  Object.keys(VP).forEach(k => delete VP[k]); Object.assign(VP, JSON.parse(__LF_TEACHER_VP || __LF_VP_DEFAULT));
+  Object.keys(IST).forEach(k => delete IST[k]); Object.assign(IST, JSON.parse(__LF_TEACHER_IST || __LF_IST_DEFAULT));
+  vpRebuild();
+}
+const __LF_PERSONAL_VIEWS = ['vpx', 'vpflash', 'vpvisual', 'vpquiz', 'vpwotd', 'vpmy', 'vpprogress', 'ielts', 'ielts-overview', 'ielts-diagnostic', 'ielts-plan', 'ielts-listening', 'ielts-reading', 'ielts-writing', 'ielts-speaking', 'ielts-vocab', 'ielts-colloc', 'ielts-grammar', 'ielts-mocks', 'ielts-calc', 'ielts-progress', 'ielts-mistakes', 'ielts-daily', 'ielts-resources'];
+function save() {
+  try { sessionStorage.setItem('lf_currentStudent', state.currentStudent || ''); } catch (e) {}
+  try {
+    localStorage.removeItem('lf_currentStudent');
+    localStorage.setItem('lf_students', JSON.stringify(state.student));
+    localStorage.setItem('lf_homework', JSON.stringify(state.homework));
+    localStorage.setItem('lf_plans', JSON.stringify(state.plans));
+    localStorage.setItem('lf_speakingBook', JSON.stringify(state.speakGames));
+    localStorage.setItem('lf_speakingProgress', JSON.stringify(state.speakProgress));
+    localStorage.setItem('lf_mistakes', JSON.stringify(state.mistakes));
+    localStorage.setItem('lf_exams', JSON.stringify(state.examRes));
+    localStorage.setItem('lf_wbsave', JSON.stringify(state.wbSave));
+  } catch (e) {}
+}
+function me() { return state.student.find(s => s.id === state.currentStudent); }
 function isStudent() { return !!state.currentStudent; }
 function myLevel() { const s = me(); return s ? s.level : state.level; }
-function myHomework() { return state.homework.filter(h => h.who === 'all' || h.who === state.currentStudent); }
-function myExams() { return state.examRes.filter(r => r.student === state.currentStudent); }
-function myMistakes() { return state.mistakes.filter(m => m.student === state.currentStudent); }
-function wbKey(k) { return (state.currentStudent ? state.currentStudent + ':' : '') + k; }
+function myId() { return state.currentStudent || ''; }
+function stuById(id) { return state.student.find(s => s.id === id); }
+function stuName(id) { const s = stuById(id); return s ? s.name : (id === 'all' ? 'Whole class' : (id || '—')); }
+function myHomework() { return state.homework.filter(h => h.who === 'all' || h.who === myId()); }
+function myExams() { return state.examRes.filter(r => r.student === myId()); }
+function myMistakes() { return state.mistakes.filter(m => m.student === myId()); }
+function wbKey(k) { return (myId() ? myId() + ':' : '') + k; }
 function wbGet(k) { return state.wbSave[wbKey(k)]; }
 function wbSet(k, v) { state.wbSave[wbKey(k)] = v; save(); }
+
+/* ---- Identity: every learner gets a stable ID; all records are keyed by that ID ---- */
+function migrateIdentity() {
+  const used = {};
+  state.student = (state.student || []).filter(Boolean);
+  state.student.forEach(s => {
+    if (!s.id || used[s.id]) {
+      let base = 'st' + String(s.name || 'learner').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10);
+      if (!base || base === 'st') base = 'stlearner';
+      let id = base, n = 2;
+      while (used[id]) id = base + n++;
+      s.id = id;
+    }
+    used[s.id] = 1;
+    if (!s.level || !levels.includes(s.level)) s.level = 'A1';
+    if (typeof s.pin !== 'string') s.pin = s.pin == null ? '' : String(s.pin);
+  });
+  const byName = {}; state.student.forEach(s => { byName[s.name] = s.id; });
+  const remap = v => (v && v !== 'all' && byName[v]) ? byName[v] : v;
+  state.homework = (state.homework || []).filter(Boolean);
+  state.homework.forEach(h => {
+    h.who = remap(h.who) || 'all';
+    if (!h.subs || typeof h.subs !== 'object' || Array.isArray(h.subs)) h.subs = {};
+    if (h.sub) {
+      const key = h.who === 'all' ? '_legacy' : h.who;
+      if (!h.subs[key]) h.subs[key] = { text: h.sub.text || '', date: h.sub.date || '', status: h.status === 'graded' ? 'graded' : (h.status === 'revision' ? 'revision' : 'submitted'), grade: h.grade != null ? h.grade : null, fb: h.fb || '', legacy: true };
+    }
+    delete h.sub; delete h.grade; delete h.fb; delete h.status;
+  });
+  (state.speakProgress && typeof state.speakProgress === 'object' ? Object.keys(state.speakProgress) : []).forEach(k => {
+    const target = remap(k);
+    if (target !== k) { state.speakProgress[target] = Object.assign({}, state.speakProgress[target] || {}, state.speakProgress[k] || {}); delete state.speakProgress[k]; }
+  });
+  (state.examRes || []).forEach(r => { r.student = remap(r.student) || ''; });
+  (state.mistakes || []).forEach(m => { m.student = remap(m.student) || ''; });
+  if (state.exam) state.exam.student = remap(state.exam.student || state.currentStudent) || '';
+  const wb = {};
+  Object.keys(state.wbSave || {}).forEach(k => {
+    const i = k.indexOf(':');
+    if (i > 0) { const pre = k.slice(0, i); wb[(byName[pre] || pre) + k.slice(i)] = state.wbSave[k]; }
+    else wb[k] = state.wbSave[k];
+  });
+  state.wbSave = wb;
+  state.currentStudent = remap(state.currentStudent);
+  if (state.currentStudent && !state.student.some(s => s.id === state.currentStudent)) state.currentStudent = null;
+  if (!state.currentStudent) state.exam = null;
+  if (state.student.length || state.homework.length || state.examRes.length || state.mistakes.length || Object.keys(state.wbSave).length || state.currentStudent) save();
+}
+migrateIdentity();
 
 /* ---------------- Shell & navigation ---------------- */
 function layout(content) {
   const stu = isStudent();
-  const userPill = stu ? `<span class="pill" style="background:#e8f7ef;color:#20855f"><b>${esc(state.currentStudent)}</b> · ${esc(myLevel())}</span><button class="btn light" onclick="logout()">Logout</button>` : (state.student.length ? `<button class="btn light" onclick="go('login')">Student login</button>` : `<span class="pill">Teacher view</span>`);
+  const userPill = stu ? `<span class="pill" style="background:#e8f7ef;color:#20855f"><b>${esc(stuName(myId()))}</b> · ${esc(myLevel())}</span><button class="btn light" onclick="logout()">Logout</button>` : (state.student.length ? `<button class="btn light" onclick="go('login')">Student login</button>` : `<span class="pill">Teacher view</span>`);
   const teachNav = [['dashboard', '🏠', 'Dashboard'], ['students', '👩‍🎓', 'Students'], ['planner', '📅', 'Lesson Planner'], ['progress', '📊', 'Progress'], ['speaking-book', '🗣️', 'Speaking Games Book']];
   const studentNav = [['student-dashboard', '🏠', 'My Home'], ['my-homework', '🏠', 'My Homework'], ['workbook', '📝', 'Workbook'], ['speaking-book', '🗣️', 'Speaking Games Book'], ['tests', '🧪', 'Assessments'], ['my-progress', '📊', 'My Progress'], ['my-mistakes', '📒', 'My Mistakes']];
   const navBlock = (title, items) => `<div class="navtitle">${title}</div>${items.map(x => nav(...x)).join('')}`;
-  document.getElementById('app').innerHTML = `<div class="app"><aside class="side"><div class="brand"><span>LF</span><strong>Lingua Forge</strong></div>${stu ? navBlock('My Program', studentNav) : navBlock('Teach', teachNav)}<div class="navtitle">Published Library</div>${[['textbooks', '📚', 'Coursebooks'], ['grammar', '📖', 'Grammar in Use'], ['vocabulary', '🔤', 'Vocabulary in Use'], ['workbook', '📝', 'Workbooks'], ['teacher', '👩‍🏫', 'Teacher’s Book']].map(x => nav(...x)).join('')}<div class="navtitle">Skills Lab</div>${[['reading', '📚', 'Reading Studio'], ['listening', '🎧', 'Listening Lab'], ['speaking', '🗣️', 'Speaking Studio'], ['writing', '✍️', 'Writing Studio'], ['flashcards', '🃏', 'Flashcards'], ['games', '🎮', 'Activities'], ['ielts', '🎓', 'IELTS Hub']].map(x => nav(...x)).join('')}<div class="navtitle">Vocabulary Pro</div>${[['vpx', '🖼️', 'Vocabulary Explorer'], ['vpflash', '🃏', 'Flashcards'], ['vpvisual', '👁️', 'Visual Lab'], ['vpquiz', '🧠', 'Quiz Lab'], ['vpwotd', '📅', 'Word of the Day'], ['vpmy', '📒', 'My Vocabulary'], ['vpprogress', '📈', 'Vocab Progress']].map(x => nav(...x)).join('')}<div class="navtitle">Italiano 🇮🇹</div>${[['italian', '🍝', 'Italiano'], ['itgrammar', '📖', 'Grammatica'], ['itvocab', '🔤', 'Lessico'], ['itreading', '📚', 'Lettura'], ['itlistening', '🎧', 'Ascolto'], ['itspeaking', '🗣️', 'Parlare'], ['itwriting', '✍️', 'Scrivere']].map(x => nav(...x)).join('')}</aside><main class="main"><div class="top"><input class="search" placeholder="Search vocabulary, grammar, lessons…" onkeydown="if(event.key==='Enter')search(this.value)">${userPill}</div>${content}</main></div>`;
+  const vpNav = [['vpx', '🖼️', 'Vocabulary Explorer'], ['vpflash', '🃏', 'Flashcards'], ['vpvisual', '👁️', 'Visual Lab'], ['vpquiz', '🧠', 'Quiz Lab'], ['vpwotd', '📅', 'Word of the Day'], ['vpmy', '📒', 'My Vocabulary'], ['vpprogress', '📈', 'Vocab Progress']].concat(stu ? [] : [['vpadmin', '⚙️', 'Vocabulary Admin']]);
+  document.getElementById('app').innerHTML = `<div class="app"><aside class="side"><div class="brand"><span>LF</span><strong>Lingua Forge</strong></div>${stu ? navBlock('My Program', studentNav) : navBlock('Teach', teachNav)}<div class="navtitle">Published Library</div>${[['textbooks', '📚', 'Coursebooks'], ['grammar', '📖', 'Grammar in Use'], ['vocabulary', '🔤', 'Vocabulary in Use'], ['workbook', '📝', 'Workbooks'], ['teacher', '👩‍🏫', 'Teacher’s Book']].map(x => nav(...x)).join('')}<div class="navtitle">Skills Lab</div>${[['reading', '📚', 'Reading Studio'], ['listening', '🎧', 'Listening Lab'], ['speaking', '🗣️', 'Speaking Studio'], ['writing', '✍️', 'Writing Studio'], ['flashcards', '🃏', 'Flashcards'], ['games', '🎮', 'Activities'], ['ielts', '🎓', 'IELTS Hub']].map(x => nav(...x)).join('')}<div class="navtitle">Vocabulary Pro</div>${vpNav.map(x => nav(...x)).join('')}<div class="navtitle">Italiano 🇮🇹</div>${[['italian', '🍝', 'Italiano'], ['itgrammar', '📖', 'Grammatica'], ['itvocab', '🔤', 'Lessico'], ['itreading', '📚', 'Lettura'], ['itlistening', '🎧', 'Ascolto'], ['itspeaking', '🗣️', 'Parlare'], ['itwriting', '✍️', 'Scrivere']].map(x => nav(...x)).join('')}</aside><main class="main"><div class="top"><input class="search" placeholder="Search vocabulary, grammar, lessons…" onkeydown="if(event.key==='Enter')search(this.value)">${userPill}</div>${content}</main></div>`;
 }
+const TEACHER_VIEWS = ['dashboard', 'students', 'planner', 'progress', 'homework', 'teacher', 'vpadmin', 'login'];
 function nav(id, ico, label) { return `<button class="nav ${state.view === id ? 'active' : ''}" onclick="go('${id}')"><span>${ico}</span> ${label}</button>`; }
 function go(v) { state.view = v; state.book = null; state.lesson = null; state.flip = null; state.pdfFlip = null; render(); }
 function render() {
-  if (!isStudent() && state.view === 'login') { layout(loginView()); return; }
-  if (state.pdfFlip) { layout(pdfFlipView()); return; }
-  if (state.flip) { layout(flipView()); return; }
-  if (isStudent() && ['dashboard', 'students', 'planner', 'progress', 'homework', 'teacher'].includes(state.view)) { state.view = 'student-dashboard'; }
+  if (isStudent() && TEACHER_VIEWS.includes(state.view)) { state.view = 'student-dashboard'; }
+  if (!isStudent() && state.view === 'login') { if (__LF_ACTIVE_MODULE_ID) __lfUnloadModules(); layout(loginView()); return; }
+  if (state.exam && state.exam.student && state.exam.student !== myId()) { state.exam = null; exPersist(); }
+  if (state.pdfFlip) { if (__LF_ACTIVE_MODULE_ID) __lfUnloadModules(); layout(pdfFlipView()); return; }
+  if (state.flip) { if (__LF_ACTIVE_MODULE_ID) __lfUnloadModules(); layout(flipView()); return; }
+  if (isStudent() && __LF_PERSONAL_VIEWS.includes(state.view)) __lfLoadModules(myId());
+  else if (__LF_ACTIVE_MODULE_ID) __lfUnloadModules();
   const m = { dashboard: dashboard, textbooks: textbooks, book: bookPage, lesson: lessonPage, vocabulary: vocabulary, flashcards: flashcards, grammar: grammarPage, reading: reading, listening: listening, speaking: speaking, writing: writing, tests: tests, workbook: workbook, teacher: teacher, students: students, homework: homework, progress: progress, planner: planner, games: activities, tips: tipsPage, italian: italian, itlesson: itLessonPage, itgrammar: itGrammar, itvocab: itVocab, itreading: itReading, itlistening: itListening, itspeaking: itSpeaking, itwriting: itWriting, ielts: ieltsHub, 'ielts-overview': ieltsOverview, 'ielts-diagnostic': ieltsDiagnostic, 'ielts-plan': ieltsPlan, 'ielts-listening': ieltsListening, 'ielts-reading': ieltsReading, 'ielts-writing': ieltsWriting, 'ielts-speaking': ieltsSpeaking, 'ielts-vocab': ieltsVocab, 'ielts-colloc': ieltsColloc, 'ielts-grammar': ieltsGrammar, 'ielts-mocks': ieltsMocks, 'ielts-calc': ieltsCalc, 'ielts-progress': ieltsProgress, 'ielts-mistakes': ieltsMistakes, 'ielts-daily': ieltsDaily, 'ielts-resources': ieltsResources, vpx: vpExplorer, vpflash: vpFlash, vpvisual: vpVisual, vpquiz: vpQuiz, vpwotd: vpWotd, vpmy: vpMy, vpprogress: vpProgress, vpadmin: vpAdmin, 'speaking-book': speakingBook, login: loginView, 'student-dashboard': studentDashboard, 'my-homework': myHomeworkView, 'my-progress': myProgressView, 'my-mistakes': myMistakesView };
   layout(m[state.view]());
+  if (isStudent() && __LF_PERSONAL_VIEWS.includes(state.view)) {
+    try { localStorage.setItem('lf_vpro_student_' + myId(), JSON.stringify(VP)); localStorage.setItem('lf_ielts_student_' + myId(), JSON.stringify(IST)); } catch (e) {}
+    __LF_MODULE_TABS[myId()] = { vp: JSON.stringify(VP), ist: JSON.stringify(IST) };
+  } else if (!isStudent()) {
+    __LF_TEACHER_VP = JSON.stringify(VP); __LF_TEACHER_IST = JSON.stringify(IST);
+  }
 }
 
 /* ---------------- Auth & student program ---------------- */
 function loginView() {
   const list = state.student;
-  return `<div class="section login-section"><div class="login-card"><h2>Student login</h2><p class="muted">Choose your name and enter your PIN to open your individual program.</p>${list.length ? `<div class="login-grid">${list.map(s => `<div class="login-stu" onclick="selectLogin('${esc(s.name)}')"><div class="login-avatar">${s.name.charAt(0).toUpperCase()}</div><b>${esc(s.name)}</b><span class="muted small">${esc(s.level)}</span></div>`).join('')}</div><div id="login-pin" class="login-pin" style="display:none"><p class="muted small">Enter PIN for <b id="login-name"></b></p><input id="lpin" class="input" type="password" inputmode="numeric" maxlength="8" placeholder="PIN" onkeydown="if(event.key==='Enter')doLogin()"><div class="row" style="justify-content:center"><button class="btn" onclick="doLogin()">Open my program</button><button class="btn light" onclick="document.getElementById('login-pin').style.display='none'">Back</button></div></div>` : '<div class="empty">No students yet. Ask your teacher to create your account.</div>'}</div></div>`;
+  return `<div class="section login-section"><div class="login-card"><h2>Student login</h2><p class="muted">Choose your name and enter your PIN. Every learner has their own individual program — your homework, exams, mistakes, workbook answers and progress are private to you.</p>${list.length ? `<div class="login-grid">${list.map(s => `<div class="login-stu" onclick="selectLogin(${jarg(s.id)})"><div class="login-avatar">${esc((s.name || '?').charAt(0).toUpperCase())}</div><b>${esc(s.name)}</b><span class="muted small">${esc(s.level)}${s.pin ? '' : ' · no PIN set'}</span></div>`).join('')}</div><div id="login-pin" class="login-pin" style="display:none"><input id="login-id" type="hidden"><p class="muted small">Enter the PIN for <b id="login-name"></b></p><input id="lpin" class="input" type="password" inputmode="numeric" maxlength="8" placeholder="PIN" onkeydown="if(event.key==='Enter')doLogin()"><div class="row" style="justify-content:center"><button class="btn" onclick="doLogin()">Open my program</button><button class="btn light" onclick="document.getElementById('login-pin').style.display='none'">Back</button></div></div>` : '<div class="empty">No students yet. Ask your teacher to create your account.</div>'}</div></div>`;
 }
-function selectLogin(name) { document.getElementById('login-pin').style.display = 'block'; document.getElementById('login-name').textContent = name; document.getElementById('lpin').value = ''; document.getElementById('lpin').focus(); }
+function selectLogin(id) {
+  const s = stuById(id); if (!s) return;
+  document.getElementById('login-id').value = s.id;
+  document.getElementById('login-pin').style.display = 'block';
+  document.getElementById('login-name').textContent = s.name;
+  const f = document.getElementById('lpin'); f.value = ''; f.focus();
+}
 function doLogin() {
-  const name = document.getElementById('login-name').textContent.trim();
-  const pin = document.getElementById('lpin').value.trim();
-  const s = state.student.find(x => x.name === name);
+  const id = (document.getElementById('login-id') || {}).value || '';
+  const pin = ((document.getElementById('lpin') || {}).value || '').trim();
+  const s = stuById(id);
   if (!s) return toast('Student not found.');
-  if ((s.pin || '') && s.pin !== pin) return toast('Wrong PIN. Try again.');
-  state.currentStudent = s.name; save(); render(); toast(`Welcome, ${esc(s.name)}!`);
+  if (!s.pin) return toast('This account needs a PIN. Ask your teacher to set one before signing in.');
+  if (s.pin !== pin) return toast('Wrong PIN. Try again.');
+  state.currentStudent = s.id;
+  state.level = s.level;
+  state.exLvl = EXAM_LEVELS.includes(s.level) ? s.level : 'B1';
+  state.vunit = null; state.gunit = null; state.book = null; state.lesson = null;
+  state.flashIndex = 0; state.flashFlip = false; state.examResult = null; state.exam = null;
+  save(); exPersist(); go('student-dashboard'); toast(`Welcome back, ${s.name}!`);
 }
-function logout() { state.currentStudent = null; save(); go('login'); }
+function logout() { clearInterval(window.exTm); try { sessionStorage.setItem('lf_currentStudent', ''); } catch (e) {} state.currentStudent = null; state.level = 'All'; state.exam = null; state.examResult = null; state.hwOpen = null; state.hwSubOpen = null; state.hwPick = null; state.book = null; state.lesson = null; state.flip = null; state.pdfFlip = null; save(); exPersist(); go('login'); }
 function studentDashboard() {
   const s = me(); if (!s) { logout(); return ''; }
   const hw = myHomework();
-  const dueToday = hw.filter(h => h.due === todayStr() && h.status !== 'graded');
+  const dueToday = hw.filter(h => h.due === todayStr() && hwStatusOf(h, myId()) !== 'graded');
+  const open = hw.filter(h => hwStatusOf(h, myId()) !== 'graded');
   const exams = myExams();
   const avg = exams.length ? Math.round(exams.reduce((a, b) => a + b.pct, 0) / exams.length) : null;
-  return `<section class="hero student-hero"><span class="pill light">MY PROGRAM · ${esc(s.level)}</span><h1>Hello, ${esc(s.name)}! 👋</h1><p>Your individual learning path: homework, practice, progress and review — all in one place.</p><div class="row"><button class="btn dark" onclick="go('my-homework')">My homework →</button><button class="btn light" onclick="go('workbook')">Workbook →</button></div></section>
-  <div class="grid"><div class="stat"><span class="muted">My level</span><br><b>${esc(s.level)}</b></div><div class="stat"><span class="muted">Homework due today</span><br><b>${dueToday.length}</b></div><div class="stat"><span class="muted">Exams taken</span><br><b>${exams.length}</b></div><div class="stat"><span class="muted">Average score</span><br><b>${avg != null ? avg + '%' : '—'}</b></div></div>
-  <div class="section"><h2>Recommended for you</h2><div class="books"><div class="card" onclick="go('workbook')"><div class="illus">📝</div><h3>Workbook · ${esc(s.level)}</h3><p class="muted">Interactive exercises matched to your level.</p><button class="btn light">Start practising →</button></div><div class="card" onclick="go('tests')"><div class="illus">🧪</div><h3>Take an exam</h3><p class="muted">${esc(s.level)} skills assessment with instant feedback.</p><button class="btn light">Start exam →</button></div><div class="card" onclick="go('my-mistakes')"><div class="illus">📒</div><h3>My mistakes</h3><p class="muted">Review questions you got wrong and practise again.</p><button class="btn light">Review →</button></div></div></div>`;
+  const wbDone = Object.keys(state.wbSave).filter(k => k.indexOf(myId() + ':') === 0 && state.wbSave[k] && state.wbSave[k].score != null).length;
+  return `<section class="hero student-hero"><span class="pill light">MY PROGRAM · ${esc(s.level)}</span><h1>Hello, ${esc(s.name)}! 👋</h1><p>Your own individual program: homework, workbook practice, exams, progress and review — private to your account.</p><div class="row"><button class="btn dark" onclick="go('my-homework')">My homework →</button><button class="btn light" onclick="go('workbook')">Workbook · ${esc(s.level)} →</button></div></section>
+  <div class="grid"><div class="stat"><span class="muted">My level</span><br><b>${esc(s.level)}</b></div><div class="stat"><span class="muted">Homework due today</span><br><b>${dueToday.length}</b></div><div class="stat"><span class="muted">Tasks still open</span><br><b>${open.length}</b></div><div class="stat"><span class="muted">Exam average</span><br><b>${avg != null ? avg + '%' : '—'}</b></div></div>
+  <div class="section"><h2>Recommended for you</h2><div class="books"><div class="card" onclick="go('workbook')"><div class="illus">📝</div><h3>Workbook · ${esc(s.level)}</h3><p class="muted">Interactive exercises at your level. Your answers are saved to your account only.</p><button class="btn light">Start practising →</button></div><div class="card" onclick="go('tests')"><div class="illus">🧪</div><h3>Take an exam</h3><p class="muted">${esc(s.level)} skills assessment with instant feedback.</p><button class="btn light">Start exam →</button></div><div class="card" onclick="go('my-mistakes')"><div class="illus">📒</div><h3>My mistakes</h3><p class="muted">Review the questions you got wrong and practise again.</p><button class="btn light">Review →</button></div></div></div>
+  <div class="grid"><div class="stat"><span class="muted">Exams taken</span><br><b>${exams.length}</b></div><div class="stat"><span class="muted">Workbook activities scored</span><br><b>${wbDone}</b></div><div class="stat"><span class="muted">Mistakes to review</span><br><b>${myMistakes().length}</b></div><div class="stat"><span class="muted">Homework graded</span><br><b>${hw.filter(h => hwStatusOf(h, myId()) === 'graded').length} / ${hw.length}</b></div></div>`;
 }
 function myHomeworkView() {
+  const id = myId();
+  const st = h => hwStatusOf(h, id);
   const groups = [
-    ['Overdue', h => h.due && h.due < todayStr() && h.status !== 'graded'],
-    ['Due today', h => h.due === todayStr() && h.status !== 'graded'],
-    ['Due soon', h => h.due && h.due > todayStr() && h.due <= todayStr(3) && h.status !== 'graded'],
-    ['Upcoming', h => (!h.due || h.due > todayStr(3)) && h.status === 'assigned'],
-    ['Submitted', h => h.status === 'submitted'],
-    ['Needs revision', h => h.status === 'revision'],
-    ['Graded', h => h.status === 'graded']
+    ['Overdue', h => h.due && h.due < todayStr() && st(h) !== 'graded'],
+    ['Due today', h => h.due === todayStr() && st(h) !== 'graded'],
+    ['Due soon', h => h.due && h.due > todayStr() && h.due <= todayStr(3) && st(h) !== 'graded'],
+    ['Upcoming', h => (!h.due || h.due > todayStr(3)) && st(h) === 'assigned'],
+    ['Submitted — waiting for feedback', h => st(h) === 'submitted'],
+    ['Needs revision', h => st(h) === 'revision'],
+    ['Graded / completed', h => st(h) === 'graded']
   ];
-  return `<div class="section"><h2>My Homework</h2><p class="muted">Tasks assigned to you or the whole class.</p><div style="margin-top:15px">${groups.map(([name, f]) => { const items = myHomework().map((h, i) => [h, i]).filter(([h]) => f(h)); return items.length ? `<h3 class="hwgroup">${name} <span class="muted small">(${items.length})</span></h3><div class="list">${items.map(([h, i]) => hwItem(h, state.homework.indexOf(h))).join('')}</div>` : ''; }).join('') || '<div class="empty">No homework assigned to you yet.</div>'}</div></div>`;
+  const mine = myHomework();
+  return `<div class="section"><h2>My Homework</h2><p class="muted">Only your own tasks and your own submissions are shown here — no other learner can see or change them.</p><div style="margin-top:15px">${groups.map(([name, f]) => { const items = mine.filter(f); return items.length ? `<h3 class="hwgroup">${name} <span class="muted small">(${items.length})</span></h3><div class="list">${items.map(h => hwItem(h, state.homework.indexOf(h))).join('')}</div>` : ''; }).join('') || '<div class="empty">No homework assigned to you yet.</div>'}</div></div>`;
 }
 function myProgressView() {
   const s = me(); if (!s) return '';
   const hw = myHomework();
-  const done = hw.filter(h => h.status === 'graded').length;
+  const done = hw.filter(h => hwStatusOf(h, myId()) === 'graded').length;
   const hwPct = hw.length ? Math.round(done / hw.length * 100) : 0;
   const exams = myExams();
   const avg = exams.length ? Math.round(exams.reduce((a, b) => a + b.pct, 0) / exams.length) : null;
-  const wbDone = Object.values(state.wbSave).filter(r => r.score != null).length;
-  return `<div class="section"><h2>My Progress</h2><p class="muted">${esc(s.name)} · Level ${esc(s.level)}</p><div class="grid"><div class="stat"><span class="muted">Homework graded</span><br><b>${done} / ${hw.length}</b></div><div class="stat"><span class="muted">Exams taken</span><br><b>${exams.length}</b></div><div class="stat"><span class="muted">Exam average</span><br><b>${avg != null ? avg + '%' : '—'}</b></div><div class="stat"><span class="muted">Mistakes to review</span><br><b>${myMistakes().length}</b></div></div><div class="card"><h3>My activity</h3>${pbar('Homework graded', hwPct)}${pbar('Exam average', avg || 0)}<p class="muted small" style="margin-top:10px">Workbook activities completed: <b>${wbDone}</b> · Mistakes under review: <b>${myMistakes().length}</b></p></div></div>`;
+  const mine = Object.keys(state.wbSave).filter(k => k.indexOf(myId() + ':') === 0);
+  const wbDone = mine.filter(k => state.wbSave[k] && state.wbSave[k].score != null).length;
+  const wbAvg = mine.filter(k => state.wbSave[k] && state.wbSave[k].score != null).length
+    ? Math.round(mine.reduce((a, k) => { const r = state.wbSave[k]; return a + (r.score != null && r.n ? r.score / r.n : 0); }, 0) / mine.filter(k => state.wbSave[k] && state.wbSave[k].score != null).length * 100)
+    : null;
+  return `<div class="section"><h2>My Progress</h2><p class="muted">${esc(s.name)} · Level ${esc(s.level)} — built only from your own activity.</p><div class="grid"><div class="stat"><span class="muted">Homework graded</span><br><b>${done} / ${hw.length}</b></div><div class="stat"><span class="muted">Exams taken</span><br><b>${exams.length}</b></div><div class="stat"><span class="muted">Exam average</span><br><b>${avg != null ? avg + '%' : '—'}</b></div><div class="stat"><span class="muted">Mistakes to review</span><br><b>${myMistakes().length}</b></div></div><div class="card"><h3>My activity</h3>${pbar('Homework graded', hwPct)}${pbar('Exam average', avg || 0)}${wbAvg != null ? pbar('Workbook accuracy', wbAvg) : ''}<p class="muted small" style="margin-top:10px">Workbook activities completed: <b>${wbDone}</b> · Mistakes under review: <b>${myMistakes().length}</b>${exams.length ? ` · Best exam: <b>${Math.max(...exams.map(x => x.pct))}%</b>` : ''}</p></div></div>`;
 }
 function myMistakesView() {
   const list = myMistakes();
-  return `<div class="section"><h2>My Mistakes</h2><p class="muted">Questions you got wrong. Review the explanation, then practise again.</p><div class="list" style="margin-top:15px">${list.map((m, i) => `<div class="item"><div style="flex:1;min-width:0"><b>${esc(m.q || 'Question')}</b><div class="muted small">Your answer: <span class="bad">${esc(m.yours)}</span> · Correct: <span class="good">${esc(m.ans)}</span> · ${esc(m.topic || '')}</div><p class="muted small">${esc(m.expl)}</p></div><button class="btn light" onclick="state.mistakes.splice(${state.mistakes.indexOf(m)},1);save();render()">Remove</button></div>`).join('') || '<div class="empty">No mistakes saved yet — great work!</div>'}</div></div>`;
+  return `<div class="section"><h2>My Mistakes</h2><p class="muted">Every question you answer incorrectly in an exam is saved here for you alone. Review the explanation, then practise again.</p><div class="list" style="margin-top:15px">${list.map(m => `<div class="item"><div style="flex:1;min-width:0"><b>${esc(m.q || 'Question')}</b><div class="muted small">Your answer: <span class="bad">${esc(m.ua || '(unanswered)')}</span> · Correct: <span class="good">${esc(m.ca || '')}</span> · ${esc(m.skill || '')} ${esc(m.lvl || '')}${m.topic ? ' · ' + esc(m.topic) : ''}</div><p class="muted small">${esc(m.expl || '')}</p></div><button class="btn light" onclick="state.mistakes.splice(${state.mistakes.indexOf(m)},1);save();render()">Remove</button></div>`).join('') || '<div class="empty">No mistakes saved yet — great work!</div>'}</div>${list.length ? `<div class="row" style="margin-top:14px"><button class="btn" onclick="startMistakeExam()">Practise my mistakes →</button><button class="btn light" onclick="state.mistakes=state.mistakes.filter(m=>m.student!==myId());save();render()">Clear my mistake list</button></div>` : ''}</div>`;
 }
 
 /* ---------------- Tips & Strategies ---------------- */
@@ -476,7 +612,7 @@ function vocabulary() {
 }
 
 function wbCard(id, title, sub, items, btn) {
-  const saved = state.wbSave[id] || {};
+  const saved = wbGet(id) || {};
   return `<div class="card wb" data-wb="${id}"><h3>${title}</h3><p class="muted small">${sub}</p>${saved.score != null ? `<span class="wbbadge">Last attempt: ${saved.score}/${saved.n}</span>` : ''}${items.map((m, i) => {
     const val = saved.v ? (saved.v[i] || '') : '';
     return `<div class="q wbq"><b>${i + 1}.</b> ${m.q}${m.opts
@@ -485,12 +621,13 @@ function wbCard(id, title, sub, items, btn) {
   }).join('')}<button class="btn" onclick="checkWB()">${btn || 'Check answers'}</button><div class="wbfb"></div></div>`;
 }
 function wbSaveVal(id, i, val) {
-  const rec = state.wbSave[id] = state.wbSave[id] || { v: {} };
+  const k = wbKey(id);
+  const rec = state.wbSave[k] = state.wbSave[k] || { v: {} };
   rec.v = rec.v || {}; rec.v[i] = val; save();
 }
 function wbWordCount(el) { document.getElementById('wbwc').textContent = (el.value.trim() ? el.value.trim().split(/\s+/).length : 0) + ' words · saved'; }
 function workbook() {
-  const lv = state.level === 'All' ? 'B1' : state.level;
+  const lv = state.level === 'All' ? (isStudent() ? myLevel() : 'B1') : state.level;
   const idx = levels.indexOf(lv);
   const v = VOCAB[lv];
   const gs = GRAMMAR.filter(g => g.range.includes(lv));
@@ -503,7 +640,7 @@ function workbook() {
   const ec = EXAM_ITEMS.filter(x => x.lvl === lv && x.type === 'error').map(x => ({ q: esc(x.q), opts: x.opts, ans: x.ans, expl: esc(x.expl) }));
   const ue = EXAM_ITEMS.filter(x => x.lvl === lv && ['gap', 'transform', 'short'].includes(x.type)).map(x => ({ q: esc(x.q), ans: x.ans, expl: esc(x.expl) }));
   const draftKey = `en-${lv}-writing`;
-  const draft = ((state.wbSave[draftKey] || {}).v || {})[0] || '';
+  const draft = ((wbGet(draftKey) || {}).v || {})[0] || '';
   return `<div class="section"><h2>Workbook · ${lv}</h2><p class="muted">Interactive practice with instant checking, explanations and automatic progress saving — leave and return without losing your work.</p>${bannerSVG('workbook')}<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}</div><div class="wb-grid">${wbCard(`en-${lv}-1`, '1 · Vocabulary Builder', 'Match each word to its meaning.', m1)}${wbCard(`en-${lv}-2`, '2 · Grammar in Context', 'Which sentence uses the target structure?', m2)}${wbCard(`en-${lv}-3`, '3 · Use of English', 'Complete the sentence with the correct word.', m3)}${ec.length ? wbCard(`en-${lv}-ec`, '4 · Error Correction · Exam workshop', 'Choose the correct sentence — each option is a classic learner trap.', ec) : ''}${ue.length ? wbCard(`en-${lv}-ue`, '5 · Use of English · Exam workshop', 'Gap-fill, word formation and sentence transformations — type your answers.', ue, 'Submit & score') : ''}<div class="card wb"><h3>6 · Reading Skills · IELTS</h3><p class="muted small">Read the passage, then complete the exam-style tasks and check your score.</p>${ieltsPassage(t.reading)}${ieltsTasks([t.reading.tasks[0], t.reading.tasks[2]])}</div><div class="card wb"><h3>7 · Writing Practice</h3><p class="muted small">Plan → draft → check. Your draft is saved automatically as you type.</p><p><b>Task.</b> ${t.writing.prompt}</p><textarea class="input" rows="8" placeholder="Write your draft here…" oninput="wbSaveVal('${draftKey}',0,this.value);wbWordCount(this)">${esc(draft)}</textarea><div class="row" style="margin-top:8px"><span class="muted small" id="wbwc">${draft ? draft.trim().split(/\s+/).length + ' words · saved' : '0 words'}</span></div><div class="task"><b>Checklist</b>${t.writing.checklist.map(x => `<p>☐ ${x}</p>`).join('')}</div></div>${wbCard(`en-${lv}-6`, '8 · Unit Review', 'Five mixed questions. Submit to score the unit.', makeReview(lv, idx).map((q, i) => ({ q: esc(q.q), opts: shuffled(q.opts, i + 7), ans: q.ans, expl: `Correct answer: ${esc(q.ans)}` })), 'Submit & score')}</div></div>`;
 }
 function checkWB() {
@@ -531,7 +668,8 @@ function checkWB() {
     f.innerHTML = `<div class="wbscore ${o === qs.length ? 'all' : ''}">Score: ${o} / ${qs.length}${o === qs.length ? ' — excellent work!' : ' — review the marked questions.'}</div>`;
     if (card.dataset.wb) {
       const id = card.dataset.wb;
-      state.wbSave[id] = Object.assign({}, state.wbSave[id], { score: o, n: qs.length });
+      const k = wbKey(id);
+      state.wbSave[k] = Object.assign({}, state.wbSave[k], { score: o, n: qs.length });
       save();
       const badge = card.querySelector('.wbbadge');
       if (badge) badge.textContent = `Last attempt: ${o}/${qs.length}`;
@@ -561,7 +699,7 @@ function speakingBook() {
   const isTeacher = !isStudent();
   const games = state.speakGames.filter(g => state.speakLevel === 'All' || g.level === state.speakLevel);
   const game = state.speakGames.find(g => g.id === state.speakPage);
-  const done = state.speakProgress[state.currentStudent || '_teacher'] || {};
+  const done = state.speakProgress[myId() || '_teacher'] || {};
   const completed = games.filter(g => done[g.id]).length;
   const levelsList = ['All', ...new Set(state.speakGames.map(g => g.level))];
   const nav = `<div class="filters speak-filters">${levelsList.map(l => `<button class="filter ${state.speakLevel === l ? 'active' : ''}" onclick="state.speakLevel='${l}';state.speakPage=0;render()">${l}</button>`).join('')}</div>`;
@@ -605,7 +743,7 @@ function speakImport(event) {
     } catch (e) { alert('Could not import this file. Choose a valid Speaking Games Book JSON export.'); }
   }; reader.readAsText(file);
 }
-function speakMarkDone(id) { const key = state.currentStudent || '_teacher'; state.speakProgress[key] = state.speakProgress[key] || {}; state.speakProgress[key][id] = !state.speakProgress[key][id]; localStorage.setItem('lf_speakingProgress', JSON.stringify(state.speakProgress)); render(); }
+function speakMarkDone(id) { const key = myId() || '_teacher'; state.speakProgress[key] = state.speakProgress[key] || {}; state.speakProgress[key][id] = !state.speakProgress[key][id]; localStorage.setItem('lf_speakingProgress', JSON.stringify(state.speakProgress)); render(); }
 function speakChapter(g, games, done, isTeacher) {
   const ix = games.findIndex(x => x.id === g.id), prev = games[ix - 1], next = games[ix + 1];
   const list = (label, text) => text ? `<section class="speak-block"><h3>${label}</h3><p>${esc(text).replace(/\n/g,'<br>')}</p></section>` : '';
@@ -616,7 +754,11 @@ function speakChapter(g, games, done, isTeacher) {
   <div class="speak-page-nav"><button class="btn light" ${prev?`onclick="speakOpen('${prev.id}')"`:'disabled'}>← Previous activity</button><span class="muted small">Activity ${ix+1} of ${games.length}</span><button class="btn" ${next?`onclick="speakOpen('${next.id}')"`:'disabled'}>Next activity →</button></div></div>`;
 }
 function writing() {
-  return `<div class="section"><h2>Writing Studio</h2>${bannerSVG('writing')}<div class="card"><span class="pill">Guided writing</span><h3>Write about a goal you want to achieve.</h3><p>Plan → draft → check. Aim for 120 words. Include one example and one reason.</p><textarea id="writer" rows="12" placeholder="Start writing here…" oninput="document.getElementById('wc').textContent=this.value.trim()?this.value.trim().split(/\\s+/).length:0"></textarea><div class="row" style="justify-content:space-between;margin-top:10px"><span class="muted"><b id="wc">0</b> words</span><button class="btn" onclick="try{localStorage.setItem('lf_wbdraft',document.getElementById('writer').value)}catch(e){};toast('Draft saved. Review spelling, grammar, organization and task completion.')">Save my draft</button></div><div class="card" style="margin-top:15px;background:#fafaff"><b>Writer’s checklist</b><p>☐ Clear opening & purpose<br>☐ Supporting details<br>☐ Target grammar<br>☐ Linking words<br>☐ Spelling & punctuation</p></div></div></div>`;
+  const key = 'lf_wbdraft' + (myId() ? '_' + myId() : '');
+  let draft = '';
+  try { draft = localStorage.getItem(key) || ''; } catch (e) {}
+  const words = draft.trim() ? draft.trim().split(/\s+/).length : 0;
+  return `<div class="section"><h2>Writing Studio</h2>${bannerSVG('writing')}<div class="card"><span class="pill">Guided writing</span><h3>Write about a goal you want to achieve.</h3><p>Plan → draft → check. Aim for 120 words. Include one example and one reason.</p><textarea id="writer" rows="12" placeholder="Start writing here…" oninput="document.getElementById('wc').textContent=this.value.trim()?this.value.trim().split(/\\s+/).length:0;try{localStorage.setItem('${key}',this.value)}catch(e){}">${esc(draft)}</textarea><div class="row" style="justify-content:space-between;margin-top:10px"><span class="muted"><b id="wc">${words}</b> words${draft ? ' · saved' : ''}</span><button class="btn" onclick="try{localStorage.setItem('${key}',document.getElementById('writer').value)}catch(e){};toast('Draft saved to your own account. Review spelling, grammar, organization and task completion.')">Save my draft</button></div><div class="card" style="margin-top:15px;background:#fafaff"><b>Writer’s checklist</b><p>☐ Clear opening & purpose<br>☐ Supporting details<br>☐ Target grammar<br>☐ Linking words<br>☐ Spelling & punctuation</p></div></div></div>`;
 }
 /* ---------------- Assessment Studio · real exam engine ---------------- */
 const EXAM_ITEMS = [
@@ -702,19 +844,20 @@ function buildExam(lvl, n) {
   return shuffled(EXAM_ITEMS.filter(x => x.lvl === lvl), t + 3).concat(shuffled(examVocabItems(lvl), t + 13)).slice(0, Math.min(n, 99));
 }
 function startExam() {
-  const lvl = state.exLvl || 'B1', n = state.exLen || 10;
+  const lvl = state.exLvl || (isStudent() ? myLevel() : 'B1'), n = state.exLen || 10;
   state.examResult = null;
-  state.exam = { lvl, timed: state.exTimed !== false, mins: n, qs: buildExam(lvl, n), answers: {}, flags: {}, idx: 0, start: Date.now() };
+  state.exam = { lvl, timed: state.exTimed !== false, mins: n, qs: buildExam(lvl, n), answers: {}, flags: {}, idx: 0, start: Date.now(), student: myId() };
   save(); exTimerStart(); render();
 }
 function startMistakeExam() {
-  const items = state.mistakes.slice(0, 10).map(m => m.item).filter(Boolean);
+  const pool = isStudent() ? myMistakes() : state.mistakes;
+  const items = pool.slice(0, 10).map(m => m.item).filter(Boolean);
   if (!items.length) { toast('No saved mistakes yet — take an exam first.'); return; }
   state.examResult = null;
-  state.exam = { lvl: 'Mistake review', timed: false, mins: items.length, qs: items, answers: {}, flags: {}, idx: 0, start: Date.now() };
+  state.exam = { lvl: 'Mistake review', timed: false, mins: items.length, qs: items, answers: {}, flags: {}, idx: 0, start: Date.now(), student: myId() };
   save(); render();
 }
-function exPersist() { try { localStorage.setItem('lf_exam', JSON.stringify(state.exam)); } catch (e) {} }
+function exPersist() { try { if (state.exam) state.exam.student = myId(); localStorage.setItem('lf_exam', JSON.stringify(state.exam)); } catch (e) {} }
 function exAns(i, v) {
   const ex = state.exam; if (!ex) return;
   ex.answers[i] = v; exPersist();
@@ -754,12 +897,12 @@ function finishExam() {
     const ok = exCorrect(q, ua);
     if (ok) score++;
     rows.push({ q, i, ua, ok });
-    if (!ok) state.mistakes.unshift({ item: q, q: q.q, skill: q.skill, lvl: q.lvl, topic: q.topic || '', ua: ua || '(unanswered)', ca: Array.isArray(q.ans) ? q.ans[0] : q.ans, expl: q.expl, date: new Date().toLocaleDateString(), student: state.currentStudent || '' });
+    if (!ok) state.mistakes.unshift({ item: q, q: q.q, skill: q.skill, lvl: q.lvl, topic: q.topic || '', ua: ua || '(unanswered)', ca: Array.isArray(q.ans) ? q.ans[0] : q.ans, expl: q.expl, date: new Date().toLocaleDateString(), student: myId() });
   });
   if (state.mistakes.length > 120) state.mistakes.length = 120;
   const total = ex.qs.length, skills = {};
   rows.forEach(r => { const s = skills[r.q.skill] = skills[r.q.skill] || { ok: 0, n: 0 }; s.n++; if (r.ok) s.ok++; });
-  state.examRes.unshift({ date: new Date().toLocaleDateString(), lvl: ex.lvl, score, total, pct: Math.round(score / total * 100), secs, skills, student: state.currentStudent || '' });
+  state.examRes.unshift({ date: new Date().toLocaleDateString(), lvl: ex.lvl, score, total, pct: Math.round(score / total * 100), secs, skills, student: myId() });
   if (state.examRes.length > 40) state.examRes.length = 40;
   state.examResult = { rows, score, total, secs, skills, unanswered: rows.filter(r => !r.ua).length, lvl: ex.lvl, timed: ex.timed };
   state.exam = null; save(); exPersist(); render();
@@ -781,11 +924,12 @@ function exResults() {
   const weak = Object.entries(r.skills).filter(([, s]) => s.ok / s.n < 0.5).map(([k]) => k);
   return `<div class="section"><h2>Assessment results · ${esc(r.lvl)}</h2><div class="grid"><div class="stat"><span class="muted">Score</span><br><b>${r.score}/${r.total}</b></div><div class="stat"><span class="muted">Percentage</span><br><b>${Math.round(r.score / r.total * 100)}%</b></div><div class="stat"><span class="muted">Unanswered</span><br><b>${r.unanswered}</b></div><div class="stat"><span class="muted">Time taken</span><br><b>${Math.floor(r.secs / 60)}m ${r.secs % 60}s</b></div></div><div class="card"><h3>Skill breakdown</h3>${Object.entries(r.skills).map(([k, s]) => `<div class="ex-skill"><div class="row" style="justify-content:space-between"><b>${k}</b><span class="muted small">${s.ok}/${s.n}</span></div><div class="progress"><i style="width:${Math.round(s.ok / s.n * 100)}%"></i></div></div>`).join('')}</div>${weak.length ? `<div class="card"><h3>Weak areas & recommended practice</h3>${weak.map(k => recs[k] ? `<div class="item"><div><b>${k}</b><div class="muted small">Below 50% — review and practise this area.</div></div><button class="btn" onclick="go('${recs[k][0]}')">Open ${recs[k][1]} →</button></div>` : '').join('')}</div>` : '<div class="card"><h3>Recommended practice</h3><p class="muted">No weak areas this time — keep the streak going with a higher level or the mistake review.</p></div>'}<div class="card"><h3>Answer review</h3>${r.rows.map(row => `<div class="q ${row.ok ? 'good' : 'bad'}"><b>${row.i + 1}. ${row.q.q}</b><p class="muted small" style="margin:6px 0">Your answer: <b>${esc(row.ua || '(unanswered)')}</b>${row.ok ? ' — correct' : ` — correct answer: <b>${esc(Array.isArray(row.q.ans) ? row.q.ans[0] : row.q.ans)}</b>`}</p><p class="muted small">${esc(row.q.expl || '')}</p><span class="pill">${row.q.skill} · ${row.q.lvl}</span></div>`).join('')}</div><div class="row" style="margin-top:16px"><button class="btn" onclick="state.examResult=null;startExam()">Retake ${esc(r.lvl)} exam</button><button class="btn light" onclick="state.examResult=null;startMistakeExam()">Practice my mistakes</button><button class="btn light" onclick="state.examResult=null;render()">Back to assessment setup</button></div></div>`;
 }
+const EXAM_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'];
 function tests() {
   if (state.exam) { setTimeout(exTimerStart, 0); return exRunner(); }
   if (state.examResult) return exResults();
-  const exLvls = ['A1', 'A2', 'B1', 'B2', 'C1'];
-  const lvl = state.exLvl || 'B1';
+  const exLvls = EXAM_LEVELS;
+  const lvl = state.exLvl || (isStudent() ? myLevel() : 'B1');
   const myMist = isStudent() ? myMistakes() : state.mistakes;
   const myHist = isStudent() ? myExams() : state.examRes;
   return `<div class="section"><h2>${isStudent() ? 'My Assessment Studio' : 'Assessment Studio'}</h2><p class="muted">Levelled skills exams with automatic marking, a timer, full answer review and a personal mistake notebook. Questions cover Vocabulary, Grammar, Reading and Use of English.</p>${bannerSVG('tests')}<div class="card"><span class="pill">Exam setup</span><h3>Choose your level and length</h3><div class="filters" style="margin:14px 0">${exLvls.map(x => `<button class="filter ${lvl === x ? 'active' : ''}" onclick="state.exLvl='${x}';render()">${x}</button>`).join('')}</div><div class="filters">${[10, 15, 20].map(n => `<button class="filter ${(state.exLen || 10) === n ? 'active' : ''}" onclick="state.exLen=${n};render()">${n} questions</button>`).join('')}<button class="filter ${state.exTimed === false ? '' : 'active'}" onclick="state.exTimed=state.exTimed===false;render()">${state.exTimed === false ? 'Untimed practice' : 'Timed · 1 min per question'}</button></div><button class="btn dark" style="margin-top:8px" onclick="startExam()">Start exam →</button></div><div class="card" style="margin-top:15px"><h3>My mistakes <span class="muted small">(${myMist.length})</span></h3><p class="muted small">Every question you get wrong in an exam is saved here automatically for targeted review.</p>${myMist.slice(0, 8).map((m, i) => `<div class="item"><div><b>${esc(m.q)}</b><div class="muted small">Your answer: ${esc(m.ua)} · Correct: ${esc(m.ca)} · ${m.skill} ${m.lvl}</div></div><button class="btn light" onclick="state.mistakes.splice(${state.mistakes.indexOf(m)},1);save();render()">Remove</button></div>`).join('') || '<div class="empty">No mistakes saved yet. Take an exam to build your review list.</div>'}${myMist.length ? `<div class="row" style="margin-top:12px"><button class="btn" onclick="startMistakeExam()">Practice my mistakes →</button></div>` : ''}</div>${myHist.length ? `<div class="card" style="margin-top:15px"><h3>Exam history</h3>${myHist.slice(0, 5).map(x => `<div class="item"><div><b>${esc(x.lvl)}</b><div class="muted small">${x.date} · ${Math.floor(x.secs / 60)}m ${x.secs % 60}s</div></div><span class="pill">${x.score}/${x.total} · ${x.pct}%</span></div>`).join('')}</div>` : ''}</div>`;
@@ -795,9 +939,59 @@ function teacher() {
   return `<div class="section"><h2>Teacher’s Book</h2><div class="list">${['Lesson aims & outcomes', 'Materials & preparation', '60 & 90 minute programmes', 'Lead-in procedure', 'Vocabulary teaching notes', 'Grammar Bank notes', 'Pronunciation guidance', 'Reading & listening procedure', 'Speaking differentiation', 'Writing feedback', 'Answer key', 'Extension & fast finishers'].map((x, i) => `<div class="item"><div><b>${x}</b><div class="muted small">Professional teacher guidance · ${i + 5}–${i + 15} min</div></div><button class="btn light" onclick="alert('Teacher guide opened: ${x}.')">Open →</button></div>`).join('')}</div></div>`;
 }
 function students() {
-  return `<div class="section"><h2>Students</h2><div class="card"><h3>Add a student</h3><div class="row" style="align-items:flex-start;flex-wrap:wrap"><input id="sn" class="input" placeholder="Student name" style="max-width:220px"><select id="sl"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option></select><input id="spin" class="input" type="password" inputmode="numeric" maxlength="8" placeholder="PIN (optional)" style="max-width:150px"><button class="btn" onclick="addStudent()">+ Add student</button></div><p class="muted small" style="margin-top:8px">Set a PIN so the student can log in and see only their own homework, exams and progress.</p></div><div class="list" style="margin-top:15px">${state.student.map((s, i) => `<div class="item"><div><b>${esc(s.name)}</b><div class="muted small">Level ${esc(s.level)}${s.pin ? ' · PIN protected' : ' · no PIN'}</div></div><div class="row"><button class="btn light" onclick="state.currentStudent='${esc(s.name)}';save();go('student-dashboard')">Log in as ${esc(s.name)}</button><button class="btn light" onclick="state.student.splice(${i},1);save();render()">Remove</button></div></div>`).join('') || '<div class="empty">No students yet. Add your first learner above.</div>'}</div></div>`;
+  const rows = state.student.map(s => {
+    const hw = state.homework.filter(h => h.who === 'all' || h.who === s.id);
+    const graded = hw.filter(h => hwStatusOf(h, s.id) === 'graded').length;
+    const exam = state.examRes.filter(r => r.student === s.id);
+    const avg = exam.length ? Math.round(exam.reduce((a, b) => a + b.pct, 0) / exam.length) + '%' : '—';
+    const mist = state.mistakes.filter(m => m.student === s.id).length;
+    return `<div class="item hwitem"><div style="flex:1;min-width:0"><b>${esc(s.name)}</b><div class="muted small">Level ${esc(s.level)} · ${s.pin ? 'PIN protected' : 'no PIN set'} · homework ${graded}/${hw.length} graded · exams ${exam.length} (avg ${avg}) · mistakes ${mist}</div><div class="muted small">Program ID: <code>${esc(s.id)}</code></div></div><div class="row">${s.pin ? '' : `<input id="sp-${esc(s.id)}" class="input" type="password" inputmode="numeric" maxlength="8" placeholder="Set PIN" style="max-width:120px"><button class="btn light" onclick="setPin('${esc(s.id)}')">Save PIN</button>`}<button class="btn light" onclick="loginAs('${esc(s.id)}')">Open ${esc(s.name)}’s program</button><button class="btn light" onclick="removeStudent('${esc(s.id)}')">Remove</button></div></div>`;
+  }).join('');
+  return `<div class="section"><h2>Students</h2><p class="muted">Every learner has a separate program: their own homework submissions, workbook answers, exams, mistakes and progress. Nothing is shared between students.</p><div class="card"><h3>Add a student</h3><div class="row" style="align-items:flex-start;flex-wrap:wrap"><input id="sn" class="input" placeholder="Student name" style="max-width:220px"><select id="sl"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select><input id="spin" class="input" type="password" inputmode="numeric" maxlength="8" placeholder="PIN (4–8 digits)" style="max-width:170px"><button class="btn" onclick="addStudent()">+ Add student</button></div><p class="muted small" style="margin-top:8px">A PIN is needed so each learner signs into their own program. Choose a level — the student’s workbook, exams and practice open at that level by default.</p></div><div class="list" style="margin-top:15px">${rows || '<div class="empty">No students yet. Add your first learner above.</div>'}</div></div>`;
 }
-function addStudent() { let n = document.getElementById('sn').value.trim(); if (!n) return; const pin = (document.getElementById('spin') || {}).value.trim(); state.student.push({ name: n, level: document.getElementById('sl').value, pin: pin || '' }); save(); render(); }
+function newStudentId(name) {
+  let base = 'st' + String(name).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10);
+  if (!base || base === 'st') base = 'stlearner';
+  let id = base, n = 2;
+  while (state.student.some(s => s.id === id)) id = base + n++;
+  return id;
+}
+function addStudent() {
+  const n = (document.getElementById('sn') || {}).value ? document.getElementById('sn').value.trim() : '';
+  if (!n) return toast('Enter the student’s name.');
+  if (state.student.some(s => s.name.toLowerCase() === n.toLowerCase())) return toast('A student with that name already exists.');
+  const pin = ((document.getElementById('spin') || {}).value || '').trim();
+  if (!/^[0-9]{4,8}$/.test(pin)) return toast('Set a PIN of 4–8 digits so the learner can sign in.');
+  state.student.push({ id: newStudentId(n), name: n, level: document.getElementById('sl').value, pin });
+  save(); render(); toast(`${n} added — share the PIN with them.`);
+}
+function setPin(id) {
+  const el = document.getElementById('sp-' + id);
+  const pin = ((el || {}).value || '').trim();
+  if (!/^[0-9]{4,8}$/.test(pin)) return toast('PIN must be 4–8 digits.');
+  const s = stuById(id); if (!s) return;
+  s.pin = pin; save(); render(); toast(`PIN set for ${s.name}.`);
+}
+function loginAs(id) {
+  const s = stuById(id); if (!s) return;
+  state.currentStudent = s.id; state.level = s.level;
+  state.exLvl = EXAM_LEVELS.includes(s.level) ? s.level : 'B1';
+  save(); go('student-dashboard');
+}
+function removeStudent(id) {
+  const s = stuById(id); if (!s) return;
+  if (!confirm(`Remove ${s.name} and all of their individual work? This cannot be undone.`)) return;
+  state.student = state.student.filter(x => x.id !== id);
+  state.homework.forEach(h => { if (h.subs) delete h.subs[id]; });
+  state.examRes = state.examRes.filter(r => r.student !== id);
+  state.mistakes = state.mistakes.filter(m => m.student !== id);
+  delete state.speakProgress[id];
+  delete __LF_MODULE_TABS[id];
+  try { localStorage.removeItem('lf_vpro_student_' + id); localStorage.removeItem('lf_ielts_student_' + id); } catch (e) {}
+  Object.keys(state.wbSave).forEach(k => { if (k.indexOf(id + ':') === 0) delete state.wbSave[k]; });
+  if (state.currentStudent === id) state.currentStudent = null;
+  save(); render(); toast(`${s.name} removed.`);
+}
 /* ---------------- Homework · assign from real content, submit, grade ---------------- */
 function todayStr(off) { const d = new Date(); d.setDate(d.getDate() + (off || 0)); return d.toISOString().slice(0, 10); }
 function hwLibrary() {
@@ -816,50 +1010,92 @@ function hwLibrary() {
   });
   return lib;
 }
+function hwStatusMeta(s) {
+  return s === 'graded' ? { t: 'Graded', c: '#20855f' }
+    : s === 'submitted' ? { t: 'Submitted', c: '#1499ce' }
+    : s === 'revision' ? { t: 'Needs revision', c: '#d97706' }
+    : { t: 'Assigned', c: '#6557dd' };
+}
+function hwRecOf(h, sid) { return (h.subs || {})[sid] || null; }
+function hwStatusOf(h, sid) { const r = hwRecOf(h, sid); return r ? (r.status || 'submitted') : 'assigned'; }
+function hwTargetsOf(h) {
+  const list = h.who === 'all' ? state.student.map(s => s.id) : (stuById(h.who) ? [h.who] : []);
+  Object.keys(h.subs || {}).forEach(k => { if (k.charAt(0) !== '_' && stuById(k) && !list.includes(k)) list.push(k); });
+  return list;
+}
+function hwPut(h, sid, patch) { h.subs = h.subs || {}; h.subs[sid] = Object.assign({}, h.subs[sid] || {}, patch); }
 function homework() {
   const lib = hwLibrary();
+  const any = (h, s) => hwTargetsOf(h).some(sid => hwStatusOf(h, sid) === s);
+  const allGraded = h => hwTargetsOf(h).every(sid => hwStatusOf(h, sid) === 'graded');
   const groups = [
-    ['Overdue', h => h.due && h.due < todayStr() && h.status !== 'graded'],
-    ['Due today', h => h.due === todayStr() && h.status !== 'graded'],
-    ['Due soon', h => h.due && h.due > todayStr() && h.due <= todayStr(3) && h.status !== 'graded'],
-    ['Upcoming', h => (!h.due || h.due > todayStr(3)) && (h.status === 'assigned')],
-    ['Submitted — needs grading', h => h.status === 'submitted'],
-    ['Needs revision', h => h.status === 'revision'],
-    ['Graded / completed', h => h.status === 'graded']
+    ['Overdue', h => h.due && h.due < todayStr() && !allGraded(h)],
+    ['Due today', h => h.due === todayStr() && !allGraded(h)],
+    ['Due soon', h => h.due && h.due > todayStr() && h.due <= todayStr(3) && !allGraded(h)],
+    ['Upcoming', h => (!h.due || h.due > todayStr(3)) && any(h, 'assigned')],
+    ['Submitted — needs grading', h => any(h, 'submitted')],
+    ['Needs revision', h => any(h, 'revision')],
+    ['Graded / completed', h => allGraded(h)]
   ];
-  return `<div class="section"><h2>Homework</h2><p class="muted">Assign tasks straight from the content library, collect submissions, grade with feedback, and request revisions — all in one workflow.</p><div class="card"><h3>Assign new homework</h3><div class="row" style="align-items:flex-start;margin-top:10px"><select id="hwlib" class="input" style="max-width:430px"><option value="-1">— Choose from the content library —</option>${['Workbook', 'Exam', 'Grammar', 'Reading', 'Writing'].map(gr => `<optgroup label="${gr}">${lib.map((x, i) => x.group === gr ? `<option value="${i}">${esc(x.title)}</option>` : '').join('')}</optgroup>`).join('')}</select><input id="hwt" class="input" style="max-width:250px" placeholder="or a custom title"><input id="hwd" class="input" style="max-width:160px" type="date"><input id="hwm" class="input" style="max-width:120px" type="number" min="5" max="180" placeholder="mins" value="20"><select id="hww" class="input" style="max-width:180px"><option value="all">Whole class</option>${state.student.map(s => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')}</select><button class="btn" onclick="addHwFull()">Assign</button></div><p class="muted small" style="margin-top:8px">Library tasks open the linked workbook, exam, grammar, reading or writing section — content is reused, never duplicated.</p></div><div style="margin-top:15px">${groups.map(([name, f]) => { const items = state.homework.map((h, i) => [h, i]).filter(([h]) => f(h)); return items.length ? `<h3 class="hwgroup">${name} <span class="muted small">(${items.length})</span></h3><div class="list">${items.map(([h, i]) => hwItem(h, i)).join('')}</div>` : ''; }).join('') || '<div class="empty">No homework yet. Assign your first task above.</div>'}</div></div>`;
+  return `<div class="section"><h2>Homework</h2><p class="muted">Assign tasks straight from the content library, collect each learner’s own submission, grade with feedback, and request revisions. A whole-class task keeps a separate submission and grade for every student.</p><div class="card"><h3>Assign new homework</h3><div class="row" style="align-items:flex-start;margin-top:10px"><select id="hwlib" class="input" style="max-width:430px"><option value="-1">— Choose from the content library —</option>${['Workbook', 'Exam', 'Grammar', 'Reading', 'Writing'].map(gr => `<optgroup label="${gr}">${lib.map((x, i) => x.group === gr ? `<option value="${i}">${esc(x.title)}</option>` : '').join('')}</optgroup>`).join('')}</select><input id="hwt" class="input" style="max-width:250px" placeholder="or a custom title"><input id="hwd" class="input" style="max-width:160px" type="date"><input id="hwm" class="input" style="max-width:120px" type="number" min="5" max="180" placeholder="mins" value="20"><select id="hww" class="input" style="max-width:200px"><option value="all">Whole class</option>${state.student.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</select><button class="btn" onclick="addHwFull()">Assign</button></div><p class="muted small" style="margin-top:8px">Library tasks open the linked workbook, exam, grammar, reading or writing section — content is reused, never duplicated.</p></div><div style="margin-top:15px">${groups.map(([name, f]) => { const items = state.homework.map((h, i) => [h, i]).filter(([h]) => f(h)); return items.length ? `<h3 class="hwgroup">${name} <span class="muted small">(${items.length})</span></h3><div class="list">${items.map(([h, i]) => hwItem(h, i)).join('')}</div>` : ''; }).join('') || '<div class="empty">No homework yet. Assign your first task above.</div>'}</div></div>`;
 }
 function hwItem(h, i) {
-  const who = h.who === 'all' ? 'Whole class' : h.who;
-  const st = { assigned: ['Assigned', '#6557dd'], submitted: ['Submitted', '#1499ce'], graded: ['Graded', '#20855f'], revision: ['Needs revision', '#d97706'] }[h.status] || ['Assigned', '#6557dd'];
-  return `<div class="item hwitem"><div style="flex:1;min-width:0"><b>${esc(h.title)}</b><div class="muted small">${esc(h.type || 'Custom')} · ${esc(h.level || '—')} · ${esc(who)} · ${h.mins || 20} min${h.due ? ` · due ${h.due}` : ''}</div>${h.instr && state.hwOpen === h.id ? `<p class="muted small" style="margin:6px 0 0">${esc(h.instr)}</p>` : ''}${h.sub ? `<p class="muted small" style="margin:6px 0 0">Submission (${esc(h.sub.date)}): “${esc(h.sub.text.slice(0, 160))}${h.sub.text.length > 160 ? '…' : ''}”</p>` : ''}${h.status === 'graded' || h.status === 'revision' ? `<p style="margin:6px 0 0;color:#20855f;font-weight:700">Teacher feedback: ${esc(h.fb || '—')}${h.grade != null ? ` · Score ${h.grade}/100` : ''}</p>` : ''}${state.hwOpen === h.id ? hwGradeForm(h) : ''}${state.hwSubOpen === h.id ? hwSubForm(h) : ''}</div><div class="row">${h.status === 'assigned' || h.status === 'revision' ? `<button class="btn light" onclick="state.hwSubOpen=state.hwSubOpen==='${h.id}'?null:'${h.id}';state.hwOpen=null;render()">Submit answer</button>` : ''}${h.sub ? `<button class="btn" onclick="state.hwOpen=state.hwOpen==='${h.id}'?null:'${h.id}';state.hwSubOpen=null;render()">Grade / review</button>` : ''}<button class="btn light" onclick="state.homework.splice(${i},1);save();render()">Delete</button></div></div>`;
+  const student = isStudent();
+  const sid = student ? myId() : (state.hwPick && state.hwOpen === h.id ? state.hwPick : '');
+  const rec = sid ? hwRecOf(h, sid) : null;
+  const status = student ? hwStatusOf(h, myId()) : (rec ? hwStatusOf(h, sid) : 'assigned');
+  const meta = hwStatusMeta(status);
+  const targets = hwTargetsOf(h);
+  const graded = targets.filter(t => hwStatusOf(h, t) === 'graded').length;
+  const whoLine = h.who === 'all' ? `Whole class · ${targets.length} student${targets.length === 1 ? '' : 's'}` : esc(stuName(h.who));
+  const head = `<b>${esc(h.title)}</b><div class="muted small">${esc(h.type || 'Custom')} · ${esc(h.level || '—')} · ${whoLine} · ${h.mins || 20} min${h.due ? ` · due ${h.due}` : ''}${student ? ` · <span style="color:${meta.c};font-weight:700">${meta.t}</span>` : (h.who === 'all' ? ` · ${graded}/${targets.length} graded` : ` · <span style="color:${meta.c};font-weight:700">${meta.t}</span>`)}</div>`;
+  if (student) {
+    const canSubmit = !rec || (rec.status || 'submitted') === 'revision';
+    return `<div class="item hwitem"><div style="flex:1;min-width:0">${head}${h.instr ? `<p class="muted small" style="margin:6px 0 0">${esc(h.instr)}</p>` : ''}${rec ? `<p class="muted small" style="margin:6px 0 0">My submission (${esc(rec.date || '')}): “${esc((rec.text || '').slice(0, 160))}${(rec.text || '').length > 160 ? '…' : ''}”</p>` : ''}${rec && (rec.status === 'graded' || rec.status === 'revision') ? `<p style="margin:6px 0 0;color:#20855f;font-weight:700">Teacher feedback: ${esc(rec.fb || '—')}${rec.grade != null ? ` · Score ${rec.grade}/100` : ''}</p>` : ''}${state.hwSubOpen === h.id ? hwSubForm(h) : ''}</div><div class="row">${canSubmit ? `<button class="btn light" onclick="state.hwSubOpen=state.hwSubOpen==='${h.id}'?null:'${h.id}';render()">${rec ? 'Resubmit' : 'Submit answer'}</button>` : ''}</div></div>`;
+  }
+  const inner = h.who === 'all' ? targets.map(t => {
+    const r = hwRecOf(h, t);
+    const st = hwStatusMeta(hwStatusOf(h, t));
+    const open = state.hwPick === t && state.hwOpen === h.id;
+    return `<div class="hwsub-row"><div style="flex:1;min-width:0"><b>${esc(stuName(t))}</b> <span class="pill" style="background:${st.c};color:#fff">${st.t}</span><div class="muted small">${r ? `Submitted ${esc(r.date || '')}: “${esc((r.text || '').slice(0, 220))}${(r.text || '').length > 220 ? '…' : ''}”${r.fb ? ` · Feedback: ${esc(r.fb)}${r.grade != null ? ` (${r.grade}/100)` : ''}` : ''}` : 'No submission yet.'}</div>${open ? hwGradeForm(h, t) : ''}</div>${r ? `<button class="btn light" onclick="hwToggleGrade('${h.id}','${t}')">${open ? 'Close' : 'Grade / review'}</button>` : ''}</div>`;
+  }).join('') : (() => { const t = h.who; const r = hwRecOf(h, t); const st = hwStatusMeta(hwStatusOf(h, t)); return `<div class="hwsub-row"><div style="flex:1;min-width:0"><b>${esc(stuName(t))}</b> <span class="pill" style="background:${st.c};color:#fff">${st.t}</span><div class="muted small">${r ? `Submitted ${esc(r.date || '')}: “${esc((r.text || '').slice(0, 220))}”${r.fb ? ` · Feedback: ${esc(r.fb)}${r.grade != null ? ` (${r.grade}/100)` : ''}` : ''}` : 'No submission yet.'}</div>${state.hwOpen === h.id ? hwGradeForm(h, t) : ''}</div>${r ? `<button class="btn light" onclick="hwToggleGrade('${h.id}','${t}')">${state.hwOpen === h.id ? 'Close' : 'Grade / review'}</button>` : ''}</div>`; })();
+  return `<div class="item hwitem" style="flex-direction:column;align-items:stretch"><div style="flex:1;min-width:0">${head}${h.instr && state.hwOpen === h.id ? `<p class="muted small" style="margin:6px 0 0">${esc(h.instr)}</p>` : ''}</div><div class="hwsub-list">${inner}</div><div class="row" style="margin-top:8px"><button class="btn light" onclick="state.hwOpen=state.hwOpen==='${h.id}'?null:'${h.id}';state.hwPick=null;render()">${state.hwOpen === h.id ? 'Hide submissions' : 'Show submissions'}</button><button class="btn light" onclick="state.homework.splice(${i},1);save();render()">Delete</button></div></div>`;
+}
+function hwToggleGrade(id, sid) {
+  const open = state.hwOpen === id && state.hwPick === sid;
+  state.hwOpen = open ? null : id;
+  state.hwPick = open ? null : sid;
+  render();
 }
 function hwSubForm(h) {
-  return `<div class="hwform"><label>Your answer<textarea class="input" id="hws-${h.id}" rows="4" placeholder="Write your answer here…">${esc((h.sub || {}).text || '')}</textarea></label><div class="row"><button class="btn" onclick="hwSubmit('${h.id}')">Send submission</button></div><p class="muted small">Writing and open tasks are reviewed by your teacher. For activity tasks, complete the linked section and describe your result here.</p></div>`;
+  const rec = hwRecOf(h, myId());
+  return `<div class="hwform"><label>Your answer<textarea class="input" id="hws-${h.id}" rows="4" placeholder="Write your answer here…">${esc((rec || {}).text || '')}</textarea></label><div class="row"><button class="btn" onclick="hwSubmit('${h.id}')">Send submission</button></div><p class="muted small">Your teacher sees this submission and your name only. For activity tasks, complete the linked section and describe your result here.</p></div>`;
 }
-function hwGradeForm(h) {
-  return `<div class="hwform"><label>Score (0–100)<input class="input" id="hwg-${h.id}" type="number" min="0" max="100" value="${h.grade != null ? h.grade : ''}"></label><label>Feedback<textarea class="input" id="hwf-${h.id}" rows="3">${esc(h.fb || '')}</textarea></label><div class="row"><button class="btn" onclick="hwGrade('${h.id}')">Save grade & mark graded</button><button class="btn light" onclick="hwRevise('${h.id}')">Request revision</button></div></div>`;
+function hwGradeForm(h, sid) {
+  const r = hwRecOf(h, sid) || {};
+  return `<div class="hwform"><p class="muted small" style="margin:0"><b>Grading ${esc(stuName(sid))}</b></p><label>Score (0–100)<input class="input" id="hwg-${h.id}" type="number" min="0" max="100" value="${r.grade != null ? r.grade : ''}"></label><label>Feedback<textarea class="input" id="hwf-${h.id}" rows="3">${esc(r.fb || '')}</textarea></label><div class="row"><button class="btn" onclick="hwGrade('${h.id}','${sid}')">Save grade & mark graded</button><button class="btn light" onclick="hwRevise('${h.id}','${sid}')">Request revision</button></div></div>`;
 }
 function hwSubmit(id) {
   const h = state.homework.find(x => x.id === id); if (!h) return;
   const el = document.getElementById('hws-' + id);
   if (!el || !el.value.trim()) { toast('Write your answer first.'); return; }
-  h.sub = { text: el.value.trim(), date: new Date().toLocaleDateString() };
-  h.status = 'submitted'; state.hwSubOpen = null; save(); render(); toast('Homework submitted ✓');
+  hwPut(h, myId(), { text: el.value.trim(), date: new Date().toLocaleDateString(), status: 'submitted', grade: null });
+  state.hwSubOpen = null; save(); render(); toast('Homework submitted to your teacher ✓');
 }
-function hwGrade(id) {
+function hwGrade(id, sid) {
   const h = state.homework.find(x => x.id === id); if (!h) return;
   const g = document.getElementById('hwg-' + id), f = document.getElementById('hwf-' + id);
   if (!g || !f) return;
   if (g.value === '') { toast('Enter a score first.'); return; }
-  h.grade = Math.max(0, Math.min(100, +g.value)); h.fb = f.value.trim(); h.status = 'graded';
-  state.hwOpen = null; save(); render(); toast('Homework graded ✓');
+  hwPut(h, sid, { grade: Math.max(0, Math.min(100, +g.value)), fb: f.value.trim(), status: 'graded' });
+  state.hwOpen = null; state.hwPick = null; save(); render(); toast(`Graded ${stuName(sid)} ✓`);
 }
-function hwRevise(id) {
+function hwRevise(id, sid) {
   const h = state.homework.find(x => x.id === id); if (!h) return;
   const f = document.getElementById('hwf-' + id);
-  h.fb = f ? f.value.trim() : h.fb; h.status = 'revision'; h.sub = null;
-  state.hwOpen = null; save(); render(); toast('Revision requested — the student can resubmit.');
+  const r = hwRecOf(h, sid) || {};
+  hwPut(h, sid, { fb: f ? f.value.trim() : (r.fb || ''), status: 'revision', grade: null });
+  state.hwOpen = null; state.hwPick = null; save(); render(); toast(`Revision requested from ${stuName(sid)}.`);
 }
 function addHwFull() {
   const lib = hwLibrary();
@@ -867,17 +1103,20 @@ function addHwFull() {
   const item = lib[idx] && idx > -1 ? lib[idx] : null;
   const title = item ? item.title : (document.getElementById('hwt') || {}).value?.trim();
   if (!title) { toast('Choose a library task or type a title.'); return; }
-  state.homework.push({ id: 'hw' + Date.now().toString(36), title, instr: item ? item.instr : '', type: item ? item.type : 'Custom', level: item ? item.level : '', mins: item ? item.mins : +((document.getElementById('hwm') || {}).value) || 20, due: (document.getElementById('hwd') || {}).value || '', who: (document.getElementById('hww') || {}).value || 'all', status: 'assigned', sub: null, grade: null, fb: '' });
+  const who = (document.getElementById('hww') || {}).value || 'all';
+  if (who === 'all' && !state.student.length) { toast('Add a student first, or the whole-class task has no one to reach.'); return; }
+  state.homework.push({ id: 'hw' + Date.now().toString(36), title, instr: item ? item.instr : '', type: item ? item.type : 'Custom', level: item ? item.level : '', mins: item ? item.mins : +((document.getElementById('hwm') || {}).value) || 20, due: (document.getElementById('hwd') || {}).value || '', who, subs: {} });
   save(); render(); toast('Homework assigned ✓');
 }
 function pbar(label, pct) { return `<div class="ex-skill"><div class="row" style="justify-content:space-between"><b>${label}</b><span class="muted small">${pct}%</span></div><div class="progress"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div></div>`; }
 function progress() {
-  const done = state.homework.filter(h => h.status === 'graded').length;
+  const slots = state.homework.reduce((a, h) => a + hwTargetsOf(h).length, 0);
+  const done = state.homework.reduce((a, h) => a + hwTargetsOf(h).filter(t => hwStatusOf(h, t) === 'graded').length, 0);
   const total = state.homework.length;
-  const hwPct = total ? Math.round(done / total * 100) : 0;
+  const hwPct = slots ? Math.round(done / slots * 100) : 0;
   const avg = state.examRes.length ? Math.round(state.examRes.reduce((s, x) => s + x.pct, 0) / state.examRes.length) : null;
   const wbDone = Object.values(state.wbSave).filter(r => r.score != null).length;
-  return `<div class="section"><h2>Progress</h2><p class="muted">Real activity data from exams, homework, workbook practice and mistakes — no placeholders.</p><div class="grid"><div class="stat"><span class="muted">Students</span><br><b>${state.student.length}</b></div><div class="stat"><span class="muted">Homework graded</span><br><b>${done} / ${total}</b></div><div class="stat"><span class="muted">Exams taken</span><br><b>${state.examRes.length}</b></div><div class="stat"><span class="muted">Avg exam score</span><br><b>${avg != null ? avg + '%' : '—'}</b></div></div><div class="card"><h3>Real activity this term</h3>${pbar('Homework graded', hwPct)}${pbar('Exam average', avg || 0)}<p class="muted small" style="margin-top:10px">Workbook activities completed: <b>${wbDone}</b> · Exam mistakes under review: <b>${state.mistakes.length}</b> · Planned lessons: <b>${state.plans.length}</b> · Coursebook lessons: <b>${books.length * 64}</b></p></div><div class="card" style="margin-top:15px"><h3>Next steps</h3>${state.mistakes.length ? `<div class="item"><div><b>Review ${state.mistakes.length} saved exam mistake${state.mistakes.length > 1 ? 's' : ''}</b><div class="muted small">Targeted practice built from your results.</div></div><button class="btn" onclick="go('tests')">Practice mistakes →</button></div>` : ''}<div class="item"><div><b>Workbook practice</b><div class="muted small">Interactive exercises with instant checking for every level.</div></div><button class="btn light" onclick="go('workbook')">Open workbooks →</button></div>${total && hwPct < 100 ? `<div class="item"><div><b>Outstanding homework</b><div class="muted small">${total - done} task${total - done > 1 ? 's' : ''} not yet graded.</div></div><button class="btn light" onclick="go('homework')">Open homework →</button></div>` : ''}</div></div>`;
+  return `<div class="section"><h2>Progress</h2><p class="muted">Real activity data from exams, homework, workbook practice and mistakes — no placeholders. Each student’s work is counted separately.</p><div class="grid"><div class="stat"><span class="muted">Students</span><br><b>${state.student.length}</b></div><div class="stat"><span class="muted">Homework graded</span><br><b>${done} / ${slots}</b></div><div class="stat"><span class="muted">Exams taken</span><br><b>${state.examRes.length}</b></div><div class="stat"><span class="muted">Avg exam score</span><br><b>${avg != null ? avg + '%' : '—'}</b></div></div><div class="card"><h3>Real activity this term</h3>${pbar('Homework graded', hwPct)}${pbar('Exam average', avg || 0)}<p class="muted small" style="margin-top:10px">Workbook activities completed: <b>${wbDone}</b> · Exam mistakes under review: <b>${state.mistakes.length}</b> · Planned lessons: <b>${state.plans.length}</b> · Coursebook lessons: <b>${books.length * 64}</b></p></div>${state.student.length ? `<div class="card" style="margin-top:15px"><h3>Per-student snapshot</h3><div class="list">${state.student.map(s => { const hw = state.homework.filter(h => h.who === 'all' || h.who === s.id); const g = hw.filter(h => hwStatusOf(h, s.id) === 'graded').length; const ex = state.examRes.filter(r => r.student === s.id); const a = ex.length ? Math.round(ex.reduce((x, y) => x + y.pct, 0) / ex.length) + '%' : '—'; return `<div class="item"><div><b>${esc(s.name)}</b><div class="muted small">Level ${esc(s.level)} · homework ${g}/${hw.length} · exams ${ex.length} · avg ${a} · mistakes ${state.mistakes.filter(m => m.student === s.id).length}</div></div><button class="btn light" onclick="loginAs('${esc(s.id)}')">Open program</button></div>`; }).join('')}</div></div>` : ''}<div class="card" style="margin-top:15px"><h3>Next steps</h3>${state.mistakes.length ? `<div class="item"><div><b>Review ${state.mistakes.length} saved exam mistake${state.mistakes.length > 1 ? 's' : ''}</b><div class="muted small">Targeted practice built from your results.</div></div><button class="btn" onclick="go('tests')">Practice mistakes →</button></div>` : ''}<div class="item"><div><b>Workbook practice</b><div class="muted small">Interactive exercises with instant checking for every level.</div></div><button class="btn light" onclick="go('workbook')">Open workbooks →</button></div>${slots && hwPct < 100 ? `<div class="item"><div><b>Outstanding homework</b><div class="muted small">${slots - done} student submission${slots - done === 1 ? '' : 's'} across ${total} task${total === 1 ? '' : 's'} not graded yet.</div></div><button class="btn light" onclick="go('homework')">Open homework →</button></div>` : ''}</div></div>`;
 }
 function planner() {
   return `<div class="section"><h2>Lesson Planner</h2>${bannerSVG('tests')}<div class="card"><div class="row"><input id="pd" class="input" type="date"><input id="pt" class="input" placeholder="Lesson topic"><select id="pm" style="max-width:150px"><option value="60">60 minutes</option><option value="90">90 minutes</option></select><button class="btn" onclick="addPlan()">Plan lesson</button></div></div><div class="card" style="margin-top:15px"><h3>Planning workflow</h3><p>Choose level → select coursebook lesson → check aims → prepare materials → teach with the 60/90-minute programme → assign homework → record progress.</p></div><div class="list" style="margin-top:15px">${state.plans.map((p, i) => `<div class="item"><div><b>${esc(p.date)} · ${esc(p.topic)}</b><div class="muted small">${p.minutes} minutes · ${esc(p.level || '—')}</div></div><button class="btn light" onclick="state.plans.splice(${i},1);save();render()">Delete</button></div>`).join('') || '<div class="empty">No lessons planned yet.</div>'}</div></div>`;
@@ -899,8 +1138,8 @@ function actWords(lang) {
   return VOCAB[levels[Math.min(3, al)]];
 }
 function actL() { const lang = state.actLang || 'en'; return ACTIVITY_LANGS[lang]; }
-function actScores() { try { return JSON.parse(localStorage.getItem('lf_actscores') || '{}'); } catch (e) { return {}; } }
-function actSaveScore(game, pts) { try { const s = actScores(); const k = (state.actLang || 'en') + ':' + game; if (pts > (s[k] || 0)) { s[k] = pts; localStorage.setItem('lf_actscores', JSON.stringify(s)); } } catch (e) {} }
+function actScores() { try { const all = JSON.parse(localStorage.getItem('lf_actscores') || '{}'); if (!myId()) return all; const pre = myId() + '|'; return Object.keys(all).reduce((out, k) => { if (k.indexOf(pre) === 0) out[k.slice(pre.length)] = all[k]; return out; }, {}); } catch (e) { return {}; } }
+function actSaveScore(game, pts) { try { const s = JSON.parse(localStorage.getItem('lf_actscores') || '{}'); const k = (myId() ? myId() + '|' : '') + (state.actLang || 'en') + ':' + game; if (pts > (s[k] || 0)) { s[k] = pts; localStorage.setItem('lf_actscores', JSON.stringify(s)); } } catch (e) {} }
 function actBest(game) { return actScores()[(state.actLang || 'en') + ':' + game] || 0; }
 function stars(n) { return '⭐'.repeat(n) + '☆'.repeat(3 - n); }
 function activities() {
@@ -1685,6 +1924,6 @@ function itWriting() {
 function speakText(t, lang) { if ('speechSynthesis' in window) { speechSynthesis.cancel(); let u = new SpeechSynthesisUtterance(t); u.lang = lang || 'en-US'; u.rate = .9; speechSynthesis.speak(u); } }
 function startTimer() { let s = 60, el = document.getElementById('timer'); clearInterval(window.tm); window.tm = setInterval(() => { s--; el.textContent = `00:${String(s).padStart(2, '0')}`; if (s <= 0) { clearInterval(window.tm); el.textContent = 'Time!'; } }, 1000); }
 function startTimer2(id, secs) { id = id || 'qtimer'; let s = secs || 30; let el = document.getElementById(id); if (!el) return; el.textContent = `0:${String(s).padStart(2, '0')}`; clearInterval(window.tm2); window.tm2 = setInterval(() => { s--; if (!document.getElementById(id)) { clearInterval(window.tm2); return; } el = document.getElementById(id); el.textContent = `0:${String(s).padStart(2, '0')}`; if (s <= 0) { clearInterval(window.tm2); el.textContent = 'Time! 🎉'; } }, 1000); }
-function addHW(t) { state.homework.push({ id: 'hw' + Date.now().toString(36), title: t, instr: 'Assigned from the coursebook lesson. Complete the task, then submit your answer from the Homework page.', type: 'Lesson', level: '', mins: 20, due: '', who: 'all', status: 'assigned', sub: null, grade: null, fb: '' }); save(); toast('Homework assigned ✓'); }
+function addHW(t) { state.homework.push({ id: 'hw' + Date.now().toString(36), title: t, instr: 'Assigned from the coursebook lesson. Complete the task, then submit your answer from the Homework page.', type: 'Lesson', level: '', mins: 20, due: '', who: 'all', subs: {} }); save(); toast('Homework assigned ✓'); }
 function toast(t) { let x = document.getElementById('toast'); x.innerHTML = `<div class="pill" style="position:fixed;right:25px;bottom:25px;background:#22233a;color:#fff;padding:13px 16px;z-index:10">${t}</div>`; setTimeout(() => x.innerHTML = '', 1800); }
 render();

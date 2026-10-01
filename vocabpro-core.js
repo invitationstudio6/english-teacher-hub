@@ -1,6 +1,6 @@
 /* ============ Vocabulary Pro — unified visual vocabulary system ============ */
 const VP = Object.assign({ saved: {}, boxes: {}, fav: {}, stats: {}, days: {}, custom: [] }, JSON.parse(localStorage.getItem('lf_vpro') || '{}'));
-function vpSave() { try { localStorage.setItem('lf_vpro', JSON.stringify(VP)); } catch (e) {} }
+function vpSave() { try { const raw = JSON.stringify(VP); const key = __LF_ACTIVE_MODULE_ID ? 'lf_vpro_student_' + __LF_ACTIVE_MODULE_ID : 'lf_vpro'; localStorage.setItem(key, raw); if (!__LF_ACTIVE_MODULE_ID) __LF_TEACHER_VP = raw; } catch (e) {} }
 const VP_LEVELS = ['A1', 'A2', 'B1', 'B1+', 'B2', 'B2+', 'C1', 'C2'];
 const VP_POS = ['noun', 'verb', 'adjective', 'adverb', 'phrase', 'excl'];
 const VP_AUD = [['All', 'All learners'], ['kids', 'Children 5–13'], ['teens', 'Teenagers'], ['adults', 'Adults']];

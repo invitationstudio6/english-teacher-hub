@@ -1,6 +1,6 @@
 /* ============ IELTS PRO · Core views & state ============ */
 const IST = Object.assign({ mistakes: [], tests: [], planCfg: null, planTicks: {}, daily: {}, dailyAns: {}, vocabKnown: {}, vocabFav: {}, vocabStats: {}, colStats: {}, diag: null, mock: null, writing: {}, favWords: 0, studyTime: 0 }, JSON.parse(localStorage.getItem('lf_ielts') || '{}'));
-function istSave() { try { localStorage.setItem('lf_ielts', JSON.stringify(IST)); } catch (e) {} }
+function istSave() { try { const raw = JSON.stringify(IST); const key = __LF_ACTIVE_MODULE_ID ? 'lf_ielts_student_' + __LF_ACTIVE_MODULE_ID : 'lf_ielts'; localStorage.setItem(key, raw); if (!__LF_ACTIVE_MODULE_ID) __LF_TEACHER_IST = raw; } catch (e) {} }
 const IELTS_LEVELS = ['A2', 'B1', 'B1+', 'B2', 'B2+', 'C1'];
 function ieltsLV(l) { const map = { 'A2/B1': 'A2', A1: 'A2', A2: 'A2', B1: 'B1', 'B1+': 'B1+', B2: 'B2', 'B2+': 'B2+', C1: 'C1' }; return map[l] || l; }
 function lvColorI(l) { return { A2: '#3aa0e8', B1: '#22b07d', 'B1+': '#7a6bff', B2: '#e8853a', 'B2+': '#e05252', C1: '#8e2f8e' }[l] || '#5d50e9'; }
