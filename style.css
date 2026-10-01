@@ -700,3 +700,70 @@
 @media(max-width:920px){.speak-book-layout{grid-template-columns:1fr}.speak-toc{position:relative;top:auto;max-height:320px}.speak-toc h3{position:sticky;top:-17px;background:#fff;padding:8px 0;z-index:1}}
 @media(max-width:600px){.speak-editor form{grid-template-columns:1fr}.speak-field:nth-of-type(n){grid-column:1}.speak-chapter{padding:16px}.speak-page-nav{flex-wrap:wrap}.speak-page-nav .muted{order:-1;width:100%;text-align:center}.speak-book-cover{min-height:350px}.speak-book-head>.row{width:100%}}
 @media(max-width:900px){.pdf-book{flex-direction:column;align-items:center;gap:16px}.pdf-spine{display:none}}
+
+/* ---- Copybook: student writing + teacher review ---- */
+.cb-page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:16px}
+.cb-page-head h2{margin:0 0 6px}
+.cb-page-head p{margin:0;max-width:640px;line-height:1.6}
+.cb-stats{display:flex;gap:10px;flex-wrap:wrap}
+.cb-stats span{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:12px;color:var(--muted)}
+.cb-stats b{font:800 18px 'Plus Jakarta Sans';color:#5e50d7;display:block}
+.cb-compose{margin-bottom:18px}
+.cb-compose h3{font:800 17px 'Plus Jakarta Sans';margin:0 0 12px}
+.cb-editor-wrap{display:grid;gap:6px}
+.cb-title-label{display:grid;gap:6px;font-weight:700;font-size:13px;color:#4b4f6b}
+.cb-editor{resize:vertical;min-height:130px;line-height:1.65;font-family:'DM Sans',sans-serif}
+.cb-actions{justify-content:space-between;margin-top:12px}
+.cb-filters{align-items:center}
+.cb-kind-filter{max-width:230px}
+.cb-entries{display:grid;gap:16px;margin-top:6px}
+.cb-entry{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 8px 30px rgba(35,34,75,.035)}
+.cb-entry-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.cb-entry-head h3{font:800 18px 'Plus Jakarta Sans';margin:10px 0 4px}
+.cb-entry-head p{margin:0}
+.cb-entry-body{margin:16px 0;padding:16px 18px;background:#fafbff;border-left:4px solid var(--purple);border-radius:12px;line-height:1.75;color:#33395a;white-space:normal;overflow-wrap:anywhere}
+.cb-teacher-feedback{margin:14px 0;padding:14px 16px;background:#f2fcf7;border:1px solid #cdeeda;border-radius:14px}
+.cb-teacher-feedback b{color:#20855f}
+.cb-teacher-feedback p{margin:6px 0;line-height:1.6;white-space:pre-wrap}
+.cb-review{margin-top:14px;padding:16px;background:#f7f8fd;border-radius:14px;border:1px solid var(--line)}
+.cb-review .row{margin-top:10px}
+.cb-entry-actions{gap:10px;margin-top:12px}
+.cb-edit{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+.cb-edit summary{cursor:pointer;font-weight:700;color:#5e50d7}
+.cb-edit .cb-editor-wrap{margin-top:12px}
+.cb-student-picker{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.cb-student-picker .cb-title-label{flex:1;min-width:240px}
+.cb-student-picker .pill{align-self:center}
+.lesson-copybook{margin:12px 0;border:1px dashed #d9d3ff;border-radius:14px;padding:12px 14px;background:#fbfaff}
+.lesson-copybook summary{cursor:pointer;font-weight:700;color:#5e50d7}
+.lesson-copybook .cb-editor-wrap{margin-top:12px}
+@media(max-width:760px){
+  .cb-page-head{flex-direction:column}
+  .cb-stats span{flex:1}
+  .cb-entry{padding:16px}
+  .cb-entry-body{padding:13px 14px}
+  .cb-actions{flex-direction:column;align-items:stretch}
+  .cb-actions .btn{width:100%}
+  .cb-kind-filter{max-width:100%}
+}
+
+/* ---- Shared copybook storage: class space + teacher review ---- */
+.cb-cloud{background:linear-gradient(135deg,#f7f6ff,#ffffff 60%);border:1px solid #e2ddff}
+.cb-cloud h3{font:800 17px 'Plus Jakarta Sans';margin:0 0 8px;color:#3b3470}
+.cb-cloud-head{align-items:center;justify-content:space-between;margin-bottom:8px}
+.cb-cloud-head h3{margin:0}
+.cb-cloud-row{margin-top:12px;gap:10px;align-items:center;flex-wrap:wrap}
+.cb-cloud-row .input{flex:1;min-width:220px}
+.cb-cloud-students{gap:8px;flex-wrap:wrap;margin-top:12px}
+.cb-cloud-msg{margin:12px 0 0;font-size:13px;line-height:1.6;color:#4b4f6b}
+.cb-cloud-msg.ok{color:#1c7d5a}
+.cb-cloud-msg.warn{color:#b45309;font-weight:600}
+.pill.cloud-ok{background:#eafaf2;color:#1c7d5a;border:1px solid #cdeeda}
+.pill.cloud-warn{background:#fff7e8;color:#b45309;border:1px solid #f6dfb4}
+.cb-entry-head .pill{margin-right:6px}
+@media(max-width:760px){
+  .cb-cloud-head{flex-direction:column;align-items:flex-start;gap:10px}
+  .cb-cloud-head .row{width:100%}
+  .cb-cloud-head .row .btn{flex:1}
+  .cb-cloud-row .input,.cb-cloud-row .btn{width:100%;min-width:0}
+}

@@ -253,7 +253,7 @@ function makeBook(age, level) {
 }
 const books = [...kids.map(l => makeBook('Kids', l)), ...teens.map(l => makeBook('Teens', l)), ...adults.map(l => makeBook('Adults', l))];
 const allVocab = levels.flatMap(l => VOCAB[l].map((w, i) => ({ ...w, level: l, icon: icons[i % icons.length], topic: TOPICS[i % TOPICS.length].title })));
-const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, pdfFlip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, currentStudent: null, teacherSignedIn: false, authMode: 'choose', speakEdit: null, speakFormOpen: false, speakLevel: 'All', speakTab: 'flip', speakFlip: 0, speakGames: (function () { try { const saved = JSON.parse(localStorage.getItem('lf_speakingBook') || 'null'); if (Array.isArray(saved) && saved.length) return saved; } catch (e) {} return (window.DEFAULT_SPEAK_GAMES || []).map(g => ({ ...g })); })(), speakProgress: (function () { try { return JSON.parse(localStorage.getItem('lf_speakingProgress') || '{}'); } catch (e) { return {}; } })(), student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: (function (h) { return (h || []).map(x => x && x.id ? x : { id: 'hw' + Math.random().toString(36).slice(2, 8), title: (x && x.text) || '', instr: '', type: 'custom', level: '', unit: '', mins: 20, due: '', who: 'all', status: x && x.done ? 'graded' : 'assigned', sub: null, grade: null, fb: '', legacy: true }); })(JSON.parse(localStorage.getItem('lf_homework') || '[]')), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false, exam: (function () { try { const e = JSON.parse(localStorage.getItem('lf_exam') || 'null'); let cur = ''; try { cur = sessionStorage.getItem('lf_currentStudent') || ''; } catch (x) {} if (e && e.student && e.student !== cur) return null; return e; } catch (e) { return null; } })(), examResult: null, hwOpen: null, hwSubOpen: null, hwPick: null, mistakes: JSON.parse(localStorage.getItem('lf_mistakes') || '[]'), examRes: JSON.parse(localStorage.getItem('lf_exams') || '[]'), wbSave: JSON.parse(localStorage.getItem('lf_wbsave') || '{}') };
+const state = { view: 'dashboard', age: 'All', level: 'All', book: null, lesson: null, minutes: 60, gunit: null, vunit: null, flip: null, pdfFlip: null, itLevel: 'A1', itBook: null, itLesson: null, itTab: 'Libri', actLang: 'en', actLevel: 0, actIdx: 0, qIdx: 0, mood: 'happy', rp: null, currentStudent: null, teacherSignedIn: false, authMode: 'choose', speakEdit: null, speakFormOpen: false, speakLevel: 'All', speakTab: 'flip', speakFlip: 0, speakGames: (function () { try { const saved = JSON.parse(localStorage.getItem('lf_speakingBook') || 'null'); if (Array.isArray(saved) && saved.length) return saved; } catch (e) {} return (window.DEFAULT_SPEAK_GAMES || []).map(g => ({ ...g })); })(), speakProgress: (function () { try { return JSON.parse(localStorage.getItem('lf_speakingProgress') || '{}'); } catch (e) { return {}; } })(), student: JSON.parse(localStorage.getItem('lf_students') || '[]'), homework: (function (h) { return (h || []).map(x => x && x.id ? x : { id: 'hw' + Math.random().toString(36).slice(2, 8), title: (x && x.text) || '', instr: '', type: 'custom', level: '', unit: '', mins: 20, due: '', who: 'all', status: x && x.done ? 'graded' : 'assigned', sub: null, grade: null, fb: '', legacy: true }); })(JSON.parse(localStorage.getItem('lf_homework') || '[]')), plans: JSON.parse(localStorage.getItem('lf_plans') || '[]'), flashIndex: 0, flashFlip: false, exam: (function () { try { const e = JSON.parse(localStorage.getItem('lf_exam') || 'null'); let cur = ''; try { cur = sessionStorage.getItem('lf_currentStudent') || ''; } catch (x) {} if (e && e.student && e.student !== cur) return null; return e; } catch (e) { return null; } })(), examResult: null, hwOpen: null, hwSubOpen: null, hwPick: null, mistakes: JSON.parse(localStorage.getItem('lf_mistakes') || '[]'), examRes: JSON.parse(localStorage.getItem('lf_exams') || '[]'), wbSave: JSON.parse(localStorage.getItem('lf_wbsave') || '{}'), copybook: JSON.parse(localStorage.getItem('lf_copybook') || '{}'), copybookSeq: Number(localStorage.getItem('lf_copybook_seq') || '0') || 0, cloudShared: null, cloudSummary: null, cloudBusy: false, cloudError: '', cloudNotice: '', cloudNoticeKind: '', cloudAutoTried: false, cloudRosterPushed: false };
 try { sessionStorage.setItem('lf_currentStudent', ''); sessionStorage.setItem('lf_teacher_signed_in', ''); } catch (e) {}
 let __LF_ACTIVE_MODULE_ID = null;
 let __LF_TEACHER_VP = JSON.stringify(VP);
@@ -305,6 +305,8 @@ function save() {
     localStorage.setItem('lf_mistakes', JSON.stringify(state.mistakes));
     localStorage.setItem('lf_exams', JSON.stringify(state.examRes));
     localStorage.setItem('lf_wbsave', JSON.stringify(state.wbSave));
+    localStorage.setItem('lf_copybook', JSON.stringify(state.copybook));
+    localStorage.setItem('lf_copybook_seq', String(state.copybookSeq));
   } catch (e) {}
 }
 function me() { return state.student.find(s => s.id === state.currentStudent); }
@@ -377,26 +379,30 @@ function layout(content) {
   }
   const stu = isStudent();
   const userPill = stu ? `<span class="pill" style="background:#e8f7ef;color:#20855f"><b>${esc(stuName(myId()))}</b> · ${esc(myLevel())}</span><button class="btn light" onclick="logout()">Logout</button>` : state.teacherSignedIn ? `<span class="pill" style="background:#e8f7ef;color:#20855f"><b>${esc(state.teacherName || 'Teacher')}</b> · Teacher</span><button class="btn light" onclick="teacherLogout()">Logout</button>` : `<button class="btn light" onclick="go('login')">${state.view === 'login' ? 'Choose sign in' : 'Sign in'}</button>`;
-  const teachNav = [['dashboard', '🏠', 'Dashboard'], ['students', '👩‍🎓', 'Students'], ['planner', '📅', 'Lesson Planner'], ['progress', '📊', 'Progress'], ['speaking-book', '🗣️', 'Speaking Games Book']];
-  const studentNav = [['student-dashboard', '🏠', 'My Home'], ['my-homework', '🏠', 'My Homework'], ['workbook', '📝', 'Workbook'], ['speaking-book', '🗣️', 'Speaking Games Book'], ['tests', '🧪', 'Assessments'], ['my-progress', '📊', 'My Progress'], ['my-mistakes', '📒', 'My Mistakes']];
+  const teachNav = [['dashboard', '🏠', 'Dashboard'], ['students', '👩‍🎓', 'Students'], ['planner', '📅', 'Lesson Planner'], ['progress', '📊', 'Progress'], ['homework', '📝', 'Homework'], ['teacher-copybook', '📓', 'Copybook Review'], ['speaking-book', '🗣️', 'Speaking Games Book']];
+  const studentNav = [['student-dashboard', '🏠', 'My Home'], ['my-homework', '🏠', 'My Homework'], ['copybook', '📓', 'My Copybook'], ['workbook', '📝', 'Workbook'], ['speaking-book', '🗣️', 'Speaking Games Book'], ['tests', '🧪', 'Assessments'], ['my-progress', '📊', 'My Progress'], ['my-mistakes', '📒', 'My Mistakes']];
   const navBlock = (title, items) => `<div class="navtitle">${title}</div>${items.map(x => nav(...x)).join('')}`;
+  const libraryNav = [['textbooks', '📚', 'Coursebooks'], ['grammar', '📖', 'Grammar in Use'], ['vocabulary', '🔤', 'Vocabulary in Use'], ['workbook', '📝', 'Workbooks'], ['teacher', '👩‍🏫', 'Teacher’s Book']];
+  const skillNav = [['reading', '📚', 'Reading Studio'], ['listening', '🎧', 'Listening Lab'], ['speaking', '🗣️', 'Speaking Studio'], ['writing', '✍️', 'Writing Studio'], ['flashcards', '🃏', 'Flashcards'], ['games', '🎮', 'Activities'], ['ielts', '🎓', 'IELTS Hub']];
+  const italianNav = [['italian', '🍝', 'Italiano'], ['itgrammar', '📖', 'Grammatica'], ['itvocab', '🔤', 'Lessico'], ['itreading', '📚', 'Lettura'], ['itlistening', '🎧', 'Ascolto'], ['itspeaking', '🗣️', 'Parlare'], ['itwriting', '✍️', 'Scrivere']];
   const vpNav = [['vpx', '🖼️', 'Vocabulary Explorer'], ['vpflash', '🃏', 'Flashcards'], ['vpvisual', '👁️', 'Visual Lab'], ['vpquiz', '🧠', 'Quiz Lab'], ['vpwotd', '📅', 'Word of the Day'], ['vpmy', '📒', 'My Vocabulary'], ['vpprogress', '📈', 'Vocab Progress']].concat(stu ? [] : [['vpadmin', '⚙️', 'Vocabulary Admin']]);
-  document.getElementById('app').innerHTML = `<div class="app"><aside class="side"><div class="brand"><span>LF</span><strong>Lingua Forge</strong></div>${stu ? navBlock('My Program', studentNav) : navBlock('Teach', teachNav)}<div class="navtitle">Published Library</div>${[['textbooks', '📚', 'Coursebooks'], ['grammar', '📖', 'Grammar in Use'], ['vocabulary', '🔤', 'Vocabulary in Use'], ['workbook', '📝', 'Workbooks'], ['teacher', '👩‍🏫', 'Teacher’s Book']].map(x => nav(...x)).join('')}<div class="navtitle">Skills Lab</div>${[['reading', '📚', 'Reading Studio'], ['listening', '🎧', 'Listening Lab'], ['speaking', '🗣️', 'Speaking Studio'], ['writing', '✍️', 'Writing Studio'], ['flashcards', '🃏', 'Flashcards'], ['games', '🎮', 'Activities'], ['ielts', '🎓', 'IELTS Hub']].map(x => nav(...x)).join('')}<div class="navtitle">Vocabulary Pro</div>${vpNav.map(x => nav(...x)).join('')}<div class="navtitle">Italiano 🇮🇹</div>${[['italian', '🍝', 'Italiano'], ['itgrammar', '📖', 'Grammatica'], ['itvocab', '🔤', 'Lessico'], ['itreading', '📚', 'Lettura'], ['itlistening', '🎧', 'Ascolto'], ['itspeaking', '🗣️', 'Parlare'], ['itwriting', '✍️', 'Scrivere']].map(x => nav(...x)).join('')}</aside><main class="main"><div class="top"><input class="search" placeholder="Search vocabulary, grammar, lessons…" onkeydown="if(event.key==='Enter')search(this.value)">${userPill}</div>${content}</main></div>`;
+  document.getElementById('app').innerHTML = `<div class="app"><aside class="side"><div class="brand"><span>LF</span><strong>Lingua Forge</strong></div>${stu ? navBlock('My Program', studentNav) : navBlock('Teach', teachNav)}${navBlock(stu ? 'Learning Library' : 'Published Library', stu ? libraryNav.filter(x => x[0] !== 'teacher') : libraryNav)}${navBlock(stu ? 'Skills Practice' : 'Skills Lab', stu ? skillNav.filter(x => x[0] !== 'ielts') : skillNav)}${navBlock(stu ? 'Vocabulary' : 'Vocabulary Pro', vpNav)}${stu ? '' : navBlock('Italiano 🇮🇹', italianNav)}</aside><main class="main"><div class="top"><input class="search" placeholder="Search vocabulary, grammar, lessons…" onkeydown="if(event.key==='Enter')search(this.value)">${userPill}</div>${content}</main></div>`;
 }
-const TEACHER_VIEWS = ['dashboard', 'students', 'planner', 'progress', 'homework', 'teacher', 'vpadmin'];
+const TEACHER_VIEWS = ['dashboard', 'students', 'planner', 'progress', 'homework', 'teacher', 'teacher-copybook', 'vpadmin'];
+const STUDENT_RESTRICTED_VIEWS = ['ielts', 'ielts-overview', 'ielts-diagnostic', 'ielts-plan', 'ielts-listening', 'ielts-reading', 'ielts-writing', 'ielts-speaking', 'ielts-vocab', 'ielts-colloc', 'ielts-grammar', 'ielts-mocks', 'ielts-calc', 'ielts-progress', 'ielts-mistakes', 'ielts-daily', 'ielts-resources', 'italian', 'itlesson', 'itgrammar', 'itvocab', 'itreading', 'itlistening', 'itspeaking', 'itwriting'];
 function nav(id, ico, label) { return `<button class="nav ${state.view === id ? 'active' : ''}" onclick="go('${id}')"><span>${ico}</span> ${label}</button>`; }
 function go(v) { state.view = v; state.book = null; state.lesson = null; state.flip = null; state.pdfFlip = null; render(); }
 function render() {
   if (!isStudent() && !state.teacherSignedIn && state.view !== 'login') { state.view = 'login'; state.authMode = 'choose'; }
   if (isStudent() && state.view === 'login') { state.view = 'student-dashboard'; }
-  if (isStudent() && TEACHER_VIEWS.includes(state.view)) { state.view = 'student-dashboard'; }
+  if (isStudent() && STUDENT_RESTRICTED_VIEWS.includes(state.view)) { state.view = 'student-dashboard'; }
   if (!isStudent() && state.view === 'login') { if (__LF_ACTIVE_MODULE_ID) __lfUnloadModules(); layout(loginView()); return; }
   if (state.exam && state.exam.student && state.exam.student !== myId()) { state.exam = null; exPersist(); }
   if (state.pdfFlip) { if (__LF_ACTIVE_MODULE_ID) __lfUnloadModules(); layout(pdfFlipView()); return; }
   if (state.flip) { if (__LF_ACTIVE_MODULE_ID) __lfUnloadModules(); layout(flipView()); return; }
   if (isStudent() && __LF_PERSONAL_VIEWS.includes(state.view)) __lfLoadModules(myId());
   else if (__LF_ACTIVE_MODULE_ID) __lfUnloadModules();
-  const m = { dashboard: dashboard, textbooks: textbooks, book: bookPage, lesson: lessonPage, vocabulary: vocabulary, flashcards: flashcards, grammar: grammarPage, reading: reading, listening: listening, speaking: speaking, writing: writing, tests: tests, workbook: workbook, teacher: teacher, students: students, homework: homework, progress: progress, planner: planner, games: activities, tips: tipsPage, italian: italian, itlesson: itLessonPage, itgrammar: itGrammar, itvocab: itVocab, itreading: itReading, itlistening: itListening, itspeaking: itSpeaking, itwriting: itWriting, ielts: ieltsHub, 'ielts-overview': ieltsOverview, 'ielts-diagnostic': ieltsDiagnostic, 'ielts-plan': ieltsPlan, 'ielts-listening': ieltsListening, 'ielts-reading': ieltsReading, 'ielts-writing': ieltsWriting, 'ielts-speaking': ieltsSpeaking, 'ielts-vocab': ieltsVocab, 'ielts-colloc': ieltsColloc, 'ielts-grammar': ieltsGrammar, 'ielts-mocks': ieltsMocks, 'ielts-calc': ieltsCalc, 'ielts-progress': ieltsProgress, 'ielts-mistakes': ieltsMistakes, 'ielts-daily': ieltsDaily, 'ielts-resources': ieltsResources, vpx: vpExplorer, vpflash: vpFlash, vpvisual: vpVisual, vpquiz: vpQuiz, vpwotd: vpWotd, vpmy: vpMy, vpprogress: vpProgress, vpadmin: vpAdmin, 'speaking-book': speakingBook, login: loginView, 'student-dashboard': studentDashboard, 'my-homework': myHomeworkView, 'my-progress': myProgressView, 'my-mistakes': myMistakesView };
+  const m = { dashboard: dashboard, textbooks: textbooks, book: bookPage, lesson: lessonPage, vocabulary: vocabulary, flashcards: flashcards, grammar: grammarPage, reading: reading, listening: listening, speaking: speaking, writing: writing, tests: tests, workbook: workbook, teacher: teacher, students: students, homework: homework, progress: progress, planner: planner, games: activities, tips: tipsPage, italian: italian, itlesson: itLessonPage, itgrammar: itGrammar, itvocab: itVocab, itreading: itReading, itlistening: itListening, itspeaking: itSpeaking, itwriting: itWriting, ielts: ieltsHub, 'ielts-overview': ieltsOverview, 'ielts-diagnostic': ieltsDiagnostic, 'ielts-plan': ieltsPlan, 'ielts-listening': ieltsListening, 'ielts-reading': ieltsReading, 'ielts-writing': ieltsWriting, 'ielts-speaking': ieltsSpeaking, 'ielts-vocab': ieltsVocab, 'ielts-colloc': ieltsColloc, 'ielts-grammar': ieltsGrammar, 'ielts-mocks': ieltsMocks, 'ielts-calc': ieltsCalc, 'ielts-progress': ieltsProgress, 'ielts-mistakes': ieltsMistakes, 'ielts-daily': ieltsDaily, 'ielts-resources': ieltsResources, vpx: vpExplorer, vpflash: vpFlash, vpvisual: vpVisual, vpquiz: vpQuiz, vpwotd: vpWotd, vpmy: vpMy, vpprogress: vpProgress, vpadmin: vpAdmin, 'speaking-book': speakingBook, login: loginView, 'student-dashboard': studentDashboard, 'my-homework': myHomeworkView, 'my-progress': myProgressView, 'my-mistakes': myMistakesView, copybook: copybookView, 'teacher-copybook': teacherCopybookView };
   layout(m[state.view]());
   if (isStudent() && __LF_PERSONAL_VIEWS.includes(state.view)) {
     try { localStorage.setItem('lf_vpro_student_' + myId(), JSON.stringify(VP)); localStorage.setItem('lf_ielts_student_' + myId(), JSON.stringify(IST)); } catch (e) {}
@@ -492,8 +498,8 @@ function studentDashboard() {
   const wbDone = Object.keys(state.wbSave).filter(k => k.indexOf(myId() + ':') === 0 && state.wbSave[k] && state.wbSave[k].score != null).length;
   return `<section class="hero student-hero"><span class="pill light">MY PROGRAM · ${esc(s.level)}</span><h1>Hello, ${esc(s.name)}! 👋</h1><p>Your own individual program: homework, workbook practice, exams, progress and review — private to your account.</p><div class="row"><button class="btn dark" onclick="go('my-homework')">My homework →</button><button class="btn light" onclick="go('workbook')">Workbook · ${esc(s.level)} →</button></div></section>
   <div class="grid"><div class="stat"><span class="muted">My level</span><br><b>${esc(s.level)}</b></div><div class="stat"><span class="muted">Homework due today</span><br><b>${dueToday.length}</b></div><div class="stat"><span class="muted">Tasks still open</span><br><b>${open.length}</b></div><div class="stat"><span class="muted">Exam average</span><br><b>${avg != null ? avg + '%' : '—'}</b></div></div>
-  <div class="section"><h2>Recommended for you</h2><div class="books"><div class="card" onclick="go('workbook')"><div class="illus">📝</div><h3>Workbook · ${esc(s.level)}</h3><p class="muted">Interactive exercises at your level. Your answers are saved to your account only.</p><button class="btn light">Start practising →</button></div><div class="card" onclick="go('tests')"><div class="illus">🧪</div><h3>Take an exam</h3><p class="muted">${esc(s.level)} skills assessment with instant feedback.</p><button class="btn light">Start exam →</button></div><div class="card" onclick="go('my-mistakes')"><div class="illus">📒</div><h3>My mistakes</h3><p class="muted">Review the questions you got wrong and practise again.</p><button class="btn light">Review →</button></div></div></div>
-  <div class="grid"><div class="stat"><span class="muted">Exams taken</span><br><b>${exams.length}</b></div><div class="stat"><span class="muted">Workbook activities scored</span><br><b>${wbDone}</b></div><div class="stat"><span class="muted">Mistakes to review</span><br><b>${myMistakes().length}</b></div><div class="stat"><span class="muted">Homework graded</span><br><b>${hw.filter(h => hwStatusOf(h, myId()) === 'graded').length} / ${hw.length}</b></div></div>`;
+  <div class="section"><h2>Recommended for you</h2><div class="books"><div class="card" onclick="go('workbook')"><div class="illus">📝</div><h3>Workbook · ${esc(s.level)}</h3><p class="muted">Interactive exercises at your level. Your answers are saved to your account only.</p><button class="btn light">Start practising →</button></div><div class="card" onclick="go('tests')"><div class="illus">🧪</div><h3>Take an exam</h3><p class="muted">${esc(s.level)} skills assessment with instant feedback.</p><button class="btn light">Start exam →</button></div><div class="card" onclick="go('my-mistakes')"><div class="illus">📒</div><h3>My mistakes</h3><p class="muted">Review the questions you got wrong and practise again.</p><button class="btn light">Review →</button></div><div class="card" onclick="go('copybook')"><div class="illus">📓</div><h3>My Copybook</h3><p class="muted">Write essays and book answers, then submit them so your teacher can read and comment.</p><button class="btn light">Open my copybook →</button></div></div></div>
+  <div class="grid"><div class="stat"><span class="muted">Exams taken</span><br><b>${exams.length}</b></div><div class="stat"><span class="muted">Workbook activities scored</span><br><b>${wbDone}</b></div><div class="stat"><span class="muted">Mistakes to review</span><br><b>${myMistakes().length}</b></div><div class="stat"><span class="muted">Homework graded</span><br><b>${hw.filter(h => hwStatusOf(h, myId()) === 'graded').length} / ${hw.length}</b></div><div class="stat"><span class="muted">Copybook entries</span><br><b>${cbEntries(myId()).length}</b></div></div>`;
 }
 function myHomeworkView() {
   const id = myId();
@@ -537,7 +543,7 @@ function tipsPage() {
 
 /* ---------------- Views ---------------- */
 function dashboard() {
-  return `<section class="hero"><span class="pill light">LINGUA FORGE ACADEMY · ELT EDITION</span><h1>Teach English beautifully.</h1><p>A published-style curriculum: coursebooks, Grammar in Use, Vocabulary in Use, workbooks and timed 60 / 90-minute teaching programmes — everything a professional teacher needs.</p><div class="row"><button class="btn dark" onclick="go('textbooks')">Open the Coursebook Library →</button><button class="btn light" onclick="go('grammar')">Grammar in Use</button></div>${bannerSVG('hero')}</section><div class="grid"><div class="stat"><span class="muted">Coursebooks</span><br><b>${books.length}</b></div><div class="stat"><span class="muted">Units</span><br><b>${books.length * 16}</b></div><div class="stat"><span class="muted">Lessons</span><br><b>${books.length * 64}</b></div><div class="stat"><span class="muted">Vocabulary</span><br><b>${allVocab.length}</b></div></div><div class="section"><h2>The published library</h2><div class="books"><div class="card"><div class="illus">📚</div><h3>Coursebook Library</h3><p class="muted">Publisher-style Student’s Books with Big Questions, Grammar Banks and 60/90-minute programmes.</p><button class="btn" onclick="go('textbooks')">Browse coursebooks</button></div><div class="card"><div class="illus">🧠</div><h3>Grammar in Use</h3><p class="muted">Grammar units with study boxes, timelines and checkable exercises, matched to CEFR levels.</p><button class="btn" onclick="go('grammar')">Open the grammar book</button></div><div class="card"><div class="illus">🔤</div><h3>Vocabulary in Use</h3><p class="muted">Topic units with illustrated word lists, matching and gap-fill practice with instant checking.</p><button class="btn" onclick="go('vocabulary')">Open the vocabulary book</button></div><div class="card"><div class="illus">✍️</div><h3>Workbooks</h3><p class="muted">Interactive practice with instant checking and an answer key for every level.</p><button class="btn" onclick="go('workbook')">Open workbooks</button></div></div></div>`;
+  return `<section class="hero"><span class="pill light">LINGUA FORGE ACADEMY · ELT EDITION</span><h1>Teach English beautifully.</h1><p>A published-style curriculum: coursebooks, Grammar in Use, Vocabulary in Use, workbooks and timed 60 / 90-minute teaching programmes — everything a professional teacher needs.</p><div class="row"><button class="btn dark" onclick="go('textbooks')">Open the Coursebook Library →</button><button class="btn light" onclick="go('grammar')">Grammar in Use</button></div>${bannerSVG('hero')}</section><div class="grid"><div class="stat"><span class="muted">Coursebooks</span><br><b>${books.length}</b></div><div class="stat"><span class="muted">Units</span><br><b>${books.length * 16}</b></div><div class="stat"><span class="muted">Lessons</span><br><b>${books.length * 64}</b></div><div class="stat"><span class="muted">Vocabulary</span><br><b>${allVocab.length}</b></div></div><div class="section"><h2>The published library</h2><div class="books"><div class="card"><div class="illus">📚</div><h3>Coursebook Library</h3><p class="muted">Publisher-style Student’s Books with Big Questions, Grammar Banks and 60/90-minute programmes.</p><button class="btn" onclick="go('textbooks')">Browse coursebooks</button></div><div class="card"><div class="illus">🧠</div><h3>Grammar in Use</h3><p class="muted">Grammar units with study boxes, timelines and checkable exercises, matched to CEFR levels.</p><button class="btn" onclick="go('grammar')">Open the grammar book</button></div><div class="card"><div class="illus">🔤</div><h3>Vocabulary in Use</h3><p class="muted">Topic units with illustrated word lists, matching and gap-fill practice with instant checking.</p><button class="btn" onclick="go('vocabulary')">Open the vocabulary book</button></div><div class="card"><div class="illus">✍️</div><h3>Workbooks</h3><p class="muted">Interactive practice with instant checking and an answer key for every level.</p><button class="btn" onclick="go('workbook')">Open workbooks</button></div><div class="card"><div class="illus">📓</div><h3>Copybook Review</h3><p class="muted">${(() => { const local = state.student.reduce((a, s) => a + cbEntries(s.id).filter(e => e.status === 'submitted').length, 0); const cloud = state.cloudSummary ? state.cloudSummary.waiting || 0 : 0; const total = local + cloud; if (total) return `<b>${total}</b> student ${total === 1 ? 'entry' : 'entries'} waiting for your feedback${cloud ? ` (${cloud} submitted from a student device)` : ''}. Read essays and book answers, then comment or request a revision.`; if (cloudAvailable() && !LF_CLOUD.teacherCode) return 'Read the essays, textbook answers and workbook answers your students submit, from any device. Open shared submissions with your private teacher code. Let students share their writing with the class code.'; return 'Read the essays, textbook answers and workbook answers your students submit, then leave feedback or request a revision.'; })()}</p><button class="btn" onclick="go('teacher-copybook')">Review copybooks</button></div></div></div>`;
 }
 
 function coverCard(b) {
@@ -573,7 +579,7 @@ function lessonPage() {
   let l = state.lesson, lv = state.book.level, b = band(lv), g = l.grammar;
   const tp = tensePos(g.id);
   const taskChip = b === 0 ? 'Supported task' : b === 1 ? 'Guided task' : 'Independent task';
-  return `<div class="lesson-shell"><div class="crumb"><button class="btn light" onclick="go('book')">← Coursebook</button> <span class="muted">Unit ${l.unit.number} · ${l.stage}</span></div><div class="lesson-hero"><div class="bigq"><span>Big Question</span><h2>${l.unit.bigQ}</h2></div><div class="row" style="justify-content:space-between;margin-top:12px"><span class="pill">Unit ${l.unit.number} • ${state.book.level} • ${taskChip}</span><div class="seg"><button class="filter ${state.minutes === 60 ? 'active' : ''}" onclick="state.minutes=60;render()">60′ programme</button><button class="filter ${state.minutes === 90 ? 'active' : ''}" onclick="state.minutes=90;render()">90′ programme</button></div></div><h1>${l.title}</h1><p class="muted">${TOPICS[l.unit.number - 1].intro}</p><div class="skills"><span class="skill">Vocabulary</span><span class="skill">Grammar</span><span class="skill">Pronunciation</span><span class="skill">Reading</span><span class="skill">Listening</span><span class="skill">Speaking</span><span class="skill">Writing</span></div></div><div class="aims"><b>Lesson aim</b><p>${l.aim}</p><div class="row">${l.outcomes.map(o => `<span class="outcome">✓ ${o}</span>`).join('')}</div></div><div class="section"><h2>Class programme</h2>${planTable(l, state.minutes)}</div><div class="lesson-grid"><div class="activity"><h3><span class="num">1</span>Warm-up</h3><p>${l.warmup}</p></div><div class="activity"><h3><span class="num">2</span>Vocabulary</h3><div class="ptiles">${l.vocab.map(w => `<div class="ptile"><div class="ptile-pic">${vpTileImg(w.word)}</div><div class="ptile-body"><b>${w.word}</b> <span class="muted small ipa">${w.ipa || ''}</span><div class="chips"><span class="pill poschip">${w.pos || ''}</span><span class="pill catpill">${w.cat || ''}</span><span class="pill lvlpill">${w.level}</span></div><p class="muted small">${w.meaning}</p><p class="example">“${w.example}”</p></div><button class="btn light mini-btn" onclick="speakText('${esc(w.word)}')">🔊</button></div>`).join('')}</div><button class="btn" onclick="go('vpx')">Vocabulary Explorer →</button><button class="btn light" onclick="go('vocabulary')">Vocabulary in Use →</button></div><div class="activity"><h3><span class="num">3</span>Grammar Bank</h3><div class="bank"><span class="banktag">GRAMMAR BANK</span><h4>${g.title}</h4>${tp ? `<div class="tl">${timelineSVG(tp)}</div>` : ''}<div class="gquick"><b>In one line:</b> ${g.quick || g.use}</div><p class="formula">${g.form}</p><p><b>Use.</b> ${g.use}</p><ul class="examples">${g.examples.map(e => `<li>${e}</li>`).join('')}</ul><p class="warn">⚠ ${g.error}</p><button class="btn light morebtn" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📖 Read the extended explanation</button><div class="gmore">${g.more || ''}</div></div><button class="btn light" onclick="go('grammar')">Open Grammar in Use →</button></div><div class="activity"><h3><span class="num">4</span>Pronunciation</h3><div class="pron"><span class="big-ipa">${l.pron.ipa}</span><p><b>Listen and repeat:</b> “${l.pron.word}”</p><p class="muted small">Sound family: ${l.pron.family}</p><button class="btn" onclick="speakText('${esc(l.pron.word)}')">🔊 Hear it</button></div></div><div class="activity"><h3><span class="num">5</span>Reading · IELTS-style</h3><p class="readtitle"><b>${l.reading.title}</b> <button class="btn light mini-btn" onclick="speakText(${jarg(l.reading.text)})">🔊 Read aloud</button></p>${ieltsPassage(l.reading)}${ieltsTasks(l.reading.tasks)}<button class="btn light" onclick="this.nextElementSibling.style.display='block'">Show simple answers</button><div class="answer script">${l.questions.map((q, i) => `Q${i + 1}. ${q.q} — ${q.a}`).join('<br>')}</div></div><div class="activity"><h3><span class="num">6</span>Listening</h3><p class="readtitle"><b>${l.listening.title}</b> <button class="btn" onclick="speakText(${jarg(l.listening.script)})">▶ Play audio</button></p><p class="muted small">Listen for the situation, the relationship between speakers and the key information.</p><button class="btn light" onclick="this.nextElementSibling.style.display='block'">Show transcript</button><div class="answer script">${l.listening.script}</div></div><div class="activity"><h3><span class="num">7</span>Speaking</h3><div class="task"><b>Role play</b><p>${l.speaking.roleplay}</p></div><div class="task"><b>Discuss</b>${l.speaking.discuss.map(x => `<p>• ${x}</p>`).join('')}</div><button class="btn" onclick="go('speaking')">Speaking Studio →</button></div><div class="activity"><h3><span class="num">8</span>Writing</h3><p>${l.writing.prompt}</p><div class="task"><b>Checklist</b>${l.writing.checklist.map(x => `<p>☐ ${x}</p>`).join('')}</div><button class="btn light" onclick="go('writing')">Writing Studio →</button></div><div class="activity"><h3><span class="num">9</span>Homework</h3><p>${l.homework}</p><button class="btn" onclick="addHW('${esc(l.title)}: ${esc(l.homework)}')">Assign homework</button></div></div><div class="section"><h2>Unit review — ${l.unit.title}</h2><p class="muted">Five quick-check questions covering the unit. Score yourself before moving on.</p><div class="review-grid">${l.review.map((q, i) => `<div class="q wbq"><b>${i + 1}.</b> ${esc(q.q)}<select class="input"><option value="">— choose —</option>${shuffled(q.opts.map(o => ({ o, ok: o === q.ans })), i + 1).map(o => `<option value="${esc(o.o)}" ${o.ok ? 'data-ok="1"' : ''}>${esc(o.o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check my score</button><div class="wbfb"></div></div></div></div>`;
+  return `<div class="lesson-shell"><div class="crumb"><button class="btn light" onclick="go('book')">← Coursebook</button> <span class="muted">Unit ${l.unit.number} · ${l.stage}</span></div><div class="lesson-hero"><div class="bigq"><span>Big Question</span><h2>${l.unit.bigQ}</h2></div><div class="row" style="justify-content:space-between;margin-top:12px"><span class="pill">Unit ${l.unit.number} • ${state.book.level} • ${taskChip}</span><div class="seg"><button class="filter ${state.minutes === 60 ? 'active' : ''}" onclick="state.minutes=60;render()">60′ programme</button><button class="filter ${state.minutes === 90 ? 'active' : ''}" onclick="state.minutes=90;render()">90′ programme</button></div></div><h1>${l.title}</h1><p class="muted">${TOPICS[l.unit.number - 1].intro}</p><div class="skills"><span class="skill">Vocabulary</span><span class="skill">Grammar</span><span class="skill">Pronunciation</span><span class="skill">Reading</span><span class="skill">Listening</span><span class="skill">Speaking</span><span class="skill">Writing</span></div></div><div class="aims"><b>Lesson aim</b><p>${l.aim}</p><div class="row">${l.outcomes.map(o => `<span class="outcome">✓ ${o}</span>`).join('')}</div></div><div class="section"><h2>Class programme</h2>${planTable(l, state.minutes)}</div><div class="lesson-grid"><div class="activity"><h3><span class="num">1</span>Warm-up</h3><p>${l.warmup}</p></div><div class="activity"><h3><span class="num">2</span>Vocabulary</h3><div class="ptiles">${l.vocab.map(w => `<div class="ptile"><div class="ptile-pic">${vpTileImg(w.word)}</div><div class="ptile-body"><b>${w.word}</b> <span class="muted small ipa">${w.ipa || ''}</span><div class="chips"><span class="pill poschip">${w.pos || ''}</span><span class="pill catpill">${w.cat || ''}</span><span class="pill lvlpill">${w.level}</span></div><p class="muted small">${w.meaning}</p><p class="example">“${w.example}”</p></div><button class="btn light mini-btn" onclick="speakText('${esc(w.word)}')">🔊</button></div>`).join('')}</div><button class="btn" onclick="go('vpx')">Vocabulary Explorer →</button><button class="btn light" onclick="go('vocabulary')">Vocabulary in Use →</button></div><div class="activity"><h3><span class="num">3</span>Grammar Bank</h3><div class="bank"><span class="banktag">GRAMMAR BANK</span><h4>${g.title}</h4>${tp ? `<div class="tl">${timelineSVG(tp)}</div>` : ''}<div class="gquick"><b>In one line:</b> ${g.quick || g.use}</div><p class="formula">${g.form}</p><p><b>Use.</b> ${g.use}</p><ul class="examples">${g.examples.map(e => `<li>${e}</li>`).join('')}</ul><p class="warn">⚠ ${g.error}</p><button class="btn light morebtn" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">📖 Read the extended explanation</button><div class="gmore">${g.more || ''}</div></div><button class="btn light" onclick="go('grammar')">Open Grammar in Use →</button></div><div class="activity"><h3><span class="num">4</span>Pronunciation</h3><div class="pron"><span class="big-ipa">${l.pron.ipa}</span><p><b>Listen and repeat:</b> “${l.pron.word}”</p><p class="muted small">Sound family: ${l.pron.family}</p><button class="btn" onclick="speakText('${esc(l.pron.word)}')">🔊 Hear it</button></div></div><div class="activity"><h3><span class="num">5</span>Reading · IELTS-style</h3><p class="readtitle"><b>${l.reading.title}</b> <button class="btn light mini-btn" onclick="speakText(${jarg(l.reading.text)})">🔊 Read aloud</button></p>${ieltsPassage(l.reading)}${ieltsTasks(l.reading.tasks)}<button class="btn light" onclick="this.nextElementSibling.style.display='block'">Show simple answers</button><div class="answer script">${l.questions.map((q, i) => `Q${i + 1}. ${q.q} — ${q.a}`).join('<br>')}</div>${cbPanel(`Unit ${l.unit.number} · ${l.title} · Reading answers`, `Coursebook · Unit ${l.unit.number} · Reading`, 'Reading response')}</div><div class="activity"><h3><span class="num">6</span>Listening</h3><p class="readtitle"><b>${l.listening.title}</b> <button class="btn" onclick="speakText(${jarg(l.listening.script)})">▶ Play audio</button></p><p class="muted small">Listen for the situation, the relationship between speakers and the key information.</p><button class="btn light" onclick="this.nextElementSibling.style.display='block'">Show transcript</button><div class="answer script">${l.listening.script}</div></div><div class="activity"><h3><span class="num">7</span>Speaking</h3><div class="task"><b>Role play</b><p>${l.speaking.roleplay}</p></div><div class="task"><b>Discuss</b>${l.speaking.discuss.map(x => `<p>• ${x}</p>`).join('')}</div><button class="btn" onclick="go('speaking')">Speaking Studio →</button></div>    <div class="activity"><h3><span class="num">8</span>Writing</h3><p>${l.writing.prompt}</p><div class="task"><b>Checklist</b>${l.writing.checklist.map(x => `<p>☐ ${x}</p>`).join('')}</div>${cbPanel(`Unit ${l.unit.number} · ${l.title}`, `Coursebook · Unit ${l.unit.number} · ${l.title}`, 'Textbook answer')}<button class="btn light" onclick="go('writing')">Writing Studio →</button></div><div class="activity"><h3><span class="num">9</span>Homework</h3><p>${l.homework}</p><button class="btn" onclick="addHW('${esc(l.title)}: ${esc(l.homework)}')">Assign homework</button></div></div><div class="section"><h2>Unit review — ${l.unit.title}</h2><p class="muted">Five quick-check questions covering the unit. Score yourself before moving on.</p><div class="review-grid">${l.review.map((q, i) => `<div class="q wbq"><b>${i + 1}.</b> ${esc(q.q)}<select class="input"><option value="">— choose —</option>${shuffled(q.opts.map(o => ({ o, ok: o === q.ans })), i + 1).map(o => `<option value="${esc(o.o)}" ${o.ok ? 'data-ok="1"' : ''}>${esc(o.o)}</option>`).join('')}</select></div>`).join('')}<button class="btn" onclick="checkWB()">Check my score</button><div class="wbfb"></div></div></div></div>`;
 }
 
 /* ---------------- Grammar in Use: three-book reference library ---------------- */
@@ -681,6 +687,293 @@ function wbSaveVal(id, i, val) {
   const rec = state.wbSave[k] = state.wbSave[k] || { v: {} };
   rec.v = rec.v || {}; rec.v[i] = val; save();
 }
+function cbEntries(studentId) {
+  const list = state.copybook[studentId] || [];
+  return list.slice().sort((a, b) => (b.seq || 0) - (a.seq || 0) || String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+}
+function cbPanel(title, source, kind) {
+  if (!isStudent()) return '';
+  return `<details class="lesson-copybook"><summary>Write your answer in My Copybook</summary>${copybookEditor(title, source, kind, '', '')}</details>`;
+}
+function cbSaveEditor(title, source, kind, studentScoped, uid) {
+  if (!isStudent()) return toast('Copybook entries can only be saved from a student account.');
+  const suffix = uid ? '-' + uid : '';
+  const el = document.getElementById('cb-editor' + suffix); if (!el) return toast('Write your answer before saving.');
+  const body = el.value.trim(); if (!body) return toast('Write your answer before saving.');
+  const studentId = myId();
+  const titleEl = document.getElementById('cb-title' + suffix);
+  const entryTitle = (titleEl && titleEl.value.trim()) || title;
+  const existingId = el.dataset.entry || '';
+  const list = state.copybook[studentId] || (state.copybook[studentId] = []);
+  let entry = list.find(x => x.id === existingId);
+  if (entry) { entry.title = entryTitle; entry.body = body; entry.source = source || entry.source; entry.kind = kind || entry.kind; entry.updatedAt = new Date().toISOString(); }
+  else { entry = { id: 'cb' + Date.now().toString(36) + (++state.copybookSeq).toString(36), seq: state.copybookSeq, title: entryTitle, body, source: source || 'Personal writing', kind: kind || 'Writing', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), status: 'draft', teacherComment: '', teacherName: '' }; list.unshift(entry); }
+  save(); render(); toast(entry.status === 'submitted' ? 'Copybook draft updated.' : 'Copybook entry saved.');
+}
+function cbSubmitEntry(id) {
+  if (!isStudent()) return toast('Only the student can submit copybook work.');
+  const entry = (state.copybook[myId()] || []).find(x => x.id === id); if (!entry) return;
+  if (entry.status === 'reviewed') return toast('Reviewed entries are read-only; create a new entry to submit another answer.');
+  if (!entry.body.trim()) return toast('Add your writing before submitting.');
+  entry.status = 'submitted'; entry.submittedAt = new Date().toISOString(); entry.teacherComment = ''; entry.teacherName = '';
+  entry.sync = cloudAvailable() && LF_CLOUD.classCode ? 'syncing' : 'off';
+  save(); render();
+  if (entry.sync === 'syncing') cloudPushEntry(myId(), entry).then(ok => { save(); render(); toast(ok ? 'Submitted to your teacher for review.' : (entry.syncError || 'Saved here; sharing will retry.')); });
+  else toast('Submitted. Add your class code so your teacher can read it from her own device.');
+}
+function cbDeleteEntry(id) {
+  if (!isStudent()) return;
+  state.copybook[myId()] = (state.copybook[myId()] || []).filter(x => x.id !== id); save(); render(); toast('Copybook entry deleted.');
+}
+function cbTeacherReview(studentId, entryId, decision) {
+  if (!state.teacherSignedIn || isStudent()) return toast('Teacher sign-in is required to review copybook entries.');
+  const entry = (state.copybook[studentId] || []).find(x => x.id === entryId); if (!entry) return;
+  const comment = (document.getElementById('cb-feedback-' + entryId) || {}).value || '';
+  if (!comment.trim()) return toast('Add feedback before saving your review.');
+  entry.teacherComment = comment.trim(); entry.teacherName = state.teacherName || 'Teacher'; entry.reviewedAt = new Date().toISOString(); entry.status = decision === 'revision' ? 'revision' : 'reviewed';
+  save(); render(); toast(decision === 'revision' ? 'Feedback saved; revision requested.' : 'Feedback saved to the copybook.');
+}
+function cbSubmitWritingStudio() {
+  const writer = document.getElementById('writer'); if (!writer || !writer.value.trim()) return toast('Write your answer before submitting.');
+  const title = document.getElementById('writer-task-title')?.value.trim() || 'Writing Studio · Personal goal';
+  const list = state.copybook[myId()] || (state.copybook[myId()] = []);
+  const prev = list.find(x => x.sourceKey === 'writing-studio');
+  const now = new Date().toISOString();
+  const entry = prev || { id: 'cb' + Date.now().toString(36) + (++state.copybookSeq).toString(36), seq: state.copybookSeq, createdAt: now, status: 'draft', teacherComment: '' };
+  entry.title = title; entry.body = writer.value.trim(); entry.source = 'Writing Studio'; entry.sourceKey = 'writing-studio'; entry.kind = 'Essay'; entry.updatedAt = now; entry.status = 'submitted'; entry.submittedAt = now; entry.teacherComment = ''; entry.teacherName = '';
+  entry.sync = cloudAvailable() && LF_CLOUD.classCode ? 'syncing' : 'off';
+  if (!prev) list.unshift(entry);
+  save(); render();
+  if (entry.sync === 'syncing') cloudPushEntry(myId(), entry).then(ok => { save(); render(); toast(ok ? 'Writing submitted to your teacher.' : (entry.syncError || 'Saved here; sharing will retry.')); });
+  else toast('Writing saved to your copybook. Add your class code so your teacher can read it.');
+}
+let __cbUid = 0;
+function copybookEditor(title, source, kind, value, entryId) {
+  const uid = 'cb' + (++__cbUid).toString(36);
+  return `<div class="cb-editor-wrap"><label class="cb-title-label" for="cb-title-${uid}">Title</label><input id="cb-title-${uid}" class="input" maxlength="120" value="${esc(title || '')}" placeholder="Give this entry a title"><label class="cb-title-label" for="cb-editor-${uid}">Your work</label><textarea id="cb-editor-${uid}" class="input cb-editor" rows="8" data-entry="${esc(entryId || '')}" placeholder="Write your answer, explanation, or reflection…">${esc(value || '')}</textarea><div class="row cb-actions"><span class="muted small">Saved to your private copybook on this browser.</span><button class="btn" onclick="cbSaveEditor(${jarg(title || 'Copybook entry')},${jarg(source || 'Personal writing')},${jarg(kind || 'Writing')},true,'${uid}')">Save to copybook</button></div></div>`;
+}
+function cbSyncPill(entry) {
+  if (!entry || entry.status === 'draft') return '';
+  const map = { synced: ['Shared with teacher', 'cloud-ok'], syncing: ['Sharing…', 'cloud-warn'], pending: ['Waiting to share', 'cloud-warn'], off: ['On this device only', ''] };
+  const [label, cls] = map[entry.sync] || map.off;
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+function copybookEntryCard(entry, teacherMode, studentId) {
+  const statusMap = { draft: ['Draft', '#64748b'], submitted: ['Awaiting teacher review', '#1499ce'], reviewed: ['Teacher reviewed', '#20855f'], revision: ['Revision requested', '#d97706'] };
+  const [label, color] = statusMap[entry.status] || statusMap.draft;
+  const date = d => d ? new Date(d).toLocaleString() : '';
+  const edit = !teacherMode && !entry.cloud && (entry.status === 'draft' || entry.status === 'revision');
+  const review = teacherMode && !entry.cloud && (entry.status === 'submitted' || entry.status === 'revision');
+  const reviewCall = entry.cloud ? 'cbCloudReview' : 'cbTeacherReview';
+  const cloudReview = teacherMode && entry.cloud && (entry.status === 'submitted' || entry.status === 'revision');
+  const feedback = entry.teacherComment ? `<div class="cb-teacher-feedback"><b>Teacher feedback${entry.teacherName ? ` · ${esc(entry.teacherName)}` : ''}</b><p>${esc(entry.teacherComment).replace(/\n/g, '<br>')}</p><small class="muted">${esc(date(entry.reviewedAt))}</small></div>` : '';
+  const feedbackForm = `<div class="cb-review"><label class="cb-title-label" for="cb-feedback-${entry.id}">Teacher comments</label><textarea id="cb-feedback-${entry.id}" class="input" rows="4" placeholder="Give specific, helpful feedback…"></textarea><div class="row"><button class="btn" onclick="${reviewCall}('${studentId}','${entry.id}','reviewed')">Save feedback</button><button class="btn light" onclick="${reviewCall}('${studentId}','${entry.id}','revision')">Request revision</button>${entry.cloud ? `<button class="btn light danger" onclick="cbCloudRemove('${studentId}','${entry.id}')">Remove from shared store</button>` : ''}</div></div>`;
+  const origin = entry.cloud && entry.cloudStudentName ? ` · from ${esc(entry.cloudStudentName)}` : '';
+  return `<article class="cb-entry"><div class="cb-entry-head"><div><span class="pill" style="background:${color};color:#fff">${label}</span>${!teacherMode ? cbSyncPill(entry) : ''}<h3>${esc(entry.title)}</h3><p class="muted small">${esc(entry.kind || 'Writing')} · ${esc(entry.source || 'Personal writing')}${origin} · Updated ${esc(date(entry.updatedAt))}</p></div></div><div class="cb-entry-body">${esc(entry.body).replace(/\n/g, '<br>')}</div>${feedback}${edit ? `<details class="cb-edit"><summary>Edit draft</summary><div class="cb-editor-wrap"><label class="cb-title-label">Title<input class="input" id="cb-title-${entry.id}" maxlength="120" value="${esc(entry.title)}"></label><label class="cb-title-label">Your work<textarea class="input cb-editor" id="cb-body-${entry.id}" rows="7">${esc(entry.body)}</textarea></label><div class="row"><button class="btn light" onclick="cbUpdateEntry('${entry.id}')">Save changes</button>${entry.status === 'revision' ? `<button class="btn" onclick="cbSubmitEntry('${entry.id}')">Resubmit to teacher</button>` : ''}<button class="btn light danger" onclick="cbDeleteEntry('${entry.id}')">Delete</button></div></div></details>` : ''}${review || cloudReview ? feedbackForm : ''}${!teacherMode && entry.status === 'draft' ? `<div class="row cb-entry-actions"><button class="btn" onclick="cbSubmitEntry('${entry.id}')">Submit to teacher for review</button><button class="btn light danger" onclick="cbDeleteEntry('${entry.id}')">Delete draft</button></div>` : ''}${!teacherMode && entry.status === 'revision' ? '<p class="muted small">Your teacher asked for a revision — edit the draft above, then resubmit.</p>' : ''}</article>`;
+}
+function cbUpdateEntry(id) {
+  if (!isStudent()) return;
+  const list = state.copybook[myId()] || []; const entry = list.find(x => x.id === id); if (!entry || (entry.status !== 'draft' && entry.status !== 'revision')) return;
+  const title = document.getElementById('cb-title-' + id)?.value.trim() || '';
+  const body = document.getElementById('cb-body-' + id)?.value.trim() || '';
+  if (!title || !body) return toast('Add both a title and your written work.');
+  entry.title = title; entry.body = body; entry.updatedAt = new Date().toISOString(); save(); render(); toast('Copybook entry updated.');
+}
+function copybookView() {
+  if (!isStudent()) return '<div class="section"><div class="empty">Sign in as a student to open a private copybook.</div></div>';
+  const entries = cbEntries(myId());
+  const submitted = entries.filter(e => e.status === 'submitted').length;
+  const reviewed = entries.filter(e => e.status === 'reviewed' || e.status === 'revision').length;
+  const kinds = [...new Set(entries.map(e => e.kind || 'Writing'))];
+  const filter = state.copybookFilter || 'All';
+  const visible = filter === 'All' ? entries : entries.filter(e => (e.status || 'draft') === filter.toLowerCase());
+  return `<div class="section"><div class="cb-page-head"><div><h2>My Copybook</h2><p class="muted">Save essays, textbook answers and other written work here. Submit an entry when you want your teacher to read and comment on it — connect the class code once and she can read it from her own device.</p></div><div class="cb-stats"><span><b>${entries.length}</b> entries</span><span><b>${submitted}</b> awaiting review</span><span><b>${reviewed}</b> reviewed / revision</span></div></div>${cloudStudentPanel()}<div class="card cb-compose"><h3>New copybook entry</h3>${copybookEditor('', 'My Copybook', state.copybookKind || 'Writing', '', '')}</div>${entries.length ? `<div class="filters cb-filters">${['All','Draft','Submitted','Reviewed','Revision'].map(x => `<button class="filter ${filter === x ? 'active' : ''}" onclick="state.copybookFilter='${x}';render()">${x}</button>`).join('')}<select class="input cb-kind-filter" aria-label="Copybook entry type" onchange="state.copybookKind=this.value;render()">${['Writing','Essay','Textbook answer','Workbook answer','Reading response','Reflection','Other'].map(k => `<option ${state.copybookKind === k ? 'selected' : ''}>${k}</option>`).join('')}</select></div><div class="cb-entries">${visible.map(e => copybookEntryCard(e, false, myId())).join('') || '<div class="empty">No entries in this filter.</div>'}</div>` : '<div class="empty">Your copybook is empty. Add an essay, answer or written reflection above.</div>'}</div>`;
+}
+function teacherCopybookView() {
+  if (!state.teacherSignedIn || isStudent()) return '<div class="section"><div class="empty">Sign in as a teacher to review copybooks.</div></div>';
+  if (cloudAvailable() && LF_CLOUD.teacherCode && !state.cloudShared && !state.cloudBusy && !state.cloudAutoTried) { state.cloudAutoTried = true; setTimeout(cloudRefreshShared, 0); }
+  const cloudStudents = (state.cloudSummary && state.cloudSummary.students) || [];
+  const options = state.student.slice();
+  cloudStudents.forEach(x => { if (!options.some(s => s.id === x.id)) options.push({ id: x.id, name: x.name, level: x.level, cloudOnly: true }); });
+  const studentId = state.copybookStudent && options.some(s => s.id === state.copybookStudent) ? state.copybookStudent : (options[0] && options[0].id) || '';
+  const student = stuById(studentId) || options.find(s => s.id === studentId);
+  if (!student) return `<div class="section"><h2>Student Copybooks</h2>${cloudTeacherPanel()}<div class="empty">No student accounts yet. Add students before reviewing copybooks.</div></div>`;
+  const all = teacherMergedEntries(studentId);
+  const filter = state.copybookTeacherFilter || 'All';
+  const entries = filter === 'All' ? all : all.filter(e => filter === 'Awaiting review' ? e.status === 'submitted' : filter === 'Reviewed' ? e.status === 'reviewed' : e.status === 'revision');
+  const waiting = all.filter(e => e.status === 'submitted').length;
+  return `<div class="section"><div class="cb-page-head"><div><h2>Student Copybooks</h2><p class="muted">Read submitted essays, answers and written work — including work submitted from a student's own device. Leave feedback or request a revision; the student sees your comments in their copybook.</p></div></div>${cloudTeacherPanel()}<div class="card cb-student-picker"><label class="cb-title-label" for="cb-student">Student</label><select id="cb-student" class="input" onchange="state.copybookStudent=this.value;render()">${options.map(s => `<option value="${esc(s.id)}" ${s.id === studentId ? 'selected' : ''}>${esc(s.name)} · ${esc(s.level)}${s.cloudOnly ? ' · shared' : ''}</option>`).join('')}</select><span class="pill">${waiting} awaiting review · ${all.length} total</span></div><div class="filters cb-filters">${['All','Awaiting review','Reviewed','Revision'].map(x => `<button class="filter ${filter === x ? 'active' : ''}" onclick="state.copybookTeacherFilter='${x}';render()">${x}</button>`).join('')}</div><div class="cb-entries">${entries.map(e => copybookEntryCard(e, true, studentId)).join('') || '<div class="empty">No copybook entries here yet. Students can submit their writing and answers from My Copybook.</div>'}</div></div>`;
+}
+/* ---------------- Shared copybook storage: teachers read work from any device ---------------- */
+function cloudAvailable() { return typeof LF_CLOUD !== 'undefined' && !!LF_CLOUD.base; }
+function cloudSay(text, kind) { state.cloudNotice = text || ''; state.cloudNoticeKind = kind || ''; }
+function cloudRowToEntry(row) {
+  return { id: row.entry_id, seq: 0, title: row.title, body: row.body, kind: row.kind, source: row.source, status: row.status, teacherComment: row.teacher_comment || '', teacherName: row.teacher_name || '', reviewedAt: row.reviewed_at, submittedAt: row.submitted_at, updatedAt: row.updated_at, createdAt: row.created_at, cloud: true, cloudStudentId: row.student_id, cloudStudentName: row.student_name, cloudStudentLevel: row.student_level, sync: 'synced' };
+}
+function cloudNeedsPush(studentId) { return cbEntries(studentId).filter(e => e.status !== 'draft' && e.sync !== 'synced'); }
+async function sha256Hex(text) {
+  if (!window.crypto || !window.crypto.subtle) return '';
+  const buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function cloudPushEntry(studentId, entry) {
+  if (!cloudAvailable() || !LF_CLOUD.classCode) { entry.sync = 'off'; save(); return false; }
+  const student = stuById(studentId) || { id: studentId, name: 'Student', level: '' };
+  entry.sync = 'syncing'; entry.syncError = ''; save();
+  try {
+    await LF_CLOUD.submit(entry, student);
+    entry.sync = 'synced'; entry.syncedAt = new Date().toISOString(); entry.syncError = ''; save(); return true;
+  } catch (err) {
+    entry.sync = 'pending'; entry.syncError = LF_CLOUD.messageFor(err.code || err.message); save(); return false;
+  }
+}
+async function cloudPushPending(studentId, quiet) {
+  if (!cloudAvailable()) return 0;
+  if (!LF_CLOUD.classCode) { if (!quiet) toast('Connect this device with your class code first.'); return 0; }
+  const waiting = cloudNeedsPush(studentId); if (!waiting.length) { if (!quiet) toast('Everything submitted is already shared.'); return 0; }
+  if (!quiet) { state.cloudBusy = true; render(); }
+  let done = 0;
+  for (const entry of waiting) if (await cloudPushEntry(studentId, entry)) done++;
+  state.cloudBusy = false;
+  if (done) cloudSay(`${done} ${done === 1 ? 'entry' : 'entries'} shared with your teacher.`, 'ok'); else cloudSay(waiting[0].syncError || 'Sharing failed. Your work is still saved on this device.', 'warn');
+  save(); render(); return done;
+}
+function cloudClassSubmit() {
+  const el = document.getElementById('cloud-class-code'); const value = el ? el.value.trim() : '';
+  if (!value) return toast('Enter the class code your teacher gave you.');
+  LF_CLOUD.setClassCode(value); state.cloudAutoTried = false; cloudSay('Class code saved on this device.', 'ok');
+  cloudPushPending(myId(), true);
+}
+function cloudClassForget() { LF_CLOUD.clearClassCode(); cloudSay('This device is disconnected from the class space. Your work stays in your copybook.', ''); render(); }
+function cloudTeacherSubmit() {
+  const el = document.getElementById('cloud-teacher-code'); const value = el ? el.value.trim() : '';
+  if (!value) return toast('Enter your private teacher code.');
+  LF_CLOUD.setTeacherCode(value); state.cloudShared = null; state.cloudSummary = null; state.cloudAutoTried = false; cloudSay('Checking your teacher code…', '');
+  cloudRefreshShared();
+}
+function cloudTeacherForget() { LF_CLOUD.clearTeacherCode(); state.cloudShared = null; state.cloudSummary = null; state.cloudAutoTried = false; cloudSay('Signed out of shared review on this device.', ''); render(); }
+async function cloudRefreshShared() {
+  if (!cloudAvailable() || !LF_CLOUD.teacherCode) return;
+  state.cloudBusy = true; state.cloudError = ''; render();
+  try {
+    const list = await LF_CLOUD.list();
+    state.cloudShared = (list.data.entries || []).map(cloudRowToEntry);
+    const summary = await LF_CLOUD.summary();
+    state.cloudSummary = summary.data || { total: 0, waiting: 0, students: [] };
+    cloudSay(state.cloudShared.length ? `${state.cloudShared.length} ${state.cloudShared.length === 1 ? 'entry' : 'entries'} loaded from the shared space.` : 'No shared submissions yet.', 'ok');
+    if (!state.cloudRosterPushed) {
+      state.cloudRosterPushed = true;
+      const rows = [];
+      for (const s of state.student) rows.push({ id: s.id, name: s.name, level: s.level, pinHash: s.pin ? await sha256Hex(s.pin) : '' });
+      if (rows.length) { try { await LF_CLOUD.rosterSync(rows); } catch (e) { state.cloudRosterPushed = false; } }
+    }
+  } catch (err) {
+    state.cloudError = LF_CLOUD.messageFor(err.code || err.message);
+    cloudSay(state.cloudError, 'warn');
+    if (err.code === 'bad_teacher_code') { LF_CLOUD.clearTeacherCode(); state.cloudShared = null; state.cloudSummary = null; state.cloudAutoTried = false; }
+  }
+  state.cloudBusy = false; save(); render();
+}
+async function cloudFetchMine() {
+  if (!cloudAvailable()) return toast('Shared storage is not available in this browser.');
+  if (!LF_CLOUD.classCode) return toast('Connect this device with your class code first.');
+  const pin = (document.getElementById('cloud-pin') || {}).value || '';
+  if (!pin.trim()) return toast('Enter your PIN to fetch your teacher\'s feedback.');
+  state.cloudBusy = true; render();
+  try {
+    const res = await LF_CLOUD.mine(myId(), pin.trim());
+    const rows = (res.data.entries || []).map(cloudRowToEntry);
+    const list = state.copybook[myId()] || (state.copybook[myId()] = []);
+    let updated = 0;
+    rows.forEach(row => {
+      const local = list.find(x => x.id === row.id);
+      if (!local) { list.unshift(Object.assign({}, row, { seq: ++state.copybookSeq })); updated++; return; }
+      if (local.teacherComment !== row.teacherComment || local.status !== row.status) updated++;
+      local.status = row.status; local.teacherComment = row.teacherComment; local.teacherName = row.teacherName;
+      local.reviewedAt = row.reviewedAt; local.sync = 'synced'; local.syncedAt = new Date().toISOString();
+    });
+    cloudSay(rows.length ? (updated ? `Your teacher's feedback was collected (${updated} ${updated === 1 ? 'entry' : 'entries'} updated).` : 'Nothing new from your teacher yet.') : 'Your teacher has not opened this work yet.', 'ok');
+  } catch (err) {
+    const code = err.code || '';
+    if (code === 'bad_pin') cloudSay('That PIN does not match the one your teacher set for you.', 'warn');
+    else if (code === 'no_roster') cloudSay('Your teacher has not published your class list yet. Ask her to open Student Copybooks once.', 'warn');
+    else cloudSay(LF_CLOUD.messageFor(code || err.message), 'warn');
+  }
+  state.cloudBusy = false; save(); render();
+}
+async function cbCloudReview(studentId, entryId, decision) {
+  if (!state.teacherSignedIn || isStudent()) return toast('Teacher sign-in is required to review copybook entries.');
+  if (!cloudAvailable() || !LF_CLOUD.teacherCode) return toast('Open shared submissions with your teacher code first.');
+  const comment = (document.getElementById('cb-feedback-' + entryId) || {}).value || '';
+  if (!comment.trim()) return toast('Add feedback before saving your review.');
+  const status = decision === 'revision' ? 'revision' : 'reviewed';
+  state.cloudBusy = true; render();
+  try {
+    const res = await LF_CLOUD.review(studentId, entryId, status, comment.trim(), state.teacherName || 'Teacher');
+    const row = res.data;
+    const shared = (state.cloudShared || []).find(x => x.id === entryId && x.cloudStudentId === studentId);
+    if (shared) { shared.status = row.status; shared.teacherComment = row.teacher_comment; shared.teacherName = row.teacher_name; shared.reviewedAt = row.reviewed_at; shared.updatedAt = row.updated_at; }
+    const local = ((state.copybook || {})[studentId] || []).find(x => x.id === entryId);
+    if (local) { local.status = row.status; local.teacherComment = row.teacher_comment; local.teacherName = row.teacher_name; local.reviewedAt = row.reviewed_at; }
+    if (state.cloudSummary) state.cloudSummary.waiting = Math.max(0, (state.cloudSummary.waiting || 0) - 1);
+    state.cloudBusy = false; save(); render(); toast(status === 'revision' ? 'Feedback saved; revision requested.' : 'Feedback saved to the copybook.');
+  } catch (err) {
+    state.cloudBusy = false; state.cloudError = LF_CLOUD.messageFor(err.code || err.message); save(); render(); toast(state.cloudError);
+  }
+}
+async function cbCloudRemove(studentId, entryId) {
+  if (!LF_CLOUD.teacherCode) return;
+  if (!confirm('Remove this submitted entry from the shared store? The student keeps their own copy.')) return;
+  state.cloudBusy = true; render();
+  try {
+    await LF_CLOUD.remove(studentId, entryId);
+    state.cloudShared = (state.cloudShared || []).filter(x => !(x.id === entryId && x.cloudStudentId === studentId));
+    const st = state.cloudSummary && (state.cloudSummary.students || []).find(x => x.id === studentId);
+    if (st) { st.total = Math.max(0, st.total - 1); if (st.waiting) st.waiting = Math.max(0, st.waiting - 1); }
+    if (state.cloudSummary) state.cloudSummary.total = Math.max(0, (state.cloudSummary.total || 0) - 1);
+    state.cloudBusy = false; save(); render(); toast('Entry removed from the shared store.');
+  } catch (err) { state.cloudBusy = false; save(); render(); toast(LF_CLOUD.messageFor(err.code || err.message)); }
+}
+function cloudStudentPanel() {
+  if (!cloudAvailable()) return '';
+  const code = LF_CLOUD.classCode;
+  const pending = cloudNeedsPush(myId()).length;
+  const notice = state.cloudNotice ? `<p class="cb-cloud-msg ${state.cloudNoticeKind === 'warn' ? 'warn' : state.cloudNoticeKind === 'ok' ? 'ok' : ''}">${esc(state.cloudNotice)}</p>` : '';
+  if (!code) return `<div class="card cb-cloud"><h3>Share with your teacher</h3><p class="muted small">Your copybook stays on this device until you submit an entry. To let your teacher read it from her own computer, connect this device once with the class code she gives you. Drafts stay private either way.</p><div class="row cb-cloud-row"><input id="cloud-class-code" class="input" placeholder="Class code — for example LF-CLASS-XXXX" autocomplete="off" aria-label="Class code from your teacher"><button class="btn" onclick="cloudClassSubmit()">Connect to my teacher</button></div>${notice}</div>`;
+  return `<div class="card cb-cloud"><h3>Connected to your teacher</h3><p class="muted small">Submitted work is stored in your class space, so your teacher can read it from any device. Only you (with your PIN) and your teacher can read your entries.</p><div class="row cb-cloud-row"><span class="pill cloud-ok">Class code saved</span>${pending ? `<span class="pill cloud-warn">${pending} waiting to share</span>` : '<span class="pill cloud-ok">All submitted work shared</span>'}<button class="btn light" onclick="cloudPushPending(myId())">${state.cloudBusy ? 'Working…' : 'Share now'}</button><button class="btn light" onclick="cloudClassForget()">Disconnect</button></div><div class="row cb-cloud-row"><input id="cloud-pin" class="input" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="current-password" aria-label="Your PIN"><button class="btn light" onclick="cloudFetchMine()">Collect teacher feedback</button></div>${notice}</div>`;
+}
+function cloudTeacherPanel() {
+  if (!cloudAvailable()) return '';
+  const notice = state.cloudNotice ? `<p class="cb-cloud-msg ${state.cloudNoticeKind === 'warn' ? 'warn' : state.cloudNoticeKind === 'ok' ? 'ok' : ''}">${esc(state.cloudNotice)}</p>` : '';
+  if (!LF_CLOUD.teacherCode) return `<div class="card cb-cloud"><h3>Shared submissions</h3><p class="muted small">Enter your private teacher code once on this device. It lets you read and comment on every submitted copybook entry, no matter which device the student used. The code stays in this browser only and is never written into your website files.</p><div class="row cb-cloud-row"><input id="cloud-teacher-code" class="input" type="password" placeholder="Your private teacher code" autocomplete="off" aria-label="Private teacher code"><button class="btn" onclick="cloudTeacherSubmit()">Open shared submissions</button></div>${notice}</div>`;
+  const s = state.cloudSummary;
+  const studentChips = s && (s.students || []).length ? `<div class="row cb-cloud-students">${(s.students || []).map(x => `<button class="filter ${x.id === (state.copybookStudent || '') ? 'active' : ''}" onclick="state.copybookStudent=${jarg(x.id)};state.copybookTeacherFilter='All';render()">${esc(x.name)}${x.waiting ? ' · ' + x.waiting + ' new' : ''}</button>`).join('')}</div>` : '';
+  return `<div class="card cb-cloud"><div class="row cb-cloud-head"><h3>Shared submissions</h3><div class="row"><button class="btn light" onclick="cloudRefreshShared()">${state.cloudBusy ? 'Refreshing…' : 'Refresh'}</button><button class="btn light" onclick="cloudTeacherForget()">Sign out of shared review</button></div></div><p class="muted small">Reading from your class space${s ? ` · ${s.total} ${s.total === 1 ? 'entry' : 'entries'} · ${s.waiting} awaiting review` : ''}. Work submitted from any student device appears here.</p>${studentChips}<div class="row cb-cloud-row"><input id="cloud-teacher-class" class="input" value="${esc(LF_CLOUD.classCode)}" placeholder="Class code for your students" autocomplete="off" aria-label="Class code for students"><button class="btn light" onclick="cloudTeacherClassSave()">Save class code</button><button class="btn light" onclick="cloudRosterPush()">Publish class list</button></div>${notice}</div>`;
+}
+function cloudTeacherClassSave() {
+  const el = document.getElementById('cloud-teacher-class'); const value = el ? el.value.trim() : '';
+  if (!value) return toast('Enter the class code you want your students to use.');
+  LF_CLOUD.setClassCode(value); cloudSay('Class code saved. Share it with your students so they can submit their work.', 'ok'); render();
+}
+async function cloudRosterPush() {
+  if (!LF_CLOUD.teacherCode) return toast('Open shared submissions with your teacher code first.');
+  state.cloudBusy = true; render();
+  try {
+    const rows = [];
+    for (const s of state.student) rows.push({ id: s.id, name: s.name, level: s.level, pinHash: s.pin ? await sha256Hex(s.pin) : '' });
+    await LF_CLOUD.rosterSync(rows);
+    state.cloudRosterPushed = true;
+    cloudSay(`Class list published (${rows.length} ${rows.length === 1 ? 'student' : 'students'}). Students can now collect your feedback with their PIN.`, 'ok');
+  } catch (err) { cloudSay(LF_CLOUD.messageFor(err.code || err.message), 'warn'); }
+  state.cloudBusy = false; save(); render();
+}
+function teacherMergedEntries(studentId) {
+  const local = cbEntries(studentId).map(e => Object.assign({}, e));
+  const cloud = (state.cloudShared || []).filter(x => x.cloudStudentId === studentId);
+  const seen = {}; cloud.forEach(x => { seen[x.id] = 1; });
+  const byStatus = e => (e && e.status === 'revision' ? 3 : e && e.status === 'submitted' ? 2 : e && e.status === 'reviewed' ? 1 : 0);
+  return cloud.concat(local.filter(e => !seen[e.id])).sort((a, b) => byStatus(b) - byStatus(a) || String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+}
 function wbWordCount(el) { document.getElementById('wbwc').textContent = (el.value.trim() ? el.value.trim().split(/\s+/).length : 0) + ' words · saved'; }
 function workbook() {
   const lv = state.level === 'All' ? (isStudent() ? myLevel() : 'B1') : state.level;
@@ -697,7 +990,7 @@ function workbook() {
   const ue = EXAM_ITEMS.filter(x => x.lvl === lv && ['gap', 'transform', 'short'].includes(x.type)).map(x => ({ q: esc(x.q), ans: x.ans, expl: esc(x.expl) }));
   const draftKey = `en-${lv}-writing`;
   const draft = ((wbGet(draftKey) || {}).v || {})[0] || '';
-  return `<div class="section"><h2>Workbook · ${lv}</h2><p class="muted">Interactive practice with instant checking, explanations and automatic progress saving — leave and return without losing your work.</p>${bannerSVG('workbook')}<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}</div><div class="wb-grid">${wbCard(`en-${lv}-1`, '1 · Vocabulary Builder', 'Match each word to its meaning.', m1)}${wbCard(`en-${lv}-2`, '2 · Grammar in Context', 'Which sentence uses the target structure?', m2)}${wbCard(`en-${lv}-3`, '3 · Use of English', 'Complete the sentence with the correct word.', m3)}${ec.length ? wbCard(`en-${lv}-ec`, '4 · Error Correction · Exam workshop', 'Choose the correct sentence — each option is a classic learner trap.', ec) : ''}${ue.length ? wbCard(`en-${lv}-ue`, '5 · Use of English · Exam workshop', 'Gap-fill, word formation and sentence transformations — type your answers.', ue, 'Submit & score') : ''}<div class="card wb"><h3>6 · Reading Skills · IELTS</h3><p class="muted small">Read the passage, then complete the exam-style tasks and check your score.</p>${ieltsPassage(t.reading)}${ieltsTasks([t.reading.tasks[0], t.reading.tasks[2]])}</div><div class="card wb"><h3>7 · Writing Practice</h3><p class="muted small">Plan → draft → check. Your draft is saved automatically as you type.</p><p><b>Task.</b> ${t.writing.prompt}</p><textarea class="input" rows="8" placeholder="Write your draft here…" oninput="wbSaveVal('${draftKey}',0,this.value);wbWordCount(this)">${esc(draft)}</textarea><div class="row" style="margin-top:8px"><span class="muted small" id="wbwc">${draft ? draft.trim().split(/\s+/).length + ' words · saved' : '0 words'}</span></div><div class="task"><b>Checklist</b>${t.writing.checklist.map(x => `<p>☐ ${x}</p>`).join('')}</div></div>${wbCard(`en-${lv}-6`, '8 · Unit Review', 'Five mixed questions. Submit to score the unit.', makeReview(lv, idx).map((q, i) => ({ q: esc(q.q), opts: shuffled(q.opts, i + 7), ans: q.ans, expl: `Correct answer: ${esc(q.ans)}` })), 'Submit & score')}</div></div>`;
+  return `<div class="section"><h2>Workbook · ${lv}</h2><p class="muted">Interactive practice with instant checking, explanations and automatic progress saving — leave and return without losing your work.</p>${bannerSVG('workbook')}<div class="filters" style="margin-top:16px">${['All', ...levels].map(x => `<button class="filter ${state.level === x ? 'active' : ''}" onclick="state.level='${x}';render()">${x}</button>`).join('')}</div><div class="wb-grid">${wbCard(`en-${lv}-1`, '1 · Vocabulary Builder', 'Match each word to its meaning.', m1)}${wbCard(`en-${lv}-2`, '2 · Grammar in Context', 'Which sentence uses the target structure?', m2)}${wbCard(`en-${lv}-3`, '3 · Use of English', 'Complete the sentence with the correct word.', m3)}${ec.length ? wbCard(`en-${lv}-ec`, '4 · Error Correction · Exam workshop', 'Choose the correct sentence — each option is a classic learner trap.', ec) : ''}${ue.length ? wbCard(`en-${lv}-ue`, '5 · Use of English · Exam workshop', 'Gap-fill, word formation and sentence transformations — type your answers.', ue, 'Submit & score') : ''}<div class="card wb"><h3>6 · Reading Skills · IELTS</h3><p class="muted small">Read the passage, then complete the exam-style tasks and check your score.</p>${ieltsPassage(t.reading)}${ieltsTasks([t.reading.tasks[0], t.reading.tasks[2]])}</div><div class="card wb"><h3>7 · Writing Practice</h3><p class="muted small">Plan → draft → check. Your draft is saved automatically as you type.</p><p><b>Task.</b> ${t.writing.prompt}</p><textarea class="input" rows="8" placeholder="Write your draft here…" oninput="wbSaveVal('${draftKey}',0,this.value);wbWordCount(this)">${esc(draft)}</textarea><div class="row" style="margin-top:8px"><span class="muted small" id="wbwc">${draft ? draft.trim().split(/\s+/).length + ' words · saved' : '0 words'}</span></div>${cbPanel(`Workbook · ${lv} · Writing Practice`, `Workbook · ${lv} · Unit task`, 'Workbook answer')}<div class="task"><b>Checklist</b>${t.writing.checklist.map(x => `<p>☐ ${x}</p>`).join('')}</div></div>${wbCard(`en-${lv}-6`, '8 · Unit Review', 'Five mixed questions. Submit to score the unit.', makeReview(lv, idx).map((q, i) => ({ q: esc(q.q), opts: shuffled(q.opts, i + 7), ans: q.ans, expl: `Correct answer: ${esc(q.ans)}` })), 'Submit & score')}</div></div>`;
 }
 function checkWB() {
   const rows = [...document.querySelectorAll('.wbq')];
@@ -854,7 +1147,9 @@ function writing() {
   let draft = '';
   try { draft = localStorage.getItem(key) || ''; } catch (e) {}
   const words = draft.trim() ? draft.trim().split(/\s+/).length : 0;
-  return `<div class="section"><h2>Writing Studio</h2>${bannerSVG('writing')}<div class="card"><span class="pill">Guided writing</span><h3>Write about a goal you want to achieve.</h3><p>Plan → draft → check. Aim for 120 words. Include one example and one reason.</p><textarea id="writer" rows="12" placeholder="Start writing here…" oninput="document.getElementById('wc').textContent=this.value.trim()?this.value.trim().split(/\\s+/).length:0;try{localStorage.setItem('${key}',this.value)}catch(e){}">${esc(draft)}</textarea><div class="row" style="justify-content:space-between;margin-top:10px"><span class="muted"><b id="wc">${words}</b> words${draft ? ' · saved' : ''}</span><button class="btn" onclick="try{localStorage.setItem('${key}',document.getElementById('writer').value)}catch(e){};toast('Draft saved to your own account. Review spelling, grammar, organization and task completion.')">Save my draft</button></div><div class="card" style="margin-top:15px;background:#fafaff"><b>Writer’s checklist</b><p>☐ Clear opening & purpose<br>☐ Supporting details<br>☐ Target grammar<br>☐ Linking words<br>☐ Spelling & punctuation</p></div></div></div>`;
+  const title = 'Writing Studio · Personal goal';
+  const existing = isStudent() ? ((state.copybook[myId()] || []).find(x => x.sourceKey === 'writing-studio') || {}) : {};
+  return `<div class="section"><h2>Writing Studio</h2>${bannerSVG('writing')}<div class="card"><span class="pill">Guided writing</span><h3>Write about a goal you want to achieve.</h3><p>Plan → draft → check. Aim for 120 words. Include one example and one reason.</p><input id="writer-task-title" class="input" value="${esc(existing.title || title)}" aria-label="Writing entry title" maxlength="120"><textarea id="writer" rows="12" placeholder="Start writing here…" oninput="document.getElementById('wc').textContent=this.value.trim()?this.value.trim().split(/\\s+/).length:0;try{localStorage.setItem('${key}',this.value)}catch(e){}">${esc(existing.body || draft)}</textarea><div class="row" style="justify-content:space-between;margin-top:10px"><span class="muted"><b id="wc">${(existing.body || draft).trim() ? (existing.body || draft).trim().split(/\s+/).length : 0}</b> words${draft ? ' · saved' : ''}</span><button class="btn" onclick="cbSubmitWritingStudio()">Save & submit for teacher review</button></div>${existing.teacherComment ? `<div class="cb-teacher-feedback"><b>Teacher feedback${existing.teacherName ? ` · ${esc(existing.teacherName)}` : ''}</b><p>${esc(existing.teacherComment)}</p></div>` : ''}<div class="card" style="margin-top:15px;background:#fafaff"><b>Writer’s checklist</b><p>☐ Clear opening & purpose<br>☐ Supporting details<br>☐ Target grammar<br>☐ Linking words<br>☐ Spelling & punctuation</p></div><p class="muted small">Your draft is private. Use “Save & submit” when you’re ready for your teacher to read it.</p></div></div>`;
 }
 /* ---------------- Assessment Studio · real exam engine ---------------- */
 const EXAM_ITEMS = [
@@ -1080,6 +1375,7 @@ function removeStudent(id) {
   if (!confirm(`Remove ${s.name} and all of their individual work? This cannot be undone.`)) return;
   state.student = state.student.filter(x => x.id !== id);
   state.homework.forEach(h => { if (h.subs) delete h.subs[id]; });
+  delete state.copybook[id];
   state.examRes = state.examRes.filter(r => r.student !== id);
   state.mistakes = state.mistakes.filter(m => m.student !== id);
   delete state.speakProgress[id];
@@ -1166,7 +1462,7 @@ function hwToggleGrade(id, sid) {
 }
 function hwSubForm(h) {
   const rec = hwRecOf(h, myId());
-  return `<div class="hwform"><label>Your answer<textarea class="input" id="hws-${h.id}" rows="4" placeholder="Write your answer here…">${esc((rec || {}).text || '')}</textarea></label><div class="row"><button class="btn" onclick="hwSubmit('${h.id}')">Send submission</button></div><p class="muted small">Your teacher sees this submission and your name only. For activity tasks, complete the linked section and describe your result here.</p></div>`;
+  return `<div class="hwform"><label>Your answer<textarea class="input" id="hws-${h.id}" rows="4" placeholder="Write your answer here…">${esc((rec || {}).text || '')}</textarea></label><div class="row"><button class="btn" onclick="hwSubmit('${h.id}')">Send submission</button></div><p class="muted small">Your teacher sees this submission and your name only. For activity tasks, complete the linked section and describe your result here.</p>${cbPanel(`Homework · ${h.title}`, `Homework · ${h.type || 'Custom'}`, 'Writing')}</div>`;
 }
 function hwGradeForm(h, sid) {
   const r = hwRecOf(h, sid) || {};
